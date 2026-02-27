@@ -7,7 +7,9 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "lint:ts": "tsc --noEmit",
+    "prepare": "husky install"
   },
   "dependencies": {
     "@react-navigation/bottom-tabs": "^7.15.2",
@@ -40,6 +42,7 @@
     "@typescript-eslint/parser": "^8.56.1",
     "eslint": "^9.39.3",
     "eslint-config-expo": "^55.0.0",
+    "husky": "^9.1.7",
     "typescript": "~5.9.2"
   },
   "private": true
