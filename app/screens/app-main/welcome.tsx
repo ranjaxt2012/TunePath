@@ -1,6 +1,14 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-export default function HomeScreen() {
+export default function WelcomeScreen() {
+  const router = useRouter();
+  
+  const handleGetStarted = () => {
+    console.log('Get Started pressed!');
+    router.push('/(auth)/sign-in' as any);
+  };
+
   return (
     <View style={styles.container}>
       {/* Background gradient container */}
@@ -24,9 +32,15 @@ export default function HomeScreen() {
 
         {/* Button */}
         <View style={styles.buttonContainer}>
-          <View style={styles.button}>
+          <Pressable 
+            onPress={handleGetStarted}
+            style={({ pressed }) => [
+              styles.button,
+              { opacity: pressed ? 0.8 : 1 }
+            ]}
+          >
             <Text style={styles.buttonText}>Get Started</Text>
-          </View>
+          </Pressable>
         </View>
       </View>
     </View>
@@ -43,8 +57,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    // Simulating gradient with multiple backgrounds
-    backgroundColor: 'transparent',
   },
   logoContainer: {
     alignItems: 'center',
@@ -59,8 +71,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
     elevation: 8,
   },
   logoIcon: {
@@ -70,7 +82,7 @@ const styles = StyleSheet.create({
   },
   titleContainer: {
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 24,
   },
   title: {
     fontSize: 48,
