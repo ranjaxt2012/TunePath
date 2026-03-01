@@ -1,9 +1,12 @@
 // App Main Screens
-export { default as WelcomeScreen } from './01-welcome';
+export { default as HomeScreen } from './home';
+export { default as LessonPlayerScreen } from './lesson-player';
+export { default as SelectInstrumentScreen } from './select-instrument';
+export { default as SelectLevelScreen } from './select-level';
+export { default as WelcomeScreen } from './welcome';
 
 // Future screens will be added here:
-// export { default as OnboardingScreen } from './02-onboarding';
-// export { default as LoginScreen } from './03-login';
-// export { default as SignupScreen } from './04-signup';
-// export { default as HomeScreen } from './05-home';
-// export { default as ProfileScreen } from './06-profile';
+// export { default as OnboardingScreen } from './onboarding';
+// export { default as LoginScreen } from './login';
+// export { default as SignupScreen } from './signup';
+// export { default as ProfileScreen } from './profile';

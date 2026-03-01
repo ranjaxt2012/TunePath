@@ -1,4 +1,4 @@
-import WelcomeScreen from '../screens/app-main/01-welcome';
+import WelcomeScreen from '../screens/app-main/welcome';
 
 export default function TabOneScreen() {
   return <WelcomeScreen />;
