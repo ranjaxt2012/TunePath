@@ -1,4 +1,5 @@
 import { StyleSheet } from 'react-native';
+import { sharedStyles } from './sharedStyles';
 import { DesignSystem } from './theme';
 
 export const lessonPlayerStyles = StyleSheet.create({
@@ -21,15 +22,8 @@ export const lessonPlayerStyles = StyleSheet.create({
     marginBottom: DesignSystem.spacing.md,
     alignSelf: 'flex-start',
   },
-  backIcon: {
-    fontSize: 20,
-    color: DesignSystem.colors.white,
-    fontWeight: '300',
-  },
-  backText: {
-    fontSize: 16,
-    color: DesignSystem.colors.white,
-  },
+  backIcon: sharedStyles.backIcon,
+  backText: sharedStyles.backText,
   // Header
   header: {
     marginBottom: DesignSystem.spacing.lg,
@@ -53,7 +47,7 @@ export const lessonPlayerStyles = StyleSheet.create({
     overflow: 'hidden',
     marginBottom: DesignSystem.spacing.lg,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: DesignSystem.colors.whiteOverlay['10'],
   },
   videoContent: {
     flex: 1,
@@ -65,7 +59,7 @@ export const lessonPlayerStyles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: DesignSystem.colors.whiteOverlay['20'],
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -85,7 +79,7 @@ export const lessonPlayerStyles = StyleSheet.create({
   },
   videoDuration: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: DesignSystem.colors.whiteOverlay['60'],
   },
   // Tempo Control
   tempoControl: {
@@ -110,8 +104,7 @@ export const lessonPlayerStyles = StyleSheet.create({
   },
   // Segmented Control
   segmentedControl: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: 20,
+    ...DesignSystem.components.glassSurface,
     padding: 4,
     flexDirection: 'row',
     gap: 4,
@@ -137,16 +130,15 @@ export const lessonPlayerStyles = StyleSheet.create({
     color: DesignSystem.colors.primary,
   },
   segmentButtonTextInactive: {
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: DesignSystem.colors.whiteOverlay['80'],
   },
   // Notation Section
   notationSection: {
     flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: 20,
+    ...DesignSystem.components.glassSurface,
     padding: DesignSystem.spacing.xl,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: DesignSystem.colors.whiteOverlay['10'],
   },
   // Sargam Styles
   sargamContainer: {
@@ -159,7 +151,7 @@ export const lessonPlayerStyles = StyleSheet.create({
   },
   measureBar: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.4)',
+    color: DesignSystem.colors.whiteOverlay['40'],
     minWidth: 20,
   },
   beatsContainer: {
@@ -177,7 +169,7 @@ export const lessonPlayerStyles = StyleSheet.create({
     backgroundColor: '#8B5CF6',
   },
   beatInactive: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: DesignSystem.colors.whiteOverlay['10'],
   },
   beatText: {
     fontSize: 14,
@@ -187,7 +179,7 @@ export const lessonPlayerStyles = StyleSheet.create({
     color: DesignSystem.colors.white,
   },
   beatTextInactive: {
-    color: 'rgba(255, 255, 255, 0.9)',
+    color: DesignSystem.colors.whiteOverlay['90'],
   },
   // Staff Styles
   staffContainer: {
@@ -201,7 +193,7 @@ export const lessonPlayerStyles = StyleSheet.create({
     position: 'absolute',
     width: '100%',
     height: 2,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: DesignSystem.colors.whiteOverlay['30'],
   },
   trebleClef: {
     position: 'absolute',
@@ -239,7 +231,7 @@ export const lessonPlayerStyles = StyleSheet.create({
     elevation: 10,
   },
   noteHeadInactive: {
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: DesignSystem.colors.whiteOverlay['90'],
   },
   noteStem: {
     position: 'absolute',
@@ -252,7 +244,7 @@ export const lessonPlayerStyles = StyleSheet.create({
     backgroundColor: '#A78BFA',
   },
   noteStemInactive: {
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: DesignSystem.colors.whiteOverlay['90'],
   },
   // Floating Button
   floatingButtonContainer: {

@@ -3,19 +3,10 @@ import { sharedStyles } from './sharedStyles';
 import { DesignSystem } from './theme';
 
 export const practiceStyles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: DesignSystem.colors.primary,
-  },
-  headerContainer: {
-    paddingHorizontal: DesignSystem.spacing.xl,
-    paddingVertical: DesignSystem.spacing['3xl'],
-  },
+  container: sharedStyles.screenContainer,
+  headerContainer: sharedStyles.screenHeaderContainer,
   title: sharedStyles.whiteTitle,
-  mainContent: {
-    flex: 1,
-    paddingHorizontal: DesignSystem.spacing.xl,
-  },
+  mainContent: sharedStyles.screenMainContent,
   section: {
     marginBottom: DesignSystem.spacing.xl,
   },
@@ -36,14 +27,14 @@ export const practiceStyles = StyleSheet.create({
     marginHorizontal: DesignSystem.spacing.xs,
   },
   instrumentCardActive: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: DesignSystem.colors.whiteOverlay['20'],
     borderWidth: 2,
     borderColor: DesignSystem.colors.white,
   },
   instrumentCardInactive: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: DesignSystem.colors.whiteOverlay['10'],
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: DesignSystem.colors.whiteOverlay['20'],
   },
   instrumentCardContent: {
     flexDirection: 'column',
@@ -62,15 +53,12 @@ export const practiceStyles = StyleSheet.create({
   },
   instrumentLevel: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: DesignSystem.colors.whiteOverlay['70'],
     textAlign: 'center',
   },
   // Lesson Card Styles
   lessonCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 20,
+    ...DesignSystem.components.glassCard,
     padding: DesignSystem.spacing.lg,
     marginBottom: DesignSystem.spacing.md,
   },
@@ -91,7 +79,7 @@ export const practiceStyles = StyleSheet.create({
   },
   lessonDuration: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: DesignSystem.colors.whiteOverlay['70'],
   },
   startButton: {
     backgroundColor: DesignSystem.colors.white,
@@ -106,7 +94,7 @@ export const practiceStyles = StyleSheet.create({
   },
   progressBarContainer: {
     width: '100%',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: DesignSystem.colors.whiteOverlay['20'],
     borderRadius: 8,
     height: 6,
     overflow: 'hidden',
@@ -119,51 +107,14 @@ export const practiceStyles = StyleSheet.create({
   lessonsContainer: {
     gap: DesignSystem.spacing.sm,
   },
-  // Bottom Tab Bar (reusing from homeStyles)
-  bottomTabBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  tabBarContent: {
-    alignSelf: 'center',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around',
-    paddingHorizontal: DesignSystem.spacing.xl,
-    paddingVertical: DesignSystem.spacing.sm,
-  },
-  tabButton: {
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: 4,
-    paddingVertical: DesignSystem.spacing.sm,
-    paddingHorizontal: DesignSystem.spacing.md,
-  },
-  tabIconActive: {
-    fontSize: 24,
-    color: DesignSystem.colors.white,
-  },
-  tabTextActive: {
-    fontSize: 10,
-    fontWeight: '500',
-    color: DesignSystem.colors.white,
-  },
-  tabIconInactive: {
-    fontSize: 24,
-    color: DesignSystem.colors.white,
-    opacity: 0.6,
-  },
-  tabTextInactive: {
-    fontSize: 10,
-    fontWeight: '500',
-    color: DesignSystem.colors.white,
-    opacity: 0.6,
-  },
+  // Bottom Tab Bar
+  bottomTabBar: sharedStyles.bottomTabBar,
+  tabBarContent: sharedStyles.tabBarContent,
+  tabButton: sharedStyles.tabButton,
+  tabIconActive: sharedStyles.tabIconActive,
+  tabTextActive: sharedStyles.tabTextActive,
+  tabIconInactive: sharedStyles.tabIconInactive,
+  tabTextInactive: sharedStyles.tabTextInactive,
 });
 
 export default practiceStyles;

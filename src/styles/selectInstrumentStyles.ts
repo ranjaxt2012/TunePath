@@ -33,15 +33,8 @@ export const selectInstrumentStyles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  backIcon: {
-    fontSize: 20,
-    color: DesignSystem.colors.white,
-    fontWeight: '300',
-  },
-  backText: {
-    fontSize: 16,
-    color: DesignSystem.colors.white,
-  },
+  backIcon: sharedStyles.backIcon,
+  backText: sharedStyles.backText,
   headerContainer: {
     paddingHorizontal: DesignSystem.spacing.xl,
     paddingVertical: DesignSystem.spacing['3xl'],
@@ -74,9 +67,7 @@ export const selectInstrumentStyles = StyleSheet.create({
   instrumentCard: {
     width: 150,
     height: 120,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    ...DesignSystem.components.glassCard,
     borderRadius: DesignSystem.borderRadius.xl,
     alignItems: 'center',
     justifyContent: 'center',

@@ -1,4 +1,5 @@
 import { StyleSheet } from 'react-native';
+import { sharedStyles } from './sharedStyles';
 import { DesignSystem } from './theme';
 
 export const homeStyles = StyleSheet.create({
@@ -13,18 +14,6 @@ export const homeStyles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  backArrowButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: DesignSystem.spacing.md,
-    alignSelf: 'flex-start',
-  },
-  backArrow: {
-    fontSize: 20,
-    color: DesignSystem.colors.white,
-    fontWeight: '300',
-  },
   backButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -32,15 +21,8 @@ export const homeStyles = StyleSheet.create({
     marginBottom: DesignSystem.spacing.md,
     alignSelf: 'flex-start',
   },
-  backIcon: {
-    fontSize: 20,
-    color: DesignSystem.colors.white,
-    fontWeight: '300',
-  },
-  backText: {
-    fontSize: 16,
-    color: DesignSystem.colors.white,
-  },
+  backIcon: sharedStyles.backIcon,
+  backText: sharedStyles.backText,
   headerContent: {
     alignItems: 'center',
     gap: 12,
@@ -70,10 +52,7 @@ export const homeStyles = StyleSheet.create({
     width: '100%',
   },
   largeCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 20,
+    ...DesignSystem.components.glassCard,
     padding: DesignSystem.spacing.xl,
     marginBottom: DesignSystem.spacing.lg,
     width: '100%',
@@ -86,7 +65,7 @@ export const homeStyles = StyleSheet.create({
   },
   cardSubtitle: {
     fontSize: 15,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: DesignSystem.colors.whiteOverlay['70'],
     marginBottom: DesignSystem.spacing.lg,
   },
   primaryButton: {
@@ -108,10 +87,7 @@ export const homeStyles = StyleSheet.create({
     color: DesignSystem.colors.primary,
   },
   smallCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 20,
+    ...DesignSystem.components.glassCard,
     padding: DesignSystem.spacing.lg,
   },
   smallCardTitle: {
@@ -122,53 +98,16 @@ export const homeStyles = StyleSheet.create({
   },
   smallCardSubtitle: {
     fontSize: 15,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: DesignSystem.colors.whiteOverlay['70'],
   },
   // Bottom Tab Bar
-  bottomTabBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  tabBarContent: {
-    alignSelf: 'center',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around',
-    paddingHorizontal: DesignSystem.spacing.xl,
-    paddingVertical: DesignSystem.spacing.sm,
-  },
-  tabButton: {
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: 4,
-    paddingVertical: DesignSystem.spacing.sm,
-    paddingHorizontal: DesignSystem.spacing.md,
-  },
-  tabIconActive: {
-    fontSize: 24,
-    color: DesignSystem.colors.white,
-  },
-  tabTextActive: {
-    fontSize: 10,
-    fontWeight: '500',
-    color: DesignSystem.colors.white,
-  },
-  tabIconInactive: {
-    fontSize: 24,
-    color: DesignSystem.colors.white,
-    opacity: 0.6,
-  },
-  tabTextInactive: {
-    fontSize: 10,
-    fontWeight: '500',
-    color: DesignSystem.colors.white,
-    opacity: 0.6,
-  },
+  bottomTabBar: sharedStyles.bottomTabBar,
+  tabBarContent: sharedStyles.tabBarContent,
+  tabButton: sharedStyles.tabButton,
+  tabIconActive: sharedStyles.tabIconActive,
+  tabTextActive: sharedStyles.tabTextActive,
+  tabIconInactive: sharedStyles.tabIconInactive,
+  tabTextInactive: sharedStyles.tabTextInactive,
   // Help and Resources
   helpResourcesContainer: {
     paddingHorizontal: DesignSystem.spacing.xl,

@@ -21,9 +21,7 @@ export const authStyles = StyleSheet.create({
   signInContainer: {
     width: '100%',
     maxWidth: 400,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    ...DesignSystem.components.glassCard,
     borderRadius: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 25 },
@@ -37,9 +35,7 @@ export const authStyles = StyleSheet.create({
   signUpContainer: {
     width: '100%',
     maxWidth: 400,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    ...DesignSystem.components.glassCard,
     borderRadius: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 25 },
@@ -95,7 +91,7 @@ export const authStyles = StyleSheet.create({
   subtitle: {
     fontSize: 15,
     fontWeight: '400',
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: DesignSystem.colors.whiteOverlay['70'],
     textAlign: 'center',
     lineHeight: 22.5,
   },
@@ -105,9 +101,9 @@ export const authStyles = StyleSheet.create({
     marginBottom: 32,
   },
   inputContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: DesignSystem.colors.whiteOverlay['20'],
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: DesignSystem.colors.whiteOverlay['30'],
     borderRadius: 20,
     paddingHorizontal: 20,
     paddingVertical: 16,
@@ -117,7 +113,7 @@ export const authStyles = StyleSheet.create({
   inputText: {
     fontSize: 14,
     fontWeight: '400',
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: DesignSystem.colors.whiteOverlay['60'],
     lineHeight: 17,
   },
 
@@ -156,7 +152,7 @@ export const authStyles = StyleSheet.create({
   footerText: {
     fontSize: 14,
     fontWeight: '400',
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: DesignSystem.colors.whiteOverlay['70'],
     textAlign: 'center',
     lineHeight: 21,
   },
@@ -178,9 +174,9 @@ export const authStyles = StyleSheet.create({
     marginBottom: 24,
   },
   socialButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    backgroundColor: DesignSystem.colors.whiteOverlay['90'],
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: DesignSystem.colors.whiteOverlay['30'],
     borderRadius: 20,
     paddingVertical: 14,
     paddingHorizontal: 20,
@@ -209,11 +205,11 @@ export const authStyles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: DesignSystem.colors.whiteOverlay['30'],
   },
   dividerText: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: DesignSystem.colors.whiteOverlay['70'],
     fontWeight: '400',
   },
 
@@ -228,7 +224,7 @@ export const authStyles = StyleSheet.create({
   termsText: {
     fontSize: 12,
     fontWeight: '400',
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: DesignSystem.colors.whiteOverlay['50'],
     textAlign: 'center',
     lineHeight: 19.5,
   },

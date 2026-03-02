@@ -1,4 +1,5 @@
 import { StyleSheet } from 'react-native';
+import { sharedStyles } from './sharedStyles';
 import { DesignSystem } from './theme';
 
 export const selectLevelStyles = StyleSheet.create({
@@ -27,15 +28,8 @@ export const selectLevelStyles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  backIcon: {
-    fontSize: 20,
-    color: DesignSystem.colors.white,
-    fontWeight: '300',
-  },
-  backText: {
-    fontSize: 16,
-    color: DesignSystem.colors.white,
-  },
+  backIcon: sharedStyles.backIcon,
+  backText: sharedStyles.backText,
   headerContainer: {
     paddingHorizontal: DesignSystem.spacing.xl,
     paddingVertical: DesignSystem.spacing['3xl'],
@@ -64,23 +58,12 @@ export const selectLevelStyles = StyleSheet.create({
     width: '100%',
   },
   levelCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 20,
+    ...DesignSystem.components.glassCard,
     padding: DesignSystem.spacing.xl,
     width: '100%',
   },
-  levelCardSelected: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.4)',
-  },
-  levelCardUnselected: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-  },
+  levelCardSelected: DesignSystem.components.glassCardSelected,
+  levelCardUnselected: DesignSystem.components.glassCard,
   levelHeader: {
     alignItems: 'flex-start',
   },
@@ -92,7 +75,7 @@ export const selectLevelStyles = StyleSheet.create({
   },
   levelSubtitle: {
     fontSize: 15,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: DesignSystem.colors.whiteOverlay['70'],
   },
 });
 

@@ -69,6 +69,80 @@ export const sharedStyles = StyleSheet.create({
     marginVertical: DesignSystem.spacing.lg,
   },
   
+  // Screen layout (shared by practice, profile, progress tab screens)
+  screenContainer: {
+    flex: 1,
+    backgroundColor: DesignSystem.colors.primary,
+  },
+  screenHeaderContainer: {
+    paddingHorizontal: DesignSystem.spacing.xl,
+    paddingVertical: DesignSystem.spacing['3xl'],
+  },
+  screenMainContent: {
+    flex: 1,
+    paddingHorizontal: DesignSystem.spacing.xl,
+  },
+
+  // Glass card (white-10% bg, white-20% border, radius 20)
+  glassCard: DesignSystem.components.glassCard,
+
+  // Back button icon & text (shared across all screens)
+  backIcon: {
+    fontSize: 20,
+    color: DesignSystem.colors.white,
+    fontWeight: '300' as const,
+  },
+  backText: {
+    fontSize: 16,
+    color: DesignSystem.colors.white,
+  },
+
+  // Bottom tab bar (shared across all tab screens)
+  bottomTabBar: {
+    position: 'absolute' as const,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: DesignSystem.colors.whiteOverlay['10'],
+    borderTopWidth: 1,
+    borderTopColor: DesignSystem.colors.whiteOverlay['20'],
+  },
+  tabBarContent: {
+    alignSelf: 'center' as const,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-around' as const,
+    paddingHorizontal: DesignSystem.spacing.xl,
+    paddingVertical: DesignSystem.spacing.sm,
+  },
+  tabButton: {
+    flexDirection: 'column' as const,
+    alignItems: 'center' as const,
+    gap: 4,
+    paddingVertical: DesignSystem.spacing.sm,
+    paddingHorizontal: DesignSystem.spacing.md,
+  },
+  tabIconActive: {
+    fontSize: 24,
+    color: DesignSystem.colors.white,
+  },
+  tabTextActive: {
+    fontSize: 10,
+    fontWeight: '500' as const,
+    color: DesignSystem.colors.white,
+  },
+  tabIconInactive: {
+    fontSize: 24,
+    color: DesignSystem.colors.white,
+    opacity: 0.6,
+  },
+  tabTextInactive: {
+    fontSize: 10,
+    fontWeight: '500' as const,
+    color: DesignSystem.colors.white,
+    opacity: 0.6,
+  },
+
   // Common background patterns
   primaryBackground: {
     backgroundColor: DesignSystem.colors.primary,

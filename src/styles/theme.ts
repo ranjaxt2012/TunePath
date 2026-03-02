@@ -23,6 +23,19 @@ const colors = {
     radius: 8,
     elevation: 4,
   },
+  // White overlay tokens for glass UI on primary background
+  whiteOverlay: {
+    '10': 'rgba(255, 255, 255, 0.1)',
+    '15': 'rgba(255, 255, 255, 0.15)',
+    '20': 'rgba(255, 255, 255, 0.2)',
+    '30': 'rgba(255, 255, 255, 0.3)',
+    '40': 'rgba(255, 255, 255, 0.4)',
+    '50': 'rgba(255, 255, 255, 0.5)',
+    '60': 'rgba(255, 255, 255, 0.6)',
+    '70': 'rgba(255, 255, 255, 0.7)',
+    '80': 'rgba(255, 255, 255, 0.8)',
+    '90': 'rgba(255, 255, 255, 0.9)',
+  },
 };
 
 const typography = {
@@ -73,6 +86,24 @@ const borderRadius = {
 
 // Component styles using base tokens
 const components = {
+  // Glass card — standard frosted card on primary background
+  glassCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 20,
+  },
+  // Glass card selected state
+  glassCardSelected: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.4)',
+  },
+  // Segmented / overlay surface (slightly brighter)
+  glassSurface: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 20,
+  },
   card: {
     backgroundColor: colors.white,
     borderRadius: borderRadius['2xl'],
