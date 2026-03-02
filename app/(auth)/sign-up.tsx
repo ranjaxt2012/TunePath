@@ -11,9 +11,8 @@ export default function SignUpScreen() {
   };
 
   return (
-    <View style={authStyles.container}>
-      {/* Background gradient */}
-      <View style={authStyles.backgroundGradient}>
+    <View style={authStyles.safeAreaContainer}>
+      <View style={authStyles.container}>
         {/* Back Button */}
         <View style={authStyles.backButtonContainer}>
           <Pressable 

@@ -11,9 +11,8 @@ export default function SignInScreen() {
   };
 
   return (
-    <View style={authStyles.container}>
-      {/* Background gradient */}
-      <View style={authStyles.backgroundGradient}>
+    <View style={authStyles.safeAreaContainer}>
+      <View style={authStyles.container}>
         {/* Sign In Container */}
         <View style={authStyles.signInContainer}>
           {/* Title */}

@@ -2,6 +2,12 @@ import { StyleSheet } from 'react-native';
 import { DesignSystem } from './theme';
 
 export const selectLevelStyles = StyleSheet.create({
+  // iOS Safe Area Container
+  safeAreaContainer: {
+    flex: 1,
+    backgroundColor: DesignSystem.colors.primary,
+  },
+
   container: DesignSystem.layout.container,
   backgroundGradient: {
     flex: 1,
@@ -52,17 +58,19 @@ export const selectLevelStyles = StyleSheet.create({
     flexDirection: 'column',
     alignItems: 'center',
     gap: DesignSystem.spacing.lg,
+    paddingHorizontal: DesignSystem.spacing.xl,
   },
   levelCard: {
-    width: '100%',
-    height: 120,
+    width: '95%',
+    maxWidth: 320,
+    height: 140,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderWidth: 2,
     borderColor: 'rgba(255, 255, 255, 0)',
     borderRadius: DesignSystem.borderRadius.xl,
     alignItems: 'flex-start',
     justifyContent: 'center',
-    padding: 24,
+    padding: 28,
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,

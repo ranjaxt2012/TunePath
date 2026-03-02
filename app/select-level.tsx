@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
+import { authStyles } from '../src/styles/index';
 import { selectLevelStyles } from '../src/styles/selectLevelStyles';
 
 type Level = "beginner" | "intermediate" | "advanced" | null;
@@ -18,8 +19,7 @@ export default function SelectLevelScreen() {
   };
 
   return (
-    <View style={selectLevelStyles.container}>
-      {/* Background gradient */}
+    <View style={authStyles.safeAreaContainer}>
       <View style={selectLevelStyles.backgroundGradient}>
         {/* Back Button */}
         <View style={selectLevelStyles.backButtonContainer}>

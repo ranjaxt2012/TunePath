@@ -3,13 +3,24 @@ import { sharedStyles } from './sharedStyles';
 import { DesignSystem } from './theme';
 
 export const selectInstrumentStyles = StyleSheet.create({
+  // iOS Safe Area Container
+  safeAreaContainer: {
+    flex: 1,
+    backgroundColor: DesignSystem.colors.primary,
+  },
+
   container: DesignSystem.layout.container,
   backgroundGradient: {
     flex: 1,
     // Gradient background: linear-gradient(135deg, rgba(152, 16, 250, 1) 0%, rgba(173, 70, 255, 1) 50%, rgba(43, 127, 255, 1) 100%)
     backgroundColor: DesignSystem.colors.primary,
+  },
+  contentContainer: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: DesignSystem.spacing.lg,
+    paddingVertical: DesignSystem.spacing.xl,
   },
   backButtonContainer: {
     position: 'absolute',
@@ -45,6 +56,15 @@ export const selectInstrumentStyles = StyleSheet.create({
     textAlign: 'center',
   },
   instrumentsContainer: {
+    flexDirection: 'column',
+    gap: DesignSystem.spacing.lg,
+  },
+  instrumentRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: DesignSystem.spacing.lg,
+  },
+  instrumentGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
