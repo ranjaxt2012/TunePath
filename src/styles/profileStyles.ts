@@ -3,19 +3,10 @@ import { sharedStyles } from './sharedStyles';
 import { DesignSystem } from './theme';
 
 export const profileStyles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: DesignSystem.colors.primary,
-  },
-  headerContainer: {
-    paddingHorizontal: DesignSystem.spacing.xl,
-    paddingVertical: DesignSystem.spacing['3xl'],
-  },
+  container: sharedStyles.screenContainer,
+  headerContainer: sharedStyles.screenHeaderContainer,
   title: sharedStyles.whiteTitle,
-  mainContent: {
-    flex: 1,
-    paddingHorizontal: DesignSystem.spacing.xl,
-  },
+  mainContent: sharedStyles.screenMainContent,
   section: {
     marginBottom: DesignSystem.spacing.xl,
   },
@@ -28,10 +19,7 @@ export const profileStyles = StyleSheet.create({
   },
   // User Info Card Styles
   userInfoCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 20,
+    ...DesignSystem.components.glassCard,
     padding: DesignSystem.spacing.xl,
     alignItems: 'center',
     marginBottom: DesignSystem.spacing.lg,
@@ -40,9 +28,9 @@ export const profileStyles = StyleSheet.create({
     width: 96,
     height: 96,
     borderRadius: 48,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: DesignSystem.colors.whiteOverlay['20'],
     borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.4)',
+    borderColor: DesignSystem.colors.whiteOverlay['40'],
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: DesignSystem.spacing.md,
@@ -59,24 +47,21 @@ export const profileStyles = StyleSheet.create({
   },
   userInstrument: {
     fontSize: 15,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: DesignSystem.colors.whiteOverlay['70'],
     marginBottom: 2,
   },
   userLevel: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: DesignSystem.colors.whiteOverlay['60'],
   },
   // Section Card Styles
   sectionCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 20,
+    ...DesignSystem.components.glassCard,
     overflow: 'hidden',
   },
   divider: {
     height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: DesignSystem.colors.whiteOverlay['10'],
   },
   // Settings Item Styles
   settingsItem: {
@@ -92,7 +77,7 @@ export const profileStyles = StyleSheet.create({
   },
   settingsItemIcon: {
     fontSize: 20,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: DesignSystem.colors.whiteOverlay['80'],
   },
   settingsItemLabel: {
     fontSize: 16,
@@ -106,57 +91,20 @@ export const profileStyles = StyleSheet.create({
   },
   settingsItemValue: {
     fontSize: 15,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: DesignSystem.colors.whiteOverlay['60'],
   },
   chevron: {
     fontSize: 20,
-    color: 'rgba(255, 255, 255, 0.4)',
+    color: DesignSystem.colors.whiteOverlay['40'],
   },
-  // Bottom Tab Bar (reusing from homeStyles)
-  bottomTabBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  tabBarContent: {
-    alignSelf: 'center',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around',
-    paddingHorizontal: DesignSystem.spacing.xl,
-    paddingVertical: DesignSystem.spacing.sm,
-  },
-  tabButton: {
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: 4,
-    paddingVertical: DesignSystem.spacing.sm,
-    paddingHorizontal: DesignSystem.spacing.md,
-  },
-  tabIconActive: {
-    fontSize: 24,
-    color: DesignSystem.colors.white,
-  },
-  tabTextActive: {
-    fontSize: 10,
-    fontWeight: '500',
-    color: DesignSystem.colors.white,
-  },
-  tabIconInactive: {
-    fontSize: 24,
-    color: DesignSystem.colors.white,
-    opacity: 0.6,
-  },
-  tabTextInactive: {
-    fontSize: 10,
-    fontWeight: '500',
-    color: DesignSystem.colors.white,
-    opacity: 0.6,
-  },
+  // Bottom Tab Bar
+  bottomTabBar: sharedStyles.bottomTabBar,
+  tabBarContent: sharedStyles.tabBarContent,
+  tabButton: sharedStyles.tabButton,
+  tabIconActive: sharedStyles.tabIconActive,
+  tabTextActive: sharedStyles.tabTextActive,
+  tabIconInactive: sharedStyles.tabIconInactive,
+  tabTextInactive: sharedStyles.tabTextInactive,
 });
 
 export default profileStyles;
