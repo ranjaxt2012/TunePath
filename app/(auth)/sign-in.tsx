@@ -1,3 +1,4 @@
+import { FontAwesome5 } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
 import { authStyles } from '../../src/styles/authStyles';
@@ -64,7 +65,7 @@ export default function SignInScreen() {
                 style={({ pressed }) => [authStyles.socialButton, { opacity: pressed ? 0.8 : 1 }]}
                 onPress={() => console.log('Apple Sign In pressed')}
               >
-                <Text style={authStyles.socialButtonIcon}>🍎</Text>
+                <FontAwesome5 name="apple" size={20} color="#1f2937" brand />
                 <Text style={authStyles.socialButtonText}>Continue with Apple</Text>
               </Pressable>
 
@@ -73,7 +74,7 @@ export default function SignInScreen() {
                 style={({ pressed }) => [authStyles.socialButton, { opacity: pressed ? 0.8 : 1 }]}
                 onPress={() => console.log('Google Sign In pressed')}
               >
-                <Text style={authStyles.socialButtonIcon}>🌐</Text>
+                <FontAwesome5 name="google" size={20} color="#1f2937" brand />
                 <Text style={authStyles.socialButtonText}>Continue with Google</Text>
               </Pressable>
 
@@ -82,7 +83,7 @@ export default function SignInScreen() {
                 style={({ pressed }) => [authStyles.socialButton, { opacity: pressed ? 0.8 : 1 }]}
                 onPress={() => console.log('Facebook Sign In pressed')}
               >
-                <Text style={authStyles.socialButtonIcon}>📘</Text>
+                <FontAwesome5 name="facebook" size={20} color="#1f2937" brand />
                 <Text style={authStyles.socialButtonText}>Continue with Facebook</Text>
               </Pressable>
 
@@ -91,7 +92,7 @@ export default function SignInScreen() {
                 style={({ pressed }) => [authStyles.socialButton, { opacity: pressed ? 0.8 : 1 }]}
                 onPress={() => console.log('Guest Sign In pressed')}
               >
-                <Text style={authStyles.socialButtonIcon}>👤</Text>
+                <FontAwesome5 name="user" size={20} color="#1f2937" />
                 <Text style={authStyles.socialButtonText}>Continue as Guest</Text>
               </Pressable>
             </View>

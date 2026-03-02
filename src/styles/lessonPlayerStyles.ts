@@ -1,6 +1,5 @@
 import { StyleSheet } from 'react-native';
 import { DesignSystem } from './theme';
-import { sharedStyles } from './sharedStyles';
 
 export const lessonPlayerStyles = StyleSheet.create({
   container: {
@@ -11,8 +10,8 @@ export const lessonPlayerStyles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    padding: DesignSystem.spacing.xl,
-    paddingBottom: 128, // Space for floating button
+    padding: DesignSystem.spacing.lg,
+    paddingBottom: 100, // Space for floating button
   },
   // Back Button
   backButton: {
@@ -41,7 +40,7 @@ export const lessonPlayerStyles = StyleSheet.create({
     marginBottom: 4,
   },
   title: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '600',
     color: DesignSystem.colors.white,
   },
@@ -63,18 +62,18 @@ export const lessonPlayerStyles = StyleSheet.create({
     gap: 16,
   },
   playButton: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   playIcon: {
-    fontSize: 40,
+    fontSize: 22,
     color: DesignSystem.colors.white,
     fontWeight: '300',
-    marginLeft: 4,
+    marginLeft: 3,
   },
   videoInfo: {
     alignItems: 'center',
@@ -151,7 +150,7 @@ export const lessonPlayerStyles = StyleSheet.create({
   },
   // Sargam Styles
   sargamContainer: {
-    gap: 16,
+    gap: 10,
   },
   measureRow: {
     flexDirection: 'row',
@@ -170,7 +169,7 @@ export const lessonPlayerStyles = StyleSheet.create({
   },
   beat: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 8,
     borderRadius: 20,
     alignItems: 'center',
   },
@@ -192,10 +191,10 @@ export const lessonPlayerStyles = StyleSheet.create({
   },
   // Staff Styles
   staffContainer: {
-    gap: 32,
+    gap: 20,
   },
   staff: {
-    height: 192,
+    height: 130,
     position: 'relative',
   },
   staffLine: {
@@ -208,8 +207,8 @@ export const lessonPlayerStyles = StyleSheet.create({
     position: 'absolute',
     left: 8,
     top: '50%',
-    transform: [{ translateY: -32 }],
-    fontSize: 80,
+    transform: [{ translateY: -22 }],
+    fontSize: 52,
     color: DesignSystem.colors.white,
     fontFamily: 'serif',
     fontStyle: 'italic',
@@ -226,9 +225,9 @@ export const lessonPlayerStyles = StyleSheet.create({
     alignItems: 'center',
   },
   noteHead: {
-    width: 28,
-    height: 20,
-    borderRadius: 10,
+    width: 18,
+    height: 13,
+    borderRadius: 7,
     transform: [{ rotate: '-12deg' }],
   },
   noteHeadActive: {
@@ -245,9 +244,9 @@ export const lessonPlayerStyles = StyleSheet.create({
   noteStem: {
     position: 'absolute',
     width: 2,
-    height: 40,
+    height: 26,
     left: '85%',
-    top: -40,
+    top: -26,
   },
   noteStemActive: {
     backgroundColor: '#A78BFA',
@@ -267,12 +266,12 @@ export const lessonPlayerStyles = StyleSheet.create({
   floatingButton: {
     width: '100%',
     backgroundColor: DesignSystem.colors.white,
-    paddingVertical: 16,
+    paddingVertical: 14,
     borderRadius: 20,
     alignItems: 'center',
   },
   floatingButtonText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
     color: DesignSystem.colors.primary,
   },
