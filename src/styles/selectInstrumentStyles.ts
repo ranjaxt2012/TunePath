@@ -8,14 +8,42 @@ export const selectInstrumentStyles = StyleSheet.create({
     flex: 1,
     // Gradient background: linear-gradient(135deg, rgba(152, 16, 250, 1) 0%, rgba(173, 70, 255, 1) 50%, rgba(43, 127, 255, 1) 100%)
     backgroundColor: DesignSystem.colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  backButtonContainer: {
+    position: 'absolute',
+    top: 60,
+    left: 24,
+    zIndex: 1,
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  backIcon: {
+    fontSize: 20,
+    color: DesignSystem.colors.white,
+    fontWeight: '300',
+  },
+  backText: {
+    fontSize: 16,
+    color: DesignSystem.colors.white,
   },
   headerContainer: {
     paddingHorizontal: DesignSystem.spacing.xl,
     paddingVertical: DesignSystem.spacing['3xl'],
     alignItems: 'center',
+    gap: 12,
   },
   title: sharedStyles.whiteTitle,
-  subtitle: sharedStyles.subtitle,
+  subtitle: {
+    fontSize: DesignSystem.typography.fontSizes.base,
+    fontWeight: DesignSystem.typography.fontWeights.regular,
+    color: DesignSystem.colors.white,
+    textAlign: 'center',
+  },
   instrumentsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -45,7 +73,7 @@ export const selectInstrumentStyles = StyleSheet.create({
   instrumentName: {
     fontSize: DesignSystem.typography.fontSizes.base,
     fontWeight: DesignSystem.typography.fontWeights.medium,
-    ...sharedStyles.primaryText,
+    color: DesignSystem.colors.white,
     textAlign: 'center',
   },
 });

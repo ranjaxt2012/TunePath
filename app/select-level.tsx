@@ -1,75 +1,87 @@
 import { useRouter } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Pressable, Text, View } from 'react-native';
+import { selectLevelStyles } from '../src/styles/selectLevelStyles';
+
+type Level = "beginner" | "intermediate" | "advanced" | null;
 
 export default function SelectLevelScreen() {
   const router = useRouter();
+  const [selectedLevel, setSelectedLevel] = useState<Level>(null);
   
   const handleLevelSelect = (level: string) => {
+    setSelectedLevel(level as Level);
     console.log('Level selected:', level);
-    router.push('/home' as any);
+    setTimeout(() => {
+      router.push('/home' as any);
+    }, 200);
   };
 
   return (
-    <View style={styles.container}>
+    <View style={selectLevelStyles.container}>
       {/* Background gradient */}
-      <View style={styles.backgroundGradient}>
+      <View style={selectLevelStyles.backgroundGradient}>
         {/* Back Button */}
-        <View style={styles.backButtonContainer}>
+        <View style={selectLevelStyles.backButtonContainer}>
           <Pressable 
-            style={({ pressed }) => [styles.backButton, { opacity: pressed ? 0.8 : 1 }]}
+            style={({ pressed }) => [selectLevelStyles.backButton, { opacity: pressed ? 0.8 : 1 }]}
             onPress={() => router.push('/select-instrument')}
           >
-            <Text style={styles.backIcon}>‹</Text>
-            <Text style={styles.backText}>Back</Text>
+            <Text style={selectLevelStyles.backIcon}>‹</Text>
+            <Text style={selectLevelStyles.backText}>Back</Text>
           </Pressable>
         </View>
 
         {/* Header */}
-        <View style={styles.headerContainer}>
-          <Text style={styles.title}>Select Your Level</Text>
+        <View style={selectLevelStyles.headerContainer}>
+          <Text style={selectLevelStyles.title}>Select Your Level</Text>
+          <Text style={selectLevelStyles.subtitle}>We'll tailor exercises to your experience.</Text>
         </View>
 
         {/* Level Options */}
-        <View style={styles.levelsContainer}>
+        <View style={selectLevelStyles.levelsContainer}>
           {/* Beginner */}
           <Pressable 
             style={({ pressed }) => [
-              styles.levelCard,
+              selectLevelStyles.levelCard,
+              selectedLevel === 'beginner' ? selectLevelStyles.levelCardSelected : selectLevelStyles.levelCardUnselected,
               { opacity: pressed ? 0.8 : 1 }
             ]}
             onPress={() => handleLevelSelect('beginner')}
           >
-            <View style={styles.levelHeader}>
-              <Text style={styles.levelTitle}>Beginner</Text>
-              <Text style={styles.levelSubtitle}>Just getting started</Text>
+            <View style={selectLevelStyles.levelHeader}>
+              <Text style={selectLevelStyles.levelTitle}>Beginner</Text>
+              <Text style={selectLevelStyles.levelSubtitle}>Just getting started</Text>
             </View>
           </Pressable>
 
           {/* Intermediate */}
           <Pressable 
             style={({ pressed }) => [
-              styles.levelCard,
+              selectLevelStyles.levelCard,
+              selectedLevel === 'intermediate' ? selectLevelStyles.levelCardSelected : selectLevelStyles.levelCardUnselected,
               { opacity: pressed ? 0.8 : 1 }
             ]}
             onPress={() => handleLevelSelect('intermediate')}
           >
-            <View style={styles.levelHeader}>
-              <Text style={styles.levelTitle}>Intermediate</Text>
-              <Text style={styles.levelSubtitle}>Some experience</Text>
+            <View style={selectLevelStyles.levelHeader}>
+              <Text style={selectLevelStyles.levelTitle}>Intermediate</Text>
+              <Text style={selectLevelStyles.levelSubtitle}>Some experience</Text>
             </View>
           </Pressable>
 
           {/* Advanced */}
           <Pressable 
             style={({ pressed }) => [
-              styles.levelCard,
+              selectLevelStyles.levelCard,
+              selectedLevel === 'advanced' ? selectLevelStyles.levelCardSelected : selectLevelStyles.levelCardUnselected,
               { opacity: pressed ? 0.8 : 1 }
             ]}
             onPress={() => handleLevelSelect('advanced')}
           >
-            <View style={styles.levelHeader}>
-              <Text style={styles.levelTitle}>Advanced</Text>
-              <Text style={styles.levelSubtitle}>Confident player</Text>
+            <View style={selectLevelStyles.levelHeader}>
+              <Text style={selectLevelStyles.levelTitle}>Advanced</Text>
+              <Text style={selectLevelStyles.levelSubtitle}>Confident player</Text>
             </View>
           </Pressable>
         </View>
@@ -78,82 +90,3 @@ export default function SelectLevelScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    // Gradient background: linear-gradient(135deg, rgba(152, 16, 250, 1) 0%, rgba(173, 70, 255, 1) 50%, rgba(43, 127, 255, 1) 100%)
-    backgroundColor: '#9810FA',
-  },
-  backgroundGradient: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  backButtonContainer: {
-    position: 'absolute',
-    top: 60,
-    left: 24,
-    zIndex: 1,
-  },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  backIcon: {
-    fontSize: 20,
-    color: '#FFFFFF',
-    fontWeight: '300',
-  },
-  backText: {
-    fontSize: 16,
-    color: '#FFFFFF',
-  },
-  headerContainer: {
-    alignItems: 'center',
-    marginBottom: 48,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '500',
-    color: '#FFFFFF',
-    textAlign: 'center',
-    lineHeight: 36,
-  },
-  levelsContainer: {
-    flexDirection: 'column',
-    gap: 16,
-    alignItems: 'stretch',
-  },
-  levelCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderWidth: 2,
-    borderColor: 'rgba(0, 0, 0, 0)',
-    borderRadius: 20,
-    padding: 26,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 8,
-  },
-  levelHeader: {
-    alignItems: 'center',
-    gap: 8,
-  },
-  levelTitle: {
-    fontSize: 20,
-    fontWeight: '500',
-    color: '#FFFFFF',
-    textAlign: 'center',
-    lineHeight: 30,
-  },
-  levelSubtitle: {
-    fontSize: 14,
-    fontWeight: '400',
-    color: 'rgba(255, 255, 255, 0.7)',
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-});

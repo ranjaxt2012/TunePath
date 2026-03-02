@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
+import { selectInstrumentStyles } from '../src/styles/selectInstrumentStyles';
 
 export default function SelectInstrumentScreen() {
   const router = useRouter();
@@ -10,110 +11,110 @@ export default function SelectInstrumentScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={selectInstrumentStyles.container}>
       {/* Background gradient */}
-      <View style={styles.backgroundGradient}>
+      <View style={selectInstrumentStyles.backgroundGradient}>
         {/* Back Button */}
-        <View style={styles.backButtonContainer}>
+        <View style={selectInstrumentStyles.backButtonContainer}>
           <Pressable 
-            style={({ pressed }) => [styles.backButton, { opacity: pressed ? 0.8 : 1 }]}
+            style={({ pressed }) => [selectInstrumentStyles.backButton, { opacity: pressed ? 0.8 : 1 }]}
             onPress={() => router.push('/(auth)/sign-in')}
           >
-            <Text style={styles.backIcon}>‹</Text>
-            <Text style={styles.backText}>Back</Text>
+            <Text style={selectInstrumentStyles.backIcon}>‹</Text>
+            <Text style={selectInstrumentStyles.backText}>Back</Text>
           </Pressable>
         </View>
 
         {/* Header */}
-        <View style={styles.headerContainer}>
-          <Text style={styles.title}>Choose Your Instrument</Text>
-          <Text style={styles.subtitle}>Select your instrument to get started.</Text>
+        <View style={selectInstrumentStyles.headerContainer}>
+          <Text style={selectInstrumentStyles.title}>Choose Your Instrument</Text>
+          <Text style={selectInstrumentStyles.subtitle}>Select your instrument to get started.</Text>
         </View>
 
         {/* Instrument Options */}
-        <View style={styles.instrumentsContainer}>
+        <View style={selectInstrumentStyles.instrumentsContainer}>
           {/* Harmonium */}
           <Pressable 
             style={({ pressed }) => [
-              styles.instrumentCard,
+              selectInstrumentStyles.instrumentCard,
               { opacity: pressed ? 0.8 : 1 }
             ]}
             onPress={() => handleInstrumentSelect('harmonium')}
           >
-            <View style={styles.iconContainer}>
-              <Text style={styles.instrumentIcon}>🎵</Text>
+            <View style={selectInstrumentStyles.iconContainer}>
+              <Text style={selectInstrumentStyles.instrumentIcon}>🎵</Text>
             </View>
-            <Text style={styles.instrumentName}>Harmonium</Text>
+            <Text style={selectInstrumentStyles.instrumentName}>Harmonium</Text>
           </Pressable>
 
           {/* Guitar */}
           <Pressable 
             style={({ pressed }) => [
-              styles.instrumentCard,
+              selectInstrumentStyles.instrumentCard,
               { opacity: pressed ? 0.8 : 1 }
             ]}
             onPress={() => handleInstrumentSelect('guitar')}
           >
-            <View style={styles.iconContainer}>
-              <Text style={styles.instrumentIcon}>🎸</Text>
+            <View style={selectInstrumentStyles.iconContainer}>
+              <Text style={selectInstrumentStyles.instrumentIcon}>🎸</Text>
             </View>
-            <Text style={styles.instrumentName}>Guitar</Text>
+            <Text style={selectInstrumentStyles.instrumentName}>Guitar</Text>
           </Pressable>
 
           {/* Piano */}
           <Pressable 
             style={({ pressed }) => [
-              styles.instrumentCard,
+              selectInstrumentStyles.instrumentCard,
               { opacity: pressed ? 0.8 : 1 }
             ]}
             onPress={() => handleInstrumentSelect('piano')}
           >
-            <View style={styles.iconContainer}>
-              <Text style={styles.instrumentIcon}>🎹</Text>
+            <View style={selectInstrumentStyles.iconContainer}>
+              <Text style={selectInstrumentStyles.instrumentIcon}>🎹</Text>
             </View>
-            <Text style={styles.instrumentName}>Piano</Text>
+            <Text style={selectInstrumentStyles.instrumentName}>Piano</Text>
           </Pressable>
 
           {/* Vocals */}
           <Pressable 
             style={({ pressed }) => [
-              styles.instrumentCard,
+              selectInstrumentStyles.instrumentCard,
               { opacity: pressed ? 0.8 : 1 }
             ]}
             onPress={() => handleInstrumentSelect('vocals')}
           >
-            <View style={styles.iconContainer}>
-              <Text style={styles.instrumentIcon}>🎤</Text>
+            <View style={selectInstrumentStyles.iconContainer}>
+              <Text style={selectInstrumentStyles.instrumentIcon}>🎤</Text>
             </View>
-            <Text style={styles.instrumentName}>Vocals</Text>
+            <Text style={selectInstrumentStyles.instrumentName}>Vocals</Text>
           </Pressable>
 
           {/* Tabla */}
           <Pressable 
             style={({ pressed }) => [
-              styles.instrumentCard,
+              selectInstrumentStyles.instrumentCard,
               { opacity: pressed ? 0.8 : 1 }
             ]}
             onPress={() => handleInstrumentSelect('tabla')}
           >
-            <View style={styles.iconContainer}>
-              <Text style={styles.instrumentIcon}>🪘</Text>
+            <View style={selectInstrumentStyles.iconContainer}>
+              <Text style={selectInstrumentStyles.instrumentIcon}>🪘</Text>
             </View>
-            <Text style={styles.instrumentName}>Tabla</Text>
+            <Text style={selectInstrumentStyles.instrumentName}>Tabla</Text>
           </Pressable>
 
           {/* Violin */}
           <Pressable 
             style={({ pressed }) => [
-              styles.instrumentCard,
+              selectInstrumentStyles.instrumentCard,
               { opacity: pressed ? 0.8 : 1 }
             ]}
             onPress={() => handleInstrumentSelect('violin')}
           >
-            <View style={styles.iconContainer}>
-              <Text style={styles.instrumentIcon}>🎻</Text>
+            <View style={selectInstrumentStyles.iconContainer}>
+              <Text style={selectInstrumentStyles.instrumentIcon}>🎻</Text>
             </View>
-            <Text style={styles.instrumentName}>Violin</Text>
+            <Text style={selectInstrumentStyles.instrumentName}>Violin</Text>
           </Pressable>
         </View>
       </View>
@@ -121,95 +122,3 @@ export default function SelectInstrumentScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    // Gradient background: linear-gradient(180deg, rgba(152, 16, 250, 1) 0%, rgba(173, 70, 255, 1) 50%, rgba(43, 127, 255, 1) 100%)
-    backgroundColor: '#9810FA',
-  },
-  backgroundGradient: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  backButtonContainer: {
-    position: 'absolute',
-    top: 60,
-    left: 24,
-    zIndex: 1,
-  },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  backIcon: {
-    fontSize: 20,
-    color: '#FFFFFF',
-    fontWeight: '300',
-  },
-  backText: {
-    fontSize: 16,
-    color: '#FFFFFF',
-  },
-  headerContainer: {
-    alignItems: 'center',
-    marginBottom: 48,
-    gap: 12,
-  },
-  title: {
-    fontSize: 36,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    textAlign: 'center',
-    lineHeight: 40,
-  },
-  subtitle: {
-    fontSize: 18,
-    fontWeight: '400',
-    color: 'rgba(255, 255, 255, 0.8)',
-    textAlign: 'center',
-    lineHeight: 28,
-  },
-  instrumentsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 16,
-    justifyContent: 'space-between',
-    paddingHorizontal: 24,
-  },
-  instrumentCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 24,
-    padding: 12,
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1,
-    elevation: 2,
-    width: '48%',
-  },
-  iconContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 15,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  instrumentIcon: {
-    fontSize: 30,
-    color: '#9810FA',
-  },
-  instrumentName: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#FFFFFF',
-    textAlign: 'center',
-  },
-});

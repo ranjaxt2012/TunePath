@@ -1,6 +1,8 @@
 // Design System Exports
 // Centralized styling system for TunePath
 
+export { authStyles } from './authStyles';
+export { commonStyles } from './commonStyles';
 export { homeStyles } from './homeStyles';
 export { practiceStyles } from './practiceStyles';
 export { profileStyles } from './profileStyles';
@@ -12,6 +14,4 @@ export { DesignSystem } from './theme';
 export { welcomeStyles } from './welcomeStyles';
 
 // Future exports:
-// export { commonStyles } from './commonStyles';
-// export { authStyles } from './authStyles';
 // export { onboardingStyles } from './onboardingStyles';
