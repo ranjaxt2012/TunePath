@@ -97,14 +97,6 @@ export const profileStyles = StyleSheet.create({
     fontSize: 20,
     color: DesignSystem.colors.whiteOverlay['40'],
   },
-  // Bottom Tab Bar
-  bottomTabBar: sharedStyles.bottomTabBar,
-  tabBarContent: sharedStyles.tabBarContent,
-  tabButton: sharedStyles.tabButton,
-  tabIconActive: sharedStyles.tabIconActive,
-  tabTextActive: sharedStyles.tabTextActive,
-  tabIconInactive: sharedStyles.tabIconInactive,
-  tabTextInactive: sharedStyles.tabTextInactive,
 });
 
 export default profileStyles;

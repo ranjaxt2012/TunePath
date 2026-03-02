@@ -10,7 +10,10 @@ export { progressStyles } from './progressStyles';
 export { selectInstrumentStyles } from './selectInstrumentStyles';
 export { selectLevelStyles } from './selectLevelStyles';
 export { sharedStyles } from './sharedStyles';
-export { DesignSystem } from './theme';
+export { DesignSystem, br, createButtonStyle, createCardStyle, createTextStyle, fs, sp } from './theme';
+export type {
+    ThemeBorderRadius, ThemeButtonVariant, ThemeFontSize, ThemeFontSizeValue, ThemeFontWeight, ThemeSpacing, ThemeSpacingValue, ThemeWhiteOverlay
+} from './theme';
 export { welcomeStyles } from './welcomeStyles';
 
 // Future exports:

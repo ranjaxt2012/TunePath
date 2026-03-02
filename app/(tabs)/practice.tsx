@@ -1,9 +1,11 @@
 import { useRouter } from 'expo-router';
+import React, { useCallback } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
+import { BottomTabBar } from '../../src/components/ui';
 import { practiceStyles } from '../../src/styles/practiceStyles';
 
 // Instrument Card Component
-function InstrumentCard({ name, level, icon, isActive }: { name: string; level: string; icon: string; isActive?: boolean }) {
+const InstrumentCard = React.memo(function InstrumentCard({ name, level, icon, isActive }: { name: string; level: string; icon: string; isActive?: boolean }) {
   return (
     <View style={[
       practiceStyles.instrumentCard,
@@ -16,10 +18,10 @@ function InstrumentCard({ name, level, icon, isActive }: { name: string; level: 
       </View>
     </View>
   );
-}
+});
 
 // Lesson Card Component
-function LessonCard({ title, duration, progress, onPress }: { title: string; duration: string; progress: number; onPress: () => void }) {
+const LessonCard = React.memo(function LessonCard({ title, duration, progress, onPress }: { title: string; duration: string; progress: number; onPress: () => void }) {
   return (
     <View style={practiceStyles.lessonCard}>
       <View style={practiceStyles.lessonHeader}>
@@ -38,23 +40,25 @@ function LessonCard({ title, duration, progress, onPress }: { title: string; dur
       </View>
     </View>
   );
-}
+});
+
+const INSTRUMENTS = [
+  { name: 'Harmonium', level: 'Beginner', icon: '🎵', isActive: true },
+  { name: 'Guitar', level: 'Not Started', icon: '🎸' },
+  { name: 'Piano', level: 'Not Started', icon: '🎹' },
+  { name: 'Vocals', level: 'Not Started', icon: '🎤' },
+];
+
+const LESSON_DATA = [
+  { title: 'Raag Yaman Basics', duration: '10 mins', progress: 60 },
+  { title: 'Scale Practice', duration: '15 mins', progress: 30 },
+  { title: 'Rhythm Exercises', duration: '12 mins', progress: 0 },
+];
 
 export default function PracticeScreen() {
   const router = useRouter();
 
-  const instruments = [
-    { name: 'Harmonium', level: 'Beginner', icon: '🎵', isActive: true },
-    { name: 'Guitar', level: 'Not Started', icon: '🎸' },
-    { name: 'Piano', level: 'Not Started', icon: '🎹' },
-    { name: 'Vocals', level: 'Not Started', icon: '🎤' },
-  ];
-
-  const lessons = [
-    { title: 'Raag Yaman Basics', duration: '10 mins', progress: 60, onPress: () => router.push('/lesson-player') },
-    { title: 'Scale Practice', duration: '15 mins', progress: 30, onPress: () => router.push('/lesson-player') },
-    { title: 'Rhythm Exercises', duration: '12 mins', progress: 0, onPress: () => router.push('/lesson-player') },
-  ];
+  const goToLessonPlayer = useCallback(() => router.push('/lesson-player'), [router]);
 
   return (
     <View style={practiceStyles.container}>
@@ -69,7 +73,7 @@ export default function PracticeScreen() {
         <View style={practiceStyles.section}>
           <Text style={practiceStyles.sectionTitle}>Choose Your Instrument</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={practiceStyles.instrumentsScroll}>
-            {instruments.map((instrument) => (
+            {INSTRUMENTS.map((instrument) => (
               <InstrumentCard
                 key={instrument.name}
                 name={instrument.name}
@@ -85,59 +89,20 @@ export default function PracticeScreen() {
         <View style={practiceStyles.section}>
           <Text style={practiceStyles.sectionTitle}>Available Lessons</Text>
           <View style={practiceStyles.lessonsContainer}>
-            {lessons.map((lesson) => (
+            {LESSON_DATA.map((lesson) => (
               <LessonCard
                 key={lesson.title}
                 title={lesson.title}
                 duration={lesson.duration}
                 progress={lesson.progress}
-                onPress={lesson.onPress}
+                onPress={goToLessonPlayer}
               />
             ))}
           </View>
         </View>
       </ScrollView>
 
-      {/* Bottom Tab Bar */}
-      <View style={practiceStyles.bottomTabBar}>
-        <View style={practiceStyles.tabBarContent}>
-          {/* Home Tab */}
-          <Pressable 
-            style={practiceStyles.tabButton}
-            onPress={() => router.push('/home')}
-          >
-            <Text style={practiceStyles.tabIconInactive}>🏠</Text>
-            <Text style={practiceStyles.tabTextInactive}>Home</Text>
-          </Pressable>
-
-          {/* Practice Tab - Active */}
-          <Pressable 
-            style={practiceStyles.tabButton}
-            onPress={() => console.log('Already on Practice')}
-          >
-            <Text style={practiceStyles.tabIconActive}>🎵</Text>
-            <Text style={practiceStyles.tabTextActive}>Practice</Text>
-          </Pressable>
-
-          {/* Progress Tab */}
-          <Pressable 
-            style={practiceStyles.tabButton}
-            onPress={() => router.push('/progress')}
-          >
-            <Text style={practiceStyles.tabIconInactive}>📊</Text>
-            <Text style={practiceStyles.tabTextInactive}>Progress</Text>
-          </Pressable>
-
-          {/* Profile Tab */}
-          <Pressable 
-            style={practiceStyles.tabButton}
-            onPress={() => router.push('/profile')}
-          >
-            <Text style={practiceStyles.tabIconInactive}>👤</Text>
-            <Text style={practiceStyles.tabTextInactive}>Profile</Text>
-          </Pressable>
-        </View>
-      </View>
+      <BottomTabBar activeTab="practice" />
     </View>
   );
 }

@@ -100,57 +100,6 @@ export const homeStyles = StyleSheet.create({
     fontSize: 15,
     color: DesignSystem.colors.whiteOverlay['70'],
   },
-  // Bottom Tab Bar
-  bottomTabBar: sharedStyles.bottomTabBar,
-  tabBarContent: sharedStyles.tabBarContent,
-  tabButton: sharedStyles.tabButton,
-  tabIconActive: sharedStyles.tabIconActive,
-  tabTextActive: sharedStyles.tabTextActive,
-  tabIconInactive: sharedStyles.tabIconInactive,
-  tabTextInactive: sharedStyles.tabTextInactive,
-  // Help and Resources
-  helpResourcesContainer: {
-    paddingHorizontal: DesignSystem.spacing.xl,
-    paddingBottom: DesignSystem.spacing.xl,
-    alignItems: 'flex-end',
-    marginTop: 'auto',
-  },
-  helpButtonWrapper: {
-    position: 'relative',
-  },
-  helpButton: {
-    backgroundColor: 'rgba(128, 128, 128, 0.3)',
-    borderWidth: 1,
-    borderColor: 'rgba(128, 128, 128, 0.5)',
-    borderRadius: 25,
-    paddingHorizontal: DesignSystem.spacing.lg,
-    paddingVertical: DesignSystem.spacing.lg,
-    alignItems: 'center',
-    width: 50,
-    height: 50,
-    justifyContent: 'center',
-  },
-  helpIcon: {
-    fontSize: 24,
-    color: DesignSystem.colors.white,
-    fontWeight: '600',
-  },
-  hoverLabel: {
-    position: 'absolute',
-    bottom: 60,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    borderRadius: 8,
-    paddingHorizontal: DesignSystem.spacing.sm,
-    paddingVertical: DesignSystem.spacing.xs,
-    alignItems: 'center',
-  },
-  hoverLabelText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: DesignSystem.colors.white,
-  },
 });
 
 export default homeStyles;

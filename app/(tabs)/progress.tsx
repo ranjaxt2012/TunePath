@@ -1,9 +1,10 @@
-import { useRouter } from 'expo-router';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import React from 'react';
+import { ScrollView, Text, View } from 'react-native';
+import { BottomTabBar } from '../../src/components/ui';
 import { progressStyles } from '../../src/styles/progressStyles';
 
 // Stat Card Component
-function StatCard({ icon, label, value }: { icon: string; label: string; value: string }) {
+const StatCard = React.memo(function StatCard({ icon, label, value }: { icon: string; label: string; value: string }) {
   return (
     <View style={progressStyles.statCard}>
       <Text style={progressStyles.statIcon}>{icon}</Text>
@@ -11,10 +12,10 @@ function StatCard({ icon, label, value }: { icon: string; label: string; value: 
       <Text style={progressStyles.statLabel}>{label}</Text>
     </View>
   );
-}
+});
 
 // Instrument Progress Component
-function InstrumentProgress({ name, progress }: { name: string; progress: number }) {
+const InstrumentProgress = React.memo(function InstrumentProgress({ name, progress }: { name: string; progress: number }) {
   return (
     <View style={progressStyles.instrumentProgress}>
       <View style={progressStyles.progressHeader}>
@@ -26,10 +27,10 @@ function InstrumentProgress({ name, progress }: { name: string; progress: number
       </View>
     </View>
   );
-}
+});
 
 // Session Card Component
-function SessionCard({ lessonName, date, duration }: { lessonName: string; date: string; duration: string }) {
+const SessionCard = React.memo(function SessionCard({ lessonName, date, duration }: { lessonName: string; date: string; duration: string }) {
   return (
     <View style={progressStyles.sessionCard}>
       <View style={progressStyles.sessionInfo}>
@@ -39,24 +40,22 @@ function SessionCard({ lessonName, date, duration }: { lessonName: string; date:
       <Text style={progressStyles.sessionDuration}>{duration}</Text>
     </View>
   );
-}
+});
+
+const INSTRUMENTS = [
+  { name: 'Harmonium', progress: 65 },
+  { name: 'Guitar', progress: 20 },
+  { name: 'Piano', progress: 0 },
+];
+
+const RECENT_SESSIONS = [
+  { lessonName: 'Raag Yaman Basics', date: 'Today', duration: '10 mins' },
+  { lessonName: 'Scale Practice', date: 'Yesterday', duration: '15 mins' },
+  { lessonName: 'Rhythm Exercises', date: 'Feb 25', duration: '12 mins' },
+  { lessonName: 'Harmonium Basics', date: 'Feb 24', duration: '20 mins' },
+];
 
 export default function ProgressScreen() {
-  const router = useRouter();
-
-  const instruments = [
-    { name: 'Harmonium', progress: 65 },
-    { name: 'Guitar', progress: 20 },
-    { name: 'Piano', progress: 0 },
-  ];
-
-  const recentSessions = [
-    { lessonName: 'Raag Yaman Basics', date: 'Today', duration: '10 mins' },
-    { lessonName: 'Scale Practice', date: 'Yesterday', duration: '15 mins' },
-    { lessonName: 'Rhythm Exercises', date: 'Feb 25', duration: '12 mins' },
-    { lessonName: 'Harmonium Basics', date: 'Feb 24', duration: '20 mins' },
-  ];
-
   return (
     <View style={progressStyles.container}>
       {/* Header */}
@@ -93,7 +92,7 @@ export default function ProgressScreen() {
         <View style={progressStyles.section}>
           <Text style={progressStyles.sectionTitle}>Progress by Instrument</Text>
           <View style={progressStyles.instrumentProgressCard}>
-            {instruments.map((instrument) => (
+            {INSTRUMENTS.map((instrument) => (
               <InstrumentProgress
                 key={instrument.name}
                 name={instrument.name}
@@ -107,9 +106,9 @@ export default function ProgressScreen() {
         <View style={progressStyles.section}>
           <Text style={progressStyles.sectionTitle}>Recent Sessions</Text>
           <View style={progressStyles.sessionsContainer}>
-            {recentSessions.map((session, index) => (
+            {RECENT_SESSIONS.map((session) => (
               <SessionCard
-                key={index}
+                key={session.lessonName}
                 lessonName={session.lessonName}
                 date={session.date}
                 duration={session.duration}
@@ -119,46 +118,7 @@ export default function ProgressScreen() {
         </View>
       </ScrollView>
 
-      {/* Bottom Tab Bar */}
-      <View style={progressStyles.bottomTabBar}>
-        <View style={progressStyles.tabBarContent}>
-          {/* Home Tab */}
-          <Pressable
-            style={progressStyles.tabButton}
-            onPress={() => router.push('/home')}
-          >
-            <Text style={progressStyles.tabIconInactive}>🏠</Text>
-            <Text style={progressStyles.tabTextInactive}>Home</Text>
-          </Pressable>
-
-          {/* Practice Tab */}
-          <Pressable
-            style={progressStyles.tabButton}
-            onPress={() => router.push('/practice')}
-          >
-            <Text style={progressStyles.tabIconInactive}>🎵</Text>
-            <Text style={progressStyles.tabTextInactive}>Practice</Text>
-          </Pressable>
-
-          {/* Progress Tab - Active */}
-          <Pressable
-            style={progressStyles.tabButton}
-            onPress={() => console.log('Already on Progress')}
-          >
-            <Text style={progressStyles.tabIconActive}>📊</Text>
-            <Text style={progressStyles.tabTextActive}>Progress</Text>
-          </Pressable>
-
-          {/* Profile Tab */}
-          <Pressable
-            style={progressStyles.tabButton}
-            onPress={() => router.push('/profile')}
-          >
-            <Text style={progressStyles.tabIconInactive}>👤</Text>
-            <Text style={progressStyles.tabTextInactive}>Profile</Text>
-          </Pressable>
-        </View>
-      </View>
+      <BottomTabBar activeTab="progress" />
     </View>
   );
 }
