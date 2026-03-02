@@ -1,0 +1,281 @@
+import { StyleSheet } from 'react-native';
+import { DesignSystem } from './theme';
+import { sharedStyles } from './sharedStyles';
+
+export const lessonPlayerStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: DesignSystem.colors.primary,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  content: {
+    padding: DesignSystem.spacing.xl,
+    paddingBottom: 128, // Space for floating button
+  },
+  // Back Button
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: DesignSystem.spacing.md,
+    alignSelf: 'flex-start',
+  },
+  backIcon: {
+    fontSize: 20,
+    color: DesignSystem.colors.white,
+    fontWeight: '300',
+  },
+  backText: {
+    fontSize: 16,
+    color: DesignSystem.colors.white,
+  },
+  // Header
+  header: {
+    marginBottom: DesignSystem.spacing.lg,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginBottom: 4,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: DesignSystem.colors.white,
+  },
+  // Video Container
+  videoContainer: {
+    width: '100%',
+    aspectRatio: 16 / 9,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    borderRadius: 20,
+    overflow: 'hidden',
+    marginBottom: DesignSystem.spacing.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  videoContent: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+  },
+  playButton: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  playIcon: {
+    fontSize: 40,
+    color: DesignSystem.colors.white,
+    fontWeight: '300',
+    marginLeft: 4,
+  },
+  videoInfo: {
+    alignItems: 'center',
+  },
+  videoTitle: {
+    fontSize: 14,
+    color: DesignSystem.colors.white,
+    marginBottom: 4,
+  },
+  videoDuration: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.6)',
+  },
+  // Tempo Control
+  tempoControl: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: DesignSystem.spacing.lg,
+  },
+  tempoButton: {
+    padding: DesignSystem.spacing.sm,
+  },
+  tempoIcon: {
+    fontSize: 20,
+    color: DesignSystem.colors.white,
+  },
+  tempoText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: DesignSystem.colors.white,
+    minWidth: 70,
+    textAlign: 'center',
+  },
+  // Segmented Control
+  segmentedControl: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 20,
+    padding: 4,
+    flexDirection: 'row',
+    gap: 4,
+    marginBottom: DesignSystem.spacing.lg,
+  },
+  segmentButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 16,
+    alignItems: 'center',
+  },
+  segmentButtonActive: {
+    backgroundColor: DesignSystem.colors.white,
+  },
+  segmentButtonInactive: {
+    backgroundColor: 'transparent',
+  },
+  segmentButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  segmentButtonTextActive: {
+    color: DesignSystem.colors.primary,
+  },
+  segmentButtonTextInactive: {
+    color: 'rgba(255, 255, 255, 0.8)',
+  },
+  // Notation Section
+  notationSection: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 20,
+    padding: DesignSystem.spacing.xl,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  // Sargam Styles
+  sargamContainer: {
+    gap: 16,
+  },
+  measureRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  measureBar: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.4)',
+    minWidth: 20,
+  },
+  beatsContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    gap: 8,
+  },
+  beat: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 20,
+    alignItems: 'center',
+  },
+  beatActive: {
+    backgroundColor: '#8B5CF6',
+  },
+  beatInactive: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  beatText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  beatTextActive: {
+    color: DesignSystem.colors.white,
+  },
+  beatTextInactive: {
+    color: 'rgba(255, 255, 255, 0.9)',
+  },
+  // Staff Styles
+  staffContainer: {
+    gap: 32,
+  },
+  staff: {
+    height: 192,
+    position: 'relative',
+  },
+  staffLine: {
+    position: 'absolute',
+    width: '100%',
+    height: 2,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  trebleClef: {
+    position: 'absolute',
+    left: 8,
+    top: '50%',
+    transform: [{ translateY: -32 }],
+    fontSize: 80,
+    color: DesignSystem.colors.white,
+    fontFamily: 'serif',
+    fontStyle: 'italic',
+  },
+  notesContainer: {
+    position: 'absolute',
+    left: 64,
+    right: 16,
+    top: 0,
+    bottom: 0,
+  },
+  note: {
+    flexDirection: 'column',
+    alignItems: 'center',
+  },
+  noteHead: {
+    width: 28,
+    height: 20,
+    borderRadius: 10,
+    transform: [{ rotate: '-12deg' }],
+  },
+  noteHeadActive: {
+    backgroundColor: '#A78BFA',
+    shadowColor: '#A855F7',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  noteHeadInactive: {
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+  },
+  noteStem: {
+    position: 'absolute',
+    width: 2,
+    height: 40,
+    left: '85%',
+    top: -40,
+  },
+  noteStemActive: {
+    backgroundColor: '#A78BFA',
+  },
+  noteStemInactive: {
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+  },
+  // Floating Button
+  floatingButtonContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: DesignSystem.spacing.xl,
+    backgroundColor: 'transparent',
+  },
+  floatingButton: {
+    width: '100%',
+    backgroundColor: DesignSystem.colors.white,
+    paddingVertical: 16,
+    borderRadius: 20,
+    alignItems: 'center',
+  },
+  floatingButtonText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: DesignSystem.colors.primary,
+  },
+});
+
+export default lessonPlayerStyles;
