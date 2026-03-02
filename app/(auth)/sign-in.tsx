@@ -49,14 +49,58 @@ export default function SignInScreen() {
                 <Text style={styles.buttonText}>Sign In</Text>
               </Pressable>
             </View>
-          </View>
 
-          {/* Footer */}
-          <View style={styles.footerContainer}>
-            <Text style={styles.footerText}>
-              Don't have an account? 
-            </Text>
-            <View style={styles.linkContainer}>
+            {/* Divider */}
+            <View style={styles.dividerContainer}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>or continue with</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            {/* Social Auth Buttons */}
+            <View style={styles.socialButtonsContainer}>
+              {/* Apple */}
+              <Pressable 
+                style={({ pressed }) => [styles.socialButton, { opacity: pressed ? 0.8 : 1 }]}
+                onPress={() => console.log('Apple Sign In pressed')}
+              >
+                <Text style={styles.socialButtonIcon}>🍎</Text>
+                <Text style={styles.socialButtonText}>Continue with Apple</Text>
+              </Pressable>
+
+              {/* Google */}
+              <Pressable 
+                style={({ pressed }) => [styles.socialButton, { opacity: pressed ? 0.8 : 1 }]}
+                onPress={() => console.log('Google Sign In pressed')}
+              >
+                <Text style={styles.socialButtonIcon}>🌐</Text>
+                <Text style={styles.socialButtonText}>Continue with Google</Text>
+              </Pressable>
+
+              {/* Facebook */}
+              <Pressable 
+                style={({ pressed }) => [styles.socialButton, { opacity: pressed ? 0.8 : 1 }]}
+                onPress={() => console.log('Facebook Sign In pressed')}
+              >
+                <Text style={styles.socialButtonIcon}>📘</Text>
+                <Text style={styles.socialButtonText}>Continue with Facebook</Text>
+              </Pressable>
+
+              {/* Guest */}
+              <Pressable 
+                style={({ pressed }) => [styles.socialButton, { opacity: pressed ? 0.8 : 1 }]}
+                onPress={() => console.log('Guest Sign In pressed')}
+              >
+                <Text style={styles.socialButtonIcon}>👤</Text>
+                <Text style={styles.socialButtonText}>Continue as Guest</Text>
+              </Pressable>
+            </View>
+
+            {/* Sign Up Link */}
+            <View style={styles.footerContainer}>
+              <Text style={styles.footerText}>
+                Don't have an account?{" "}
+              </Text>
               <Pressable onPress={() => router.push('/(auth)/sign-up' as any)}>
                 <Text style={styles.linkText}>Sign Up</Text>
               </Pressable>
@@ -81,7 +125,7 @@ const styles = StyleSheet.create({
   },
   signInContainer: {
     width: 400,
-    height: 450,
+    height: 800,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
@@ -179,5 +223,49 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     textAlign: 'center',
     lineHeight: 24,
+  },
+  // Social Login Buttons
+  socialButtonsContainer: {
+    flexDirection: 'column',
+    gap: 8,
+    marginBottom: 24,
+  },
+  socialButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 20,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  socialButtonIcon: {
+    fontSize: 20,
+    color: '#1f2937',
+  },
+  socialButtonText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#1f2937',
+  },
+  // Divider
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    marginVertical: 24,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  dividerText: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontWeight: '400',
   },
 });

@@ -13,6 +13,17 @@ export default function SignUpScreen() {
     <View style={styles.container}>
       {/* Background gradient */}
       <View style={styles.backgroundGradient}>
+        {/* Back Button */}
+        <View style={styles.backButtonContainer}>
+          <Pressable 
+            style={({ pressed }) => [styles.backButton, { opacity: pressed ? 0.8 : 1 }]}
+            onPress={() => router.push('/(auth)/sign-in')}
+          >
+            <Text style={styles.backIcon}>‹</Text>
+            <Text style={styles.backText}>Back</Text>
+          </Pressable>
+        </View>
+
         {/* Sign Up Container */}
         <View style={styles.signUpContainer}>
           {/* Title */}
@@ -98,6 +109,26 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  backButtonContainer: {
+    position: 'absolute',
+    top: 60,
+    left: 24,
+    zIndex: 1,
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  backIcon: {
+    fontSize: 20,
+    color: '#FFFFFF',
+    fontWeight: '300',
+  },
+  backText: {
+    fontSize: 16,
+    color: '#FFFFFF',
   },
   signUpContainer: {
     width: 400,

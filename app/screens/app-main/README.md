@@ -41,7 +41,7 @@ app/screens/app-main/
 - **Features**: 3 level options (Beginner, Intermediate, Advanced)
 - **Figma**: Based on "04 - Select Level" screen from TunePath Master Flow
 - **Status**: ✅ Implemented
-- **Navigation**: Routes to sign-in screen
+- **Navigation**: Routes to home screen (profile)
 - **Design**: Frosted glass cards with descriptions
 
 ### home.tsx
@@ -98,7 +98,7 @@ Welcome → Sign In/Sign Up → Select Instrument → Select Level → Home → 
 1. **Welcome**: "Get Started" → Sign In
 2. **Sign In/Sign Up**: Authentication → Select Instrument  
 3. **Select Instrument**: Any instrument → Select Level
-4. **Select Level**: Any level → Home
+4. **Select Level**: Any level → Home (Profile)
 5. **Home**: Settings/Profile → Select Instrument/Level or Lesson Player
 6. **Lesson Player**: Continue learning → Home/Explore Lessons
 
@@ -107,7 +107,7 @@ Welcome → Sign In/Sign Up → Select Instrument → Select Level → Home → 
 - ✅ **Sign In → Select Instrument**: Working with Pressable  
 - ✅ **Sign Up → Select Instrument**: Working with Pressable
 - ✅ **Select Instrument → Select Level**: Working with Pressable
-- ✅ **Select Level → Sign In**: Working with Pressable
+- ✅ **Select Level → Home**: Working with Pressable (Updated!)
 - ✅ **Home → Select Instrument/Level**: Working with Pressable
 - ✅ **Lesson Player → Home**: Working with Pressable
 

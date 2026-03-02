@@ -1,17 +1,29 @@
 import { useRouter } from 'expo-router';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 export default function SelectLevelScreen() {
   const router = useRouter();
   
   const handleLevelSelect = (level: string) => {
-    router.push('/(auth)/sign-in' as any);
+    console.log('Level selected:', level);
+    router.push('/home' as any);
   };
 
   return (
     <View style={styles.container}>
       {/* Background gradient */}
       <View style={styles.backgroundGradient}>
+        {/* Back Button */}
+        <View style={styles.backButtonContainer}>
+          <Pressable 
+            style={({ pressed }) => [styles.backButton, { opacity: pressed ? 0.8 : 1 }]}
+            onPress={() => router.push('/select-instrument')}
+          >
+            <Text style={styles.backIcon}>‹</Text>
+            <Text style={styles.backText}>Back</Text>
+          </Pressable>
+        </View>
+
         {/* Header */}
         <View style={styles.headerContainer}>
           <Text style={styles.title}>Select Your Level</Text>
@@ -20,28 +32,46 @@ export default function SelectLevelScreen() {
         {/* Level Options */}
         <View style={styles.levelsContainer}>
           {/* Beginner */}
-          <View style={styles.levelCard} onTouchEnd={() => handleLevelSelect('beginner')}>
+          <Pressable 
+            style={({ pressed }) => [
+              styles.levelCard,
+              { opacity: pressed ? 0.8 : 1 }
+            ]}
+            onPress={() => handleLevelSelect('beginner')}
+          >
             <View style={styles.levelHeader}>
               <Text style={styles.levelTitle}>Beginner</Text>
               <Text style={styles.levelSubtitle}>Just getting started</Text>
             </View>
-          </View>
+          </Pressable>
 
           {/* Intermediate */}
-          <View style={styles.levelCard} onTouchEnd={() => handleLevelSelect('intermediate')}>
+          <Pressable 
+            style={({ pressed }) => [
+              styles.levelCard,
+              { opacity: pressed ? 0.8 : 1 }
+            ]}
+            onPress={() => handleLevelSelect('intermediate')}
+          >
             <View style={styles.levelHeader}>
               <Text style={styles.levelTitle}>Intermediate</Text>
               <Text style={styles.levelSubtitle}>Some experience</Text>
             </View>
-          </View>
+          </Pressable>
 
           {/* Advanced */}
-          <View style={styles.levelCard} onTouchEnd={() => handleLevelSelect('advanced')}>
+          <Pressable 
+            style={({ pressed }) => [
+              styles.levelCard,
+              { opacity: pressed ? 0.8 : 1 }
+            ]}
+            onPress={() => handleLevelSelect('advanced')}
+          >
             <View style={styles.levelHeader}>
               <Text style={styles.levelTitle}>Advanced</Text>
               <Text style={styles.levelSubtitle}>Confident player</Text>
             </View>
-          </View>
+          </Pressable>
         </View>
       </View>
     </View>
@@ -58,6 +88,26 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  backButtonContainer: {
+    position: 'absolute',
+    top: 60,
+    left: 24,
+    zIndex: 1,
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  backIcon: {
+    fontSize: 20,
+    color: '#FFFFFF',
+    fontWeight: '300',
+  },
+  backText: {
+    fontSize: 16,
+    color: '#FFFFFF',
   },
   headerContainer: {
     alignItems: 'center',
