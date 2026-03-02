@@ -2,21 +2,25 @@ import { StyleSheet } from 'react-native';
 import { DesignSystem } from './theme';
 
 export const authStyles = StyleSheet.create({
-  // Common container styles
-  container: {
+  // iOS Safe Area Container
+  safeAreaContainer: {
     flex: 1,
     backgroundColor: DesignSystem.colors.primary,
   },
-  backgroundGradient: {
+
+  // Common container styles
+  container: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 40,
   },
 
   // Sign In specific styles
   signInContainer: {
-    width: 400,
-    height: 800,
+    width: '100%',
+    maxWidth: 400,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
@@ -31,8 +35,8 @@ export const authStyles = StyleSheet.create({
 
   // Sign Up specific styles
   signUpContainer: {
-    width: 400,
-    height: 850,
+    width: '100%',
+    maxWidth: 400,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
