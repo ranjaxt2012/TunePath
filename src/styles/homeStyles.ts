@@ -9,7 +9,7 @@ export const homeStyles = StyleSheet.create({
   },
   headerContainer: {
     paddingHorizontal: DesignSystem.spacing.xl,
-    paddingVertical: DesignSystem.spacing['3xl'],
+    paddingTop: DesignSystem.spacing['3xl'],
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -42,21 +42,27 @@ export const homeStyles = StyleSheet.create({
     color: DesignSystem.colors.white,
   },
   headerContent: {
-    flex: 1,
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: DesignSystem.spacing['3xl'],
+    paddingHorizontal: DesignSystem.spacing.xl,
   },
   welcomeTitle: {
-    fontSize: 34,
-    fontWeight: '700',
+    fontSize: DesignSystem.typography.fontSizes['4xl'],
+    fontWeight: DesignSystem.typography.fontWeights.medium,
     color: DesignSystem.colors.white,
-    marginBottom: 4,
-    letterSpacing: -0.5,
+    textAlign: 'center',
+    letterSpacing: DesignSystem.typography.letterSpacing.tight,
   },
   welcomeSubtitle: {
-    fontSize: 17,
-    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: DesignSystem.typography.fontSizes.base,
+    fontWeight: DesignSystem.typography.fontWeights.regular,
+    color: DesignSystem.colors.white,
+    textAlign: 'center',
   },
   mainContent: {
     flex: 1,
+    justifyContent: 'center',
     paddingHorizontal: DesignSystem.spacing.xl,
     paddingBottom: 100, // Space for bottom nav
     maxWidth: 600,
