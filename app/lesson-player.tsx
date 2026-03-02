@@ -1,207 +1,250 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View, ScrollView, StyleSheet } from 'react-native';
+import { useState } from 'react';
 import { useRouter } from 'expo-router';
+import { lessonPlayerStyles } from '../src/styles/lessonPlayerStyles';
+
+const notationData = [
+  { id: 1, beats: ['Sa', 'Re', 'Ga', 'Ma'] },
+  { id: 2, beats: ['Pa', 'Dha', 'Ni', 'Sa'] },
+  { id: 3, beats: ['Sa', 'Sa', 'Re', 'Re'] },
+  { id: 4, beats: ['Ga', 'Ga', 'Ma', 'Ma'] },
+  { id: 5, beats: ['Pa', 'Pa', 'Dha', 'Dha'] },
+  { id: 6, beats: ['Ni', 'Ni', 'Sa', 'Sa'] },
+];
 
 export default function LessonPlayerScreen() {
   const router = useRouter();
-  
-  const handleExploreLessons = () => {
-    router.push('/home' as any);
-  };
+  const [bpm, setBpm] = useState(80);
+  const [notationMode, setNotationMode] = useState<'sargam' | 'staff'>('staff');
+  const [currentNoteIndex, setCurrentNoteIndex] = useState(0);
 
-  const handleContinueLesson = () => {
-    // Navigate to lesson content
-  };
+  const increaseBpm = () => setBpm(prev => Math.min(prev + 5, 200));
+  const decreaseBpm = () => setBpm(prev => Math.max(prev - 5, 40));
+
+  // Staff notation notes with positions (line number from bottom: 1-9, odd = on line, even = between lines)
+  const staffNotes = [
+    { id: 1, position: 1, name: 'E' }, // Bottom line
+    { id: 2, position: 3, name: 'G' },
+    { id: 3, position: 5, name: 'B' }, // Middle line
+    { id: 4, position: 7, name: 'D' },
+    { id: 5, position: 9, name: 'F' }, // Top line
+    { id: 6, position: 7, name: 'D' },
+    { id: 7, position: 5, name: 'B' },
+    { id: 8, position: 3, name: 'G' },
+    { id: 9, position: 5, name: 'B' },
+    { id: 10, position: 7, name: 'D' },
+    { id: 11, position: 9, name: 'F' },
+    { id: 12, position: 5, name: 'B' },
+  ];
 
   return (
-    <View style={styles.container}>
-      {/* Background gradient */}
-      <View style={styles.backgroundGradient}>
-        {/* Header */}
-        <View style={styles.headerContainer}>
-          {/* Logo */}
-          <View style={styles.logoContainer}>
-            <View style={styles.logo}>
-              <Text style={styles.logoIcon}>♪</Text>
-            </View>
-          </View>
-          
-          {/* Title */}
-          <Text style={styles.title}>TunePath</Text>
-          
-          {/* Subtitle */}
-          <Text style={styles.subtitle}>Your Journey to Musical Mastery</Text>
-        </View>
+    <View style={lessonPlayerStyles.container}>
+      <ScrollView style={lessonPlayerStyles.scrollView} showsVerticalScrollIndicator={false}>
+        <View style={lessonPlayerStyles.content}>
+          {/* Back Button */}
+          <Pressable 
+            style={({ pressed }) => [lessonPlayerStyles.backButton, { opacity: pressed ? 0.8 : 1 }]}
+            onPress={() => router.back()}
+          >
+            <Text style={lessonPlayerStyles.backIcon}>‹</Text>
+            <Text style={lessonPlayerStyles.backText}>Back</Text>
+          </Pressable>
 
-        {/* Continue Learning Section */}
-        <View style={styles.continueLearningContainer}>
-          <Text style={styles.sectionTitle}>Continue Learning</Text>
-          
-          {/* Current Lesson Card */}
-          <View style={styles.lessonCard} onTouchEnd={handleContinueLesson}>
-            <View style={styles.lessonContent}>
-              {/* Lesson Icon */}
-              <View style={styles.lessonIcon}>
-                <Text style={styles.lessonIconText}>🎵</Text>
-              </View>
-              
-              {/* Lesson Info */}
-              <View style={styles.lessonInfo}>
-                <Text style={styles.lessonTitle}>Raag Basics – Lesson 1</Text>
-                <Text style={styles.lessonSubtitle}>Harmonium • Beginner</Text>
+          {/* Header */}
+          <View style={lessonPlayerStyles.header}>
+            <Text style={lessonPlayerStyles.subtitle}>Harmonium • Beginner</Text>
+            <Text style={lessonPlayerStyles.title}>Raag Basics – Lesson 1</Text>
+          </View>
+
+          {/* Video Container */}
+          <View style={lessonPlayerStyles.videoContainer}>
+            <View style={lessonPlayerStyles.videoContent}>
+              <Pressable style={({ pressed }) => [lessonPlayerStyles.playButton, { opacity: pressed ? 0.8 : 1 }]}>
+                <Text style={lessonPlayerStyles.playIcon}>▶</Text>
+              </Pressable>
+              <View style={lessonPlayerStyles.videoInfo}>
+                <Text style={lessonPlayerStyles.videoTitle}>Raag Basics - Introduction</Text>
+                <Text style={lessonPlayerStyles.videoDuration}>12:45</Text>
               </View>
             </View>
           </View>
-        </View>
 
-        {/* Explore Button */}
-        <View style={styles.exploreButtonContainer}>
-          <View style={styles.exploreButton} onTouchEnd={handleExploreLessons}>
-            <Text style={styles.exploreButtonText}>Explore All Lessons</Text>
+          {/* Tempo Control */}
+          <View style={lessonPlayerStyles.tempoControl}>
+            <Pressable 
+              style={({ pressed }) => [lessonPlayerStyles.tempoButton, { opacity: pressed ? 0.8 : 1 }]}
+              onPress={decreaseBpm}
+            >
+              <Text style={lessonPlayerStyles.tempoIcon}>−</Text>
+            </Pressable>
+            <Text style={lessonPlayerStyles.tempoText}>{bpm} BPM</Text>
+            <Pressable 
+              style={({ pressed }) => [lessonPlayerStyles.tempoButton, { opacity: pressed ? 0.8 : 1 }]}
+              onPress={increaseBpm}
+            >
+              <Text style={lessonPlayerStyles.tempoIcon}>+</Text>
+            </Pressable>
+          </View>
+
+          {/* Segmented Control */}
+          <View style={lessonPlayerStyles.segmentedControl}>
+            <Pressable
+              style={[
+                lessonPlayerStyles.segmentButton,
+                notationMode === 'sargam' ? lessonPlayerStyles.segmentButtonActive : lessonPlayerStyles.segmentButtonInactive
+              ]}
+              onPress={() => setNotationMode('sargam')}
+            >
+              <Text style={[
+                lessonPlayerStyles.segmentButtonText,
+                notationMode === 'sargam' ? lessonPlayerStyles.segmentButtonTextActive : lessonPlayerStyles.segmentButtonTextInactive
+              ]}>
+                Sargam
+              </Text>
+            </Pressable>
+            <Pressable
+              style={[
+                lessonPlayerStyles.segmentButton,
+                notationMode === 'staff' ? lessonPlayerStyles.segmentButtonActive : lessonPlayerStyles.segmentButtonInactive
+              ]}
+              onPress={() => setNotationMode('staff')}
+            >
+              <Text style={[
+                lessonPlayerStyles.segmentButtonText,
+                notationMode === 'staff' ? lessonPlayerStyles.segmentButtonTextActive : lessonPlayerStyles.segmentButtonTextInactive
+              ]}>
+                Staff
+              </Text>
+            </Pressable>
+          </View>
+
+          {/* Notation Section */}
+          <View style={lessonPlayerStyles.notationSection}>
+            {notationMode === 'sargam' ? (
+              <View style={lessonPlayerStyles.sargamContainer}>
+                {notationData.map((measure) => (
+                  <View key={measure.id} style={lessonPlayerStyles.measureRow}>
+                    <Text style={lessonPlayerStyles.measureBar}>|</Text>
+                    <View style={lessonPlayerStyles.beatsContainer}>
+                      {measure.beats.map((note, index) => (
+                        <View
+                          key={`${measure.id}-${index}`}
+                          style={[
+                            lessonPlayerStyles.beat,
+                            index === 0 ? lessonPlayerStyles.beatActive : lessonPlayerStyles.beatInactive
+                          ]}
+                        >
+                          <Text style={[
+                            lessonPlayerStyles.beatText,
+                            index === 0 ? lessonPlayerStyles.beatTextActive : lessonPlayerStyles.beatTextInactive
+                          ]}>
+                            {note}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                    <Text style={lessonPlayerStyles.measureBar}>|</Text>
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <View style={lessonPlayerStyles.staffContainer}>
+                {/* First Staff */}
+                <View style={lessonPlayerStyles.staff}>
+                  {/* Staff Lines */}
+                  {[1, 2, 3, 4, 5].map((line) => (
+                    <View key={line} style={lessonPlayerStyles.staffLine} />
+                  ))}
+                  
+                  {/* Treble Clef */}
+                  <Text style={lessonPlayerStyles.trebleClef}>𝄞</Text>
+                  
+                  {/* Notes */}
+                  <View style={lessonPlayerStyles.notesContainer}>
+                    {staffNotes.slice(0, 8).map((note, index) => {
+                      const isActive = index === currentNoteIndex;
+                      const bottomPercent = ((note.position - 1) / 8) * 100;
+                      
+                      return (
+                        <View
+                          key={note.id}
+                          style={[
+                            lessonPlayerStyles.note,
+                            {
+                              position: 'absolute',
+                              left: `${10 + (index * 10)}%`,
+                              bottom: `${bottomPercent - 8}%`
+                            }
+                          ]}
+                        >
+                          <View style={[
+                            lessonPlayerStyles.noteHead,
+                            isActive ? lessonPlayerStyles.noteHeadActive : lessonPlayerStyles.noteHeadInactive
+                          ]} />
+                          <View style={[
+                            lessonPlayerStyles.noteStem,
+                            isActive ? lessonPlayerStyles.noteStemActive : lessonPlayerStyles.noteStemInactive
+                          ]} />
+                        </View>
+                      );
+                    })}
+                  </View>
+                </View>
+
+                {/* Second Staff */}
+                <View style={lessonPlayerStyles.staff}>
+                  {/* Staff Lines */}
+                  {[1, 2, 3, 4, 5].map((line) => (
+                    <View key={line} style={lessonPlayerStyles.staffLine} />
+                  ))}
+                  
+                  {/* Treble Clef */}
+                  <Text style={lessonPlayerStyles.trebleClef}>𝄞</Text>
+                  
+                  {/* Notes */}
+                  <View style={lessonPlayerStyles.notesContainer}>
+                    {staffNotes.slice(8).map((note, index) => {
+                      const actualIndex = index + 8;
+                      const isActive = actualIndex === currentNoteIndex;
+                      const bottomPercent = ((note.position - 1) / 8) * 100;
+                      
+                      return (
+                        <View
+                          key={note.id}
+                          style={[
+                            lessonPlayerStyles.note,
+                            {
+                              position: 'absolute',
+                              left: `${10 + (index * 20)}%`,
+                              bottom: `${bottomPercent - 8}%`
+                            }
+                          ]}
+                        >
+                          <View style={[
+                            lessonPlayerStyles.noteHead,
+                            isActive ? lessonPlayerStyles.noteHeadActive : lessonPlayerStyles.noteHeadInactive
+                          ]} />
+                          <View style={[
+                            lessonPlayerStyles.noteStem,
+                            isActive ? lessonPlayerStyles.noteStemActive : lessonPlayerStyles.noteStemInactive
+                          ]} />
+                        </View>
+                      );
+                    })}
+                  </View>
+                </View>
+              </View>
+            )}
           </View>
         </View>
+      </ScrollView>
+
+      {/* Floating Bottom Button */}
+      <View style={lessonPlayerStyles.floatingButtonContainer}>
+        <Pressable style={({ pressed }) => [lessonPlayerStyles.floatingButton, { opacity: pressed ? 0.8 : 1 }]}>
+          <Text style={lessonPlayerStyles.floatingButtonText}>Start Guided Practice</Text>
+        </Pressable>
       </View>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    // Gradient background: linear-gradient(135deg, rgba(152, 16, 250, 1) 0%, rgba(173, 70, 255, 1) 50%, rgba(43, 127, 255, 1) 100%)
-    backgroundColor: '#9810FA',
-  },
-  backgroundGradient: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerContainer: {
-    alignItems: 'center',
-    marginBottom: 48,
-  },
-  logoContainer: {
-    marginBottom: 24,
-  },
-  logo: {
-    width: 96,
-    height: 96,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 8,
-  },
-  logoIcon: {
-    fontSize: 48,
-    color: '#FFFFFF',
-    fontWeight: '300',
-  },
-  title: {
-    fontSize: 36,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    textAlign: 'center',
-    letterSpacing: 1.025,
-    lineHeight: 40,
-  },
-  subtitle: {
-    fontSize: 18,
-    fontWeight: '400',
-    color: 'rgba(255, 255, 255, 0.8)',
-    textAlign: 'center',
-    letterSpacing: -2.44,
-    lineHeight: 28,
-  },
-  continueLearningContainer: {
-    width: 448,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 20,
-    padding: 25,
-    marginBottom: 32,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 8,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    textAlign: 'center',
-    letterSpacing: -2.25,
-    lineHeight: 28,
-    marginBottom: 16,
-  },
-  lessonCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 20,
-    padding: 16,
-    paddingTop: 0,
-  },
-  lessonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-  },
-  lessonIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 16,
-    backgroundColor: 'rgba(173, 70, 255, 0.5)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  lessonIconText: {
-    fontSize: 32,
-    color: '#FFFFFF',
-  },
-  lessonInfo: {
-    flex: 1,
-    gap: 4,
-  },
-  lessonTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    letterSpacing: -2.44,
-    lineHeight: 27,
-  },
-  lessonSubtitle: {
-    fontSize: 14,
-    fontWeight: '400',
-    color: 'rgba(255, 255, 255, 0.7)',
-    letterSpacing: -1.07,
-    lineHeight: 20,
-  },
-  exploreButtonContainer: {
-    alignItems: 'center',
-  },
-  exploreButton: {
-    width: 448,
-    height: 60,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 25 },
-    shadowOpacity: 0.25,
-    shadowRadius: 50,
-    elevation: 25,
-  },
-  exploreButtonText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#9810FA',
-    textAlign: 'center',
-    letterSpacing: -2.44,
-    lineHeight: 28,
-  },
-});

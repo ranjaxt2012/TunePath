@@ -13,6 +13,17 @@ export default function SelectInstrumentScreen() {
     <View style={styles.container}>
       {/* Background gradient */}
       <View style={styles.backgroundGradient}>
+        {/* Back Button */}
+        <View style={styles.backButtonContainer}>
+          <Pressable 
+            style={({ pressed }) => [styles.backButton, { opacity: pressed ? 0.8 : 1 }]}
+            onPress={() => router.push('/(auth)/sign-in')}
+          >
+            <Text style={styles.backIcon}>‹</Text>
+            <Text style={styles.backText}>Back</Text>
+          </Pressable>
+        </View>
+
         {/* Header */}
         <View style={styles.headerContainer}>
           <Text style={styles.title}>Choose Your Instrument</Text>
@@ -121,6 +132,26 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  backButtonContainer: {
+    position: 'absolute',
+    top: 60,
+    left: 24,
+    zIndex: 1,
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  backIcon: {
+    fontSize: 20,
+    color: '#FFFFFF',
+    fontWeight: '300',
+  },
+  backText: {
+    fontSize: 16,
+    color: '#FFFFFF',
+  },
   headerContainer: {
     alignItems: 'center',
     marginBottom: 48,
@@ -141,9 +172,11 @@ const styles = StyleSheet.create({
     lineHeight: 28,
   },
   instrumentsContainer: {
-    flexDirection: 'column',
-    gap: 12,
-    alignItems: 'stretch',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+    justifyContent: 'space-between',
+    paddingHorizontal: 24,
   },
   instrumentCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
@@ -151,31 +184,32 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 24,
     padding: 12,
-    flexDirection: 'row',
+    flexDirection: 'column',
     alignItems: 'center',
-    gap: 12,
+    gap: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.2,
     shadowRadius: 1,
     elevation: 2,
+    width: '48%',
   },
   iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
+    width: 60,
+    height: 60,
+    borderRadius: 15,
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
   },
   instrumentIcon: {
-    fontSize: 24,
+    fontSize: 30,
     color: '#9810FA',
   },
   instrumentName: {
     fontSize: 16,
     fontWeight: '500',
     color: '#FFFFFF',
-    flex: 1,
+    textAlign: 'center',
   },
 });

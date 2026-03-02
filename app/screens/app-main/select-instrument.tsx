@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { selectInstrumentStyles } from '../../../src/styles/selectInstrumentStyles';
 
 export default function SelectInstrumentScreen() {
   const router = useRouter();
@@ -10,99 +11,99 @@ export default function SelectInstrumentScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={selectInstrumentStyles.container}>
       {/* Background gradient */}
-      <View style={styles.backgroundGradient}>
+      <View style={selectInstrumentStyles.backgroundGradient}>
         {/* Header */}
-        <View style={styles.headerContainer}>
-          <Text style={styles.title}>Choose Your Instrument</Text>
-          <Text style={styles.subtitle}>Select your instrument to get started.</Text>
+        <View style={selectInstrumentStyles.headerContainer}>
+          <Text style={selectInstrumentStyles.title}>Choose Your Instrument</Text>
+          <Text style={selectInstrumentStyles.subtitle}>Select your instrument to get started.</Text>
         </View>
 
         {/* Instrument Options */}
-        <View style={styles.instrumentsContainer}>
+        <View style={selectInstrumentStyles.instrumentsContainer}>
           {/* Harmonium */}
           <Pressable 
             style={({ pressed }) => [
-              styles.instrumentCard,
+              selectInstrumentStyles.instrumentCard,
               { opacity: pressed ? 0.8 : 1 }
             ]}
             onPress={() => handleInstrumentSelect('harmonium')}
           >
-            <View style={styles.iconContainer}>
-              <Text style={styles.instrumentIcon}>🎵</Text>
+            <View style={selectInstrumentStyles.iconContainer}>
+              <Text style={selectInstrumentStyles.instrumentIcon}>🎵</Text>
             </View>
-            <Text style={styles.instrumentName}>Harmonium</Text>
+            <Text style={selectInstrumentStyles.instrumentName}>Harmonium</Text>
           </Pressable>
 
           {/* Guitar */}
           <Pressable 
             style={({ pressed }) => [
-              styles.instrumentCard,
+              selectInstrumentStyles.instrumentCard,
               { opacity: pressed ? 0.8 : 1 }
             ]}
             onPress={() => handleInstrumentSelect('guitar')}
           >
-            <View style={styles.iconContainer}>
-              <Text style={styles.instrumentIcon}>🎸</Text>
+            <View style={selectInstrumentStyles.iconContainer}>
+              <Text style={selectInstrumentStyles.instrumentIcon}>🎸</Text>
             </View>
-            <Text style={styles.instrumentName}>Guitar</Text>
+            <Text style={selectInstrumentStyles.instrumentName}>Guitar</Text>
           </Pressable>
 
           {/* Piano */}
           <Pressable 
             style={({ pressed }) => [
-              styles.instrumentCard,
+              selectInstrumentStyles.instrumentCard,
               { opacity: pressed ? 0.8 : 1 }
             ]}
             onPress={() => handleInstrumentSelect('piano')}
           >
-            <View style={styles.iconContainer}>
-              <Text style={styles.instrumentIcon}>🎹</Text>
+            <View style={selectInstrumentStyles.iconContainer}>
+              <Text style={selectInstrumentStyles.instrumentIcon}>🎹</Text>
             </View>
-            <Text style={styles.instrumentName}>Piano</Text>
+            <Text style={selectInstrumentStyles.instrumentName}>Piano</Text>
           </Pressable>
 
           {/* Vocals */}
           <Pressable 
             style={({ pressed }) => [
-              styles.instrumentCard,
+              selectInstrumentStyles.instrumentCard,
               { opacity: pressed ? 0.8 : 1 }
             ]}
             onPress={() => handleInstrumentSelect('vocals')}
           >
-            <View style={styles.iconContainer}>
-              <Text style={styles.instrumentIcon}>🎤</Text>
+            <View style={selectInstrumentStyles.iconContainer}>
+              <Text style={selectInstrumentStyles.instrumentIcon}>🎤</Text>
             </View>
-            <Text style={styles.instrumentName}>Vocals</Text>
+            <Text style={selectInstrumentStyles.instrumentName}>Vocals</Text>
           </Pressable>
 
           {/* Tabla */}
           <Pressable 
             style={({ pressed }) => [
-              styles.instrumentCard,
+              selectInstrumentStyles.instrumentCard,
               { opacity: pressed ? 0.8 : 1 }
             ]}
             onPress={() => handleInstrumentSelect('tabla')}
           >
-            <View style={styles.iconContainer}>
-              <Text style={styles.instrumentIcon}>🪘</Text>
+            <View style={selectInstrumentStyles.iconContainer}>
+              <Text style={selectInstrumentStyles.instrumentIcon}>🪘</Text>
             </View>
-            <Text style={styles.instrumentName}>Tabla</Text>
+            <Text style={selectInstrumentStyles.instrumentName}>Tabla</Text>
           </Pressable>
 
           {/* Violin */}
           <Pressable 
             style={({ pressed }) => [
-              styles.instrumentCard,
+              selectInstrumentStyles.instrumentCard,
               { opacity: pressed ? 0.8 : 1 }
             ]}
             onPress={() => handleInstrumentSelect('violin')}
           >
-            <View style={styles.iconContainer}>
-              <Text style={styles.instrumentIcon}>🎻</Text>
+            <View style={selectInstrumentStyles.iconContainer}>
+              <Text style={selectInstrumentStyles.instrumentIcon}>🎻</Text>
             </View>
-            <Text style={styles.instrumentName}>Violin</Text>
+            <Text style={selectInstrumentStyles.instrumentName}>Violin</Text>
           </Pressable>
         </View>
       </View>
@@ -130,6 +131,7 @@ const styles = StyleSheet.create({
     fontSize: 36,
     fontWeight: '600',
     color: '#FFFFFF',
+    flex: 1,
     textAlign: 'center',
     lineHeight: 40,
   },
@@ -144,6 +146,7 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     gap: 12,
     alignItems: 'stretch',
+    justifyContent: 'center',
   },
   instrumentCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
