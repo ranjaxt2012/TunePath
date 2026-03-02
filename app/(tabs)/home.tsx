@@ -18,14 +18,14 @@ export default function HomeScreen() {
           <Text style={homeStyles.backIcon}>‹</Text>
           <Text style={homeStyles.backText}>Back</Text>
         </Pressable>
-        <View style={homeStyles.headerContent}>
-          <Text style={homeStyles.welcomeTitle}>Welcome back</Text>
-          <Text style={homeStyles.welcomeSubtitle}>Ready to practice?</Text>
-        </View>
       </View>
 
       {/* Main Content */}
       <View style={homeStyles.mainContent}>
+        <View style={homeStyles.headerContent}>
+          <Text style={homeStyles.welcomeTitle}>Welcome back</Text>
+          <Text style={homeStyles.welcomeSubtitle}>Ready to practice?</Text>
+        </View>
         {/* Large Card - Continue Practice */}
         <View style={homeStyles.largeCard}>
           <Text style={homeStyles.cardTitle}>Continue Practice</Text>
