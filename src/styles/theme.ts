@@ -1,5 +1,7 @@
 // TunePath Design System
 // Centralized styling for consistent design across all screens
+// All token maps are frozen with `as const` so TypeScript infers literal types.
+// Use the exported ThemeXxx types to enforce boundaries in components & styles.
 
 // Base design tokens
 const colors = {
@@ -36,16 +38,16 @@ const colors = {
     '80': 'rgba(255, 255, 255, 0.8)',
     '90': 'rgba(255, 255, 255, 0.9)',
   },
-};
+} as const;
 
 const typography = {
   fontFamily: 'Inter',
   fontWeights: {
-    light: '300' as const,
-    regular: '400' as const,
-    medium: '500' as const,
-    semibold: '600' as const,
-    bold: '700' as const,
+    light: '300',
+    regular: '400',
+    medium: '500',
+    semibold: '600',
+    bold: '700',
   },
   fontSizes: {
     xs: 12,
@@ -62,7 +64,7 @@ const typography = {
     normal: 0,
     wide: 0.5,
   },
-};
+} as const;
 
 const spacing = {
   xs: 4,
@@ -73,7 +75,7 @@ const spacing = {
   '2xl': 24,
   '3xl': 32,
   '4xl': 48,
-};
+} as const;
 
 const borderRadius = {
   sm: 4,
@@ -82,7 +84,7 @@ const borderRadius = {
   xl: 16,
   '2xl': 20,
   full: 9999,
-};
+} as const;
 
 // Component styles using base tokens
 const components = {
@@ -215,25 +217,69 @@ export const DesignSystem = {
   layout,
 };
 
-// Helper functions for consistent styling
-export const createTextStyle = (size: keyof typeof DesignSystem.typography.fontSizes, weight: keyof typeof DesignSystem.typography.fontWeights = 'regular', color: string = DesignSystem.colors.text.primary) => ({
+// ---------------------------------------------------------------------------
+// Derived token types — import these in components to stay within boundaries
+// ---------------------------------------------------------------------------
+
+/** All valid spacing keys: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' */
+export type ThemeSpacing = keyof typeof spacing;
+
+/** All valid border-radius keys: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'full' */
+export type ThemeBorderRadius = keyof typeof borderRadius;
+
+/** All valid font-size keys: 'xs' | 'sm' | 'base' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' */
+export type ThemeFontSize = keyof typeof typography.fontSizes;
+
+/** All valid font-weight keys: 'light' | 'regular' | 'medium' | 'semibold' | 'bold' */
+export type ThemeFontWeight = keyof typeof typography.fontWeights;
+
+/** All valid white-overlay keys: '10' | '15' | '20' | '30' | '40' | '50' | '60' | '70' | '80' | '90' */
+export type ThemeWhiteOverlay = keyof typeof colors.whiteOverlay;
+
+/** Resolved spacing value (number) */
+export type ThemeSpacingValue = (typeof spacing)[ThemeSpacing];
+
+/** Resolved font-size value (number) */
+export type ThemeFontSizeValue = (typeof typography.fontSizes)[ThemeFontSize];
+
+/** Button variant keys */
+export type ThemeButtonVariant = keyof typeof components.button;
+
+// ---------------------------------------------------------------------------
+// Helper functions — all params are typed to token keys, not raw primitives
+// ---------------------------------------------------------------------------
+
+export const createTextStyle = (
+  size: ThemeFontSize,
+  weight: ThemeFontWeight = 'regular',
+  color: string = DesignSystem.colors.text.primary,
+) => ({
   fontFamily: DesignSystem.typography.fontFamily,
   fontSize: DesignSystem.typography.fontSizes[size],
   fontWeight: DesignSystem.typography.fontWeights[weight],
-  color: color,
+  color,
 });
 
-export const createButtonStyle = (variant: 'primary' | 'secondary' = 'primary', pressed: boolean = false) => {
-  const baseStyle = DesignSystem.components.button[variant];
-  return {
-    ...baseStyle,
-    opacity: pressed ? 0.8 : 1,
-  };
-};
+export const createButtonStyle = (
+  variant: ThemeButtonVariant = 'primary',
+  pressed: boolean = false,
+) => ({
+  ...DesignSystem.components.button[variant],
+  opacity: pressed ? 0.8 : 1,
+});
 
-export const createCardStyle = (additionalStyles = {}) => ({
+export const createCardStyle = (additionalStyles: Record<string, unknown> = {}) => ({
   ...DesignSystem.components.card,
   ...additionalStyles,
 });
+
+/** Resolve a spacing token to its pixel value */
+export const sp = (key: ThemeSpacing): number => spacing[key];
+
+/** Resolve a border-radius token to its pixel value */
+export const br = (key: ThemeBorderRadius): number => borderRadius[key];
+
+/** Resolve a font-size token to its pixel value */
+export const fs = (key: ThemeFontSize): number => typography.fontSizes[key];
 
 export default DesignSystem;

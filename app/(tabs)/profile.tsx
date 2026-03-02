@@ -1,9 +1,10 @@
-import { useRouter } from 'expo-router';
+import React from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
+import { BottomTabBar } from '../../src/components/ui';
 import { profileStyles } from '../../src/styles/profileStyles';
 
 // Settings Item Component
-function SettingsItem({ icon, label, value, onPress }: { icon: string; label: string; value?: string; onPress?: () => void }) {
+const SettingsItem = React.memo(function SettingsItem({ icon, label, value, onPress }: { icon: string; label: string; value?: string; onPress?: () => void }) {
   return (
     <Pressable
       style={({ pressed }) => [profileStyles.settingsItem, { opacity: pressed ? 0.8 : 1 }]}
@@ -21,11 +22,9 @@ function SettingsItem({ icon, label, value, onPress }: { icon: string; label: st
       </View>
     </Pressable>
   );
-}
+});
 
 export default function ProfileScreen() {
-  const router = useRouter();
-
   return (
     <View style={profileStyles.container}>
       {/* Header */}
@@ -99,46 +98,7 @@ export default function ProfileScreen() {
         </View>
       </ScrollView>
 
-      {/* Bottom Tab Bar */}
-      <View style={profileStyles.bottomTabBar}>
-        <View style={profileStyles.tabBarContent}>
-          {/* Home Tab */}
-          <Pressable 
-            style={profileStyles.tabButton}
-            onPress={() => router.push('/home')}
-          >
-            <Text style={profileStyles.tabIconInactive}>🏠</Text>
-            <Text style={profileStyles.tabTextInactive}>Home</Text>
-          </Pressable>
-
-          {/* Practice Tab */}
-          <Pressable 
-            style={profileStyles.tabButton}
-            onPress={() => router.push('/practice')}
-          >
-            <Text style={profileStyles.tabIconInactive}>🎵</Text>
-            <Text style={profileStyles.tabTextInactive}>Practice</Text>
-          </Pressable>
-
-          {/* Progress Tab */}
-          <Pressable 
-            style={profileStyles.tabButton}
-            onPress={() => router.push('/progress')}
-          >
-            <Text style={profileStyles.tabIconInactive}>📊</Text>
-            <Text style={profileStyles.tabTextInactive}>Progress</Text>
-          </Pressable>
-
-          {/* Profile Tab - Active */}
-          <Pressable 
-            style={profileStyles.tabButton}
-            onPress={() => console.log('Already on Profile')}
-          >
-            <Text style={profileStyles.tabIconActive}>👤</Text>
-            <Text style={profileStyles.tabTextActive}>Profile</Text>
-          </Pressable>
-        </View>
-      </View>
+      <BottomTabBar activeTab="profile" />
     </View>
   );
 }

@@ -143,6 +143,42 @@ export const sharedStyles = StyleSheet.create({
     opacity: 0.6,
   },
 
+  // Help button — matches tab icon+label style, absolutely anchored to bottom-right
+  helpButtonWrapper: {
+    position: 'absolute' as const,
+    bottom: 0,
+    right: 0,
+  },
+  helpButton: {
+    flexDirection: 'column' as const,
+    alignItems: 'center' as const,
+    gap: 4,
+    paddingVertical: DesignSystem.spacing.sm,
+    paddingHorizontal: DesignSystem.spacing.md,
+  },
+  helpLabel: {
+    fontSize: 10,
+    fontWeight: '500' as const,
+    color: DesignSystem.colors.white,
+    opacity: 0.6,
+  },
+  hoverLabel: {
+    position: 'absolute' as const,
+    bottom: 56,
+    right: DesignSystem.spacing.md,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    borderRadius: 8,
+    paddingHorizontal: DesignSystem.spacing.sm,
+    paddingVertical: DesignSystem.spacing.xs,
+    minWidth: 120,
+    alignItems: 'center' as const,
+  },
+  hoverLabelText: {
+    fontSize: 12,
+    fontWeight: '500' as const,
+    color: DesignSystem.colors.white,
+  },
+
   // Common background patterns
   primaryBackground: {
     backgroundColor: DesignSystem.colors.primary,

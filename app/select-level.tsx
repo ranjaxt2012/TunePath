@@ -13,9 +13,7 @@ export default function SelectLevelScreen() {
   const handleLevelSelect = (level: string) => {
     setSelectedLevel(level as Level);
     console.log('Level selected:', level);
-    setTimeout(() => {
-      router.push('/home' as any);
-    }, 200);
+    router.replace('/home' as any);
   };
 
   return (

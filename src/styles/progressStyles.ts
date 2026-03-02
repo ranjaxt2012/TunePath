@@ -116,14 +116,6 @@ export const progressStyles = StyleSheet.create({
     fontWeight: '500',
     color: DesignSystem.colors.whiteOverlay['90'],
   },
-  // Bottom Tab Bar
-  bottomTabBar: sharedStyles.bottomTabBar,
-  tabBarContent: sharedStyles.tabBarContent,
-  tabButton: sharedStyles.tabButton,
-  tabIconActive: sharedStyles.tabIconActive,
-  tabTextActive: sharedStyles.tabTextActive,
-  tabIconInactive: sharedStyles.tabIconInactive,
-  tabTextInactive: sharedStyles.tabTextInactive,
 });
 
 export default progressStyles;

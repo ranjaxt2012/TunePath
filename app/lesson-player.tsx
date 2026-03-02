@@ -1,6 +1,6 @@
-import { Pressable, Text, View, ScrollView, StyleSheet } from 'react-native';
-import { useState } from 'react';
 import { useRouter } from 'expo-router';
+import { useState } from 'react';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { lessonPlayerStyles } from '../src/styles/lessonPlayerStyles';
 
 const notationData = [
