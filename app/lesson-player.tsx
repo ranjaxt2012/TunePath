@@ -18,7 +18,7 @@ export default function LessonPlayerScreen() {
   const router = useRouter();
   const [bpm, setBpm] = useState(80);
   const [notationMode, setNotationMode] = useState<'sargam' | 'staff'>('staff');
-  const [currentNoteIndex, setCurrentNoteIndex] = useState(0);
+  const [currentNoteIndex] = useState(0);
   
   // Current instrument and level - in real app, this would come from route params or global state
   const currentInstrument = 'Harmonium';

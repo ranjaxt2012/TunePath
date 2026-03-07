@@ -54,16 +54,6 @@ export default function HomeScreen() {
     }
   }, [isFocused]);
   
-  // Save selections when they change
-  const saveSelections = async (instrument: string, level: string) => {
-    try {
-      await AsyncStorage.setItem('selectedInstrument', instrument);
-      await AsyncStorage.setItem('selectedLevel', level);
-    } catch (error) {
-      console.error('Error saving selections:', error);
-    }
-  };
-  
   const instrumentData = getInstrumentNotation(currentInstrument);
   const levelData = getLevelById(currentLevel);
   
@@ -74,17 +64,6 @@ export default function HomeScreen() {
   
   const goToSelectLevel = useCallback(() => router.push('/select-level'), [router]);
   const goToSelectInstrument = useCallback(() => router.push('/select-instrument'), [router]);
-  
-  // Update selections and navigate when user makes changes
-  const handleInstrumentSelect = useCallback((instrument: string) => {
-    setCurrentInstrument(instrument);
-    saveSelections(instrument, currentLevel);
-  }, [currentLevel]);
-  
-  const handleLevelSelect = useCallback((level: string) => {
-    setCurrentLevel(level);
-    saveSelections(currentInstrument, level);
-  }, [currentInstrument]);
 
   return (
     <View style={homeStyles.container}>
@@ -139,7 +118,7 @@ export default function HomeScreen() {
           </Text>
           <Pressable 
             style={({ pressed }) => [homeStyles.secondaryButton, { opacity: pressed ? 0.8 : 1 }]}
-            onPress={() => router.push('/select-level')}
+            onPress={goToSelectLevel}
           >
             <Text style={homeStyles.secondaryButtonText}>Select Level</Text>
           </Pressable>
