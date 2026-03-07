@@ -86,6 +86,27 @@ export const homeStyles = StyleSheet.create({
     fontWeight: '600',
     color: DesignSystem.colors.primary,
   },
+  mediumCard: {
+    ...DesignSystem.components.glassCard,
+    padding: DesignSystem.spacing.lg,
+    marginBottom: DesignSystem.spacing.lg,
+    width: '100%',
+  },
+  secondaryButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    alignItems: 'center',
+    width: '100%',
+  },
+  secondaryButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: DesignSystem.colors.white,
+  },
   smallCard: {
     ...DesignSystem.components.glassCard,
     padding: DesignSystem.spacing.lg,

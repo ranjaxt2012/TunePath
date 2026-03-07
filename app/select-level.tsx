@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
@@ -10,10 +11,14 @@ export default function SelectLevelScreen() {
   const router = useRouter();
   const [selectedLevel, setSelectedLevel] = useState<Level>(null);
   
-  const handleLevelSelect = (level: string) => {
+  const handleLevelSelect = async (level: string) => {
     setSelectedLevel(level as Level);
-    console.log('Level selected:', level);
-    router.replace('/home' as any);
+    try {
+      await AsyncStorage.setItem('selectedLevel', level);
+      router.replace('/home' as any);
+    } catch (error) {
+      console.error('Error saving level:', error);
+    }
   };
 
   return (

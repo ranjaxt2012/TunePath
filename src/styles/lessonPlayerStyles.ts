@@ -26,7 +26,30 @@ export const lessonPlayerStyles = StyleSheet.create({
   backText: sharedStyles.backText,
   // Header
   header: {
-    marginBottom: DesignSystem.spacing.lg,
+    marginBottom: 24,
+  },
+  notationInfo: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+  },
+  notationTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#A0A0A0',
+    marginBottom: 8,
+  },
+  notationType: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  notationDetails: {
+    fontSize: 14,
+    color: '#E0E0E0',
+    lineHeight: 20,
   },
   subtitle: {
     fontSize: 14,

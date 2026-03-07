@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
 import { selectInstrumentStyles } from '../src/styles/selectInstrumentStyles';
@@ -5,9 +6,13 @@ import { selectInstrumentStyles } from '../src/styles/selectInstrumentStyles';
 export default function SelectInstrumentScreen() {
   const router = useRouter();
   
-  const handleInstrumentSelect = (instrument: string) => {
-    console.log('Instrument selected:', instrument);
-    router.push('/select-level' as any);
+  const handleInstrumentSelect = async (instrument: string) => {
+    try {
+      await AsyncStorage.setItem('selectedInstrument', instrument);
+      router.push('/select-level' as any);
+    } catch (error) {
+      console.error('Error saving instrument:', error);
+    }
   };
 
   return (
