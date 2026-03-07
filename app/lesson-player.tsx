@@ -2,6 +2,8 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { lessonPlayerStyles } from '../src/styles/lessonPlayerStyles';
+import { getLevelById } from '../src/types/levelTypes';
+import { getInstrumentNotation } from '../src/utils/instrumentUtils';
 
 const notationData = [
   { id: 1, beats: ['Sa', 'Re', 'Ga', 'Ma'] },
@@ -17,6 +19,12 @@ export default function LessonPlayerScreen() {
   const [bpm, setBpm] = useState(80);
   const [notationMode, setNotationMode] = useState<'sargam' | 'staff'>('staff');
   const [currentNoteIndex, setCurrentNoteIndex] = useState(0);
+  
+  // Current instrument and level - in real app, this would come from route params or global state
+  const currentInstrument = 'Harmonium';
+  const currentLevelId = 'beginner';
+  const instrumentData = getInstrumentNotation(currentInstrument);
+  const levelData = getLevelById(currentLevelId);
 
   const increaseBpm = () => setBpm(prev => Math.min(prev + 5, 200));
   const decreaseBpm = () => setBpm(prev => Math.max(prev - 5, 40));
@@ -52,9 +60,20 @@ export default function LessonPlayerScreen() {
 
           {/* Header */}
           <View style={lessonPlayerStyles.header}>
-            <Text style={lessonPlayerStyles.subtitle}>Harmonium • Beginner</Text>
+            <Text style={lessonPlayerStyles.subtitle}>
+              {instrumentData && levelData ? `${instrumentData.instrument} • ${levelData.name}` : 'Instrument • Loading'}
+            </Text>
             <Text style={lessonPlayerStyles.title}>Raag Basics – Lesson 1</Text>
           </View>
+
+          {/* Instrument Notation Info */}
+          {instrumentData && (
+            <View style={lessonPlayerStyles.notationInfo}>
+              <Text style={lessonPlayerStyles.notationTitle}>Notation System</Text>
+              <Text style={lessonPlayerStyles.notationType}>{instrumentData.primary_notation}</Text>
+              <Text style={lessonPlayerStyles.notationDetails}>{instrumentData.details}</Text>
+            </View>
+          )}
 
           {/* Video Container */}
           <View style={lessonPlayerStyles.videoContainer}>
