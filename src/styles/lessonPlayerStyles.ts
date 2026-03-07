@@ -63,7 +63,8 @@ export const lessonPlayerStyles = StyleSheet.create({
   },
   // Video Container
   videoContainer: {
-    width: '100%',
+    width: '80%',
+    alignSelf: 'center',
     aspectRatio: 16 / 9,
     backgroundColor: 'rgba(0, 0, 0, 0.4)',
     borderRadius: 20,
@@ -268,6 +269,96 @@ export const lessonPlayerStyles = StyleSheet.create({
   },
   noteStemInactive: {
     backgroundColor: DesignSystem.colors.whiteOverlay['90'],
+  },
+  // Tablature (Guitar Tabs)
+  tabContainer: {
+    gap: 4,
+  },
+  tabLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  tabStringLabel: {
+    fontSize: 12,
+    color: DesignSystem.colors.whiteOverlay['60'],
+    width: 16,
+  },
+  tabFret: {
+    fontSize: 14,
+    color: DesignSystem.colors.white,
+    paddingHorizontal: 12,
+  },
+  tabFretActive: {
+    color: '#A78BFA',
+    fontWeight: '700',
+  },
+  // Jianpu (numbered notation)
+  jianpuContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    justifyContent: 'center',
+  },
+  jianpuBeat: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    minWidth: 40,
+    alignItems: 'center',
+  },
+  jianpuBeatActive: {
+    backgroundColor: '#8B5CF6',
+  },
+  jianpuBeatInactive: {
+    backgroundColor: DesignSystem.colors.whiteOverlay['10'],
+  },
+  jianpuText: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  // Bols (Tabla notation)
+  bolsContainer: {
+    gap: 10,
+  },
+  // Staff with Lyrics
+  lyricsLine: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: DesignSystem.colors.whiteOverlay['20'],
+  },
+  lyricsText: {
+    fontSize: 14,
+    color: DesignSystem.colors.whiteOverlay['90'],
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+  // Percussion Staff
+  percussionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  percussionLabel: {
+    fontSize: 12,
+    color: DesignSystem.colors.whiteOverlay['60'],
+    width: 60,
+  },
+  percussionLine: {
+    flex: 1,
+    height: 2,
+    backgroundColor: DesignSystem.colors.whiteOverlay['30'],
+    marginHorizontal: 8,
+  },
+  percussionNote: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: DesignSystem.colors.whiteOverlay['90'],
+  },
+  percussionNoteActive: {
+    backgroundColor: '#A78BFA',
   },
   // Floating Button
   floatingButtonContainer: {
