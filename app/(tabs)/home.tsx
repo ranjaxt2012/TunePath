@@ -57,9 +57,8 @@ export default function HomeScreen() {
   const instrumentData = getInstrumentNotation(currentInstrument);
   const levelData = getLevelById(currentLevel);
   
-  const goToLessonPlayer = useCallback(() => {
-    // In a real app, pass as route params
-    router.push('/lesson-player');
+  const goToSelectLesson = useCallback(() => {
+    router.push('/select-lesson');
   }, [router]);
   
   const goToSelectLevel = useCallback(() => router.push('/select-level'), [router]);
@@ -92,7 +91,7 @@ export default function HomeScreen() {
           </Text>
           <Pressable 
             style={({ pressed }) => [homeStyles.primaryButton, { opacity: pressed ? 0.8 : 1 }]}
-            onPress={goToLessonPlayer}
+            onPress={goToSelectLesson}
           >
             <Text style={homeStyles.primaryButtonText}>Start Session</Text>
           </Pressable>

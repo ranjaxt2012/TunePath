@@ -1,0 +1,35 @@
+{
+  "instrument": "harmonium",
+  "notationSystem": "western",
+  "samples": {
+    "A2": "harmonium-a2.wav",
+    "A3": "harmonium-a3.wav",
+    "A4": "harmonium-a4.wav",
+
+    "B2": "harmonium-b2.wav",
+    "B3": "harmonium-b3.wav",
+    "B4": "harmonium-b4.wav",
+
+    "C2": "harmonium-c2.wav",
+    "C3": "harmonium-c3.wav",
+    "C4": "harmonium-c4.wav",
+    "C5": "harmonium-c5.wav",
+
+    "D2": "harmonium-d2.wav",
+    "D3": "harmonium-d3.wav",
+    "D4": "harmonium-d4.wav",
+    "D5": "harmonium-d5.wav",
+
+    "E2": "harmonium-e2.wav",
+    "E3": "harmonium-e3.wav",
+    "E4": "harmonium-e4.wav",
+
+    "F2": "harmonium-f2.wav",
+    "F3": "harmonium-f3.wav",
+    "F4": "harmonium-f4.wav",
+
+    "G2": "harmonium-g2.wav",
+    "G3": "harmonium-g3.wav",
+    "G4": "harmonium-g4.wav"
+  }
+}

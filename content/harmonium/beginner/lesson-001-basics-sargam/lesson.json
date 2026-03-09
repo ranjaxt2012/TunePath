@@ -1,0 +1,33 @@
+{
+  "id": "lesson-001-basic-sargam",
+  "instrument": "harmonium",
+  "level": "beginner",
+  "title": "Basic Sargam",
+  "description": "Intro practice for straight scale",
+  "videoFile": "video.mp4",
+  "thumbnailFile": "thumbnail.jpg",
+  "notationType": "sargam",
+  "sections": [
+    {
+      "id": "sec-1",
+      "title": "Straight Scale",
+      "startSec": 0,
+      "endSec": 12,
+      "notation": "Sa Re Ga Ma Pa Dha Ni Sa"
+    },
+    {
+      "id": "sec-2",
+      "title": "Reverse Scale",
+      "startSec": 13,
+      "endSec": 24,
+      "notation": "Sa Ni Dha Pa Ma Ga Re Sa"
+    },
+    {
+      "id": "sec-3",
+      "title": "Double Notes",
+      "startSec": 25,
+      "endSec": 38,
+      "notation": "Sa Sa Re Re Ga Ga Ma Ma Pa Pa Dha Dha Ni Ni Sa"
+    }
+  ]
+}

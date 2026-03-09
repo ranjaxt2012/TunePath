@@ -15,7 +15,7 @@ export default function SelectLevelScreen() {
     setSelectedLevel(level as Level);
     try {
       await AsyncStorage.setItem('selectedLevel', level);
-      router.replace('/home' as any);
+      router.push('/select-lesson' as any);
     } catch (error) {
       console.error('Error saving level:', error);
     }
