@@ -31,9 +31,7 @@ export default function RootLayout() {
   }, [error]);
 
   useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
-    }
+    if (loaded) SplashScreen.hideAsync();
   }, [loaded]);
 
   if (!loaded) {
@@ -54,6 +52,8 @@ function RootLayoutNav() {
         <Stack.Screen name="lesson-player" options={{ headerShown: false }} />
         <Stack.Screen name="select-instrument" options={{ headerShown: false }} />
         <Stack.Screen name="select-level" options={{ headerShown: false }} />
+        <Stack.Screen name="select-course" options={{ headerShown: false }} />
+        <Stack.Screen name="course/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
       </Stack>
     </ThemeProvider>

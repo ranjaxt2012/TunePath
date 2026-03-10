@@ -1,52 +1,54 @@
 /**
- * Select Lesson - lists courses from API; tap course to open lessons.
- * All data from backend.
+ * Select Course Screen - lists courses from API after instrument + level selection
+ * GET /courses/?instrument={instrument}&level={level}
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
-import { CourseCard } from '../src/components/course';
-import { EmptyState, ErrorState, LoadingState } from '../src/components/shared';
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { getCourses, type Course } from '../src/services/apiClient';
+import { setCachedCourses } from '../src/services/metadataCache';
 import { selectLessonStyles } from '../src/styles/selectLessonStyles';
 
-export default function SelectLessonScreen() {
+export default function SelectCourseScreen() {
   const router = useRouter();
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
   const [instrument, setInstrument] = useState('harmonium');
   const [level, setLevel] = useState('beginner');
 
-  const load = useCallback(async () => {
+  const loadCourses = useCallback(async () => {
     setLoading(true);
-    setError(false);
     try {
-      const inst = await AsyncStorage.getItem('selectedInstrument');
-      const lvl = await AsyncStorage.getItem('selectedLevel');
-      const i = inst ?? 'harmonium';
-      const l = lvl ?? 'beginner';
-      setInstrument(i);
-      setLevel(l);
-      const data = await getCourses(i, l);
+      const savedInstrument = await AsyncStorage.getItem('selectedInstrument');
+      const savedLevel = await AsyncStorage.getItem('selectedLevel');
+      const inst = savedInstrument ?? 'harmonium';
+      const lvl = savedLevel ?? 'beginner';
+      setInstrument(inst);
+      setLevel(lvl);
+      const data = await getCourses(inst, lvl);
       setCourses(data);
-    } catch {
+      setCachedCourses(data);
+    } catch (e) {
+      console.warn('Failed to load courses:', e);
       setCourses([]);
-      setError(true);
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    loadCourses();
+  }, [loadCourses]);
 
-  const goToHome = useCallback(() => {
+  const handleCourseSelect = (courseId: number) => {
+    router.push(`/course/${courseId}` as any);
+  };
+
+  const goToHome = () => {
     router.replace('/home' as any);
-  }, [router]);
+  };
 
   return (
     <View style={selectLessonStyles.container}>
@@ -61,9 +63,9 @@ export default function SelectLessonScreen() {
       </View>
 
       <View style={selectLessonStyles.headerContainer}>
-        <Text style={selectLessonStyles.title}>Practice Lessons</Text>
+        <Text style={selectLessonStyles.title}>Courses</Text>
         <Text style={selectLessonStyles.subtitle}>
-          {instrument} · {level} — pick a course, then choose a lesson
+          {instrument} · {level}
         </Text>
       </View>
 
@@ -73,16 +75,25 @@ export default function SelectLessonScreen() {
         showsVerticalScrollIndicator={false}
       >
         {loading ? (
-          <LoadingState message="Loading courses..." />
-        ) : error ? (
-          <ErrorState message="Could not load courses" />
+          <ActivityIndicator size="large" color="#fff" style={{ paddingVertical: 48 }} />
         ) : courses.length === 0 ? (
-          <EmptyState message="No courses found. Choose instrument & level first." />
+          <Text style={{ color: 'rgba(255,255,255,0.8)', textAlign: 'center', paddingVertical: 24 }}>
+            No courses found
+          </Text>
         ) : (
           courses.map((course) => (
-            <View key={course.id} style={{ marginBottom: 16 }}>
-              <CourseCard course={course} variant="vertical" />
-            </View>
+            <Pressable
+              key={course.id}
+              style={({ pressed }) => [selectLessonStyles.lessonCard, { opacity: pressed ? 0.8 : 1 }]}
+              onPress={() => handleCourseSelect(course.id)}
+            >
+              <View style={selectLessonStyles.lessonHeader}>
+                <Text style={selectLessonStyles.lessonTitle}>{course.title}</Text>
+                <Text style={selectLessonStyles.lessonSubtitle}>
+                  {course.description ?? `${course.instrument} · ${course.level}`}
+                </Text>
+              </View>
+            </Pressable>
           ))
         )}
         <Pressable

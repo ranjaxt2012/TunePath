@@ -1,6 +1,8 @@
 # Content Structure
 
-## Lesson Player Model
+**TRANSITIONAL:** Backend API is source of truth for lessons. This folder is used only when lessons are opened without `courseId`+`lessonId` (e.g. Practice tab, select-lesson). Do not use folder names or titles for lesson identity—use `course.id` and `lesson.id`.
+
+## Lesson Player Model (local format)
 
 ```json
 {
@@ -28,4 +30,4 @@
         lesson.MOV
 ```
 
-Add new lessons to `src/services/lessonLoader.ts` and create the corresponding folder with `lesson.json` and video file.
+All lessons come from backend; media from R2 (see `backend/README.md`). Local content folder is legacy.

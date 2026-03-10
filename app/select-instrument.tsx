@@ -1,14 +1,15 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
+import { INSTRUMENTS } from '../src/constants/instruments';
 import { selectInstrumentStyles } from '../src/styles/selectInstrumentStyles';
 
 export default function SelectInstrumentScreen() {
   const router = useRouter();
-  
-  const handleInstrumentSelect = async (instrument: string) => {
+
+  const handleInstrumentSelect = async (slug: string) => {
     try {
-      await AsyncStorage.setItem('selectedInstrument', instrument);
+      await AsyncStorage.setItem('selectedInstrument', slug);
       router.push('/select-level' as any);
     } catch (error) {
       console.error('Error saving instrument:', error);
@@ -36,99 +37,24 @@ export default function SelectInstrumentScreen() {
           <Text style={selectInstrumentStyles.title}>Choose Your Instrument</Text>
           <Text style={selectInstrumentStyles.subtitle}>Select your instrument to get started.</Text>
         </View>
-          <View style={selectInstrumentStyles.instrumentsContainer}>
-            {/* First Row: Harmonium & Guitar */}
-            <View style={selectInstrumentStyles.instrumentGrid}>
-              {/* Harmonium */}
-              <Pressable 
+          <View style={[selectInstrumentStyles.instrumentsContainer, selectInstrumentStyles.instrumentGrid]}>
+            {INSTRUMENTS.map((inst) => (
+              <Pressable
+                key={inst.slug}
                 style={({ pressed }) => [
                   selectInstrumentStyles.instrumentCard,
-                  { opacity: pressed ? 0.8 : 1 }
+                  { opacity: pressed ? 0.8 : 1 },
                 ]}
-                onPress={() => handleInstrumentSelect('harmonium')}
+                onPress={() => handleInstrumentSelect(inst.slug)}
               >
                 <View style={selectInstrumentStyles.iconContainer}>
-                  <Text style={selectInstrumentStyles.instrumentIcon}>🎵</Text>
+                  <Text style={selectInstrumentStyles.instrumentIcon}>
+                    {inst.slug === 'harmonium' ? '🎵' : inst.slug === 'guitar' ? '🎸' : inst.slug === 'piano' ? '🎹' : inst.slug === 'vocals' ? '🎤' : inst.slug === 'tabla' ? '🪘' : '🎻'}
+                  </Text>
                 </View>
-                <Text style={selectInstrumentStyles.instrumentName}>Harmonium</Text>
+                <Text style={selectInstrumentStyles.instrumentName}>{inst.title}</Text>
               </Pressable>
-
-              {/* Guitar */}
-              <Pressable 
-                style={({ pressed }) => [
-                  selectInstrumentStyles.instrumentCard,
-                  { opacity: pressed ? 0.8 : 1 }
-                ]}
-                onPress={() => handleInstrumentSelect('guitar')}
-              >
-                <View style={selectInstrumentStyles.iconContainer}>
-                  <Text style={selectInstrumentStyles.instrumentIcon}>🎸</Text>
-                </View>
-                <Text style={selectInstrumentStyles.instrumentName}>Guitar</Text>
-              </Pressable>
-            </View>
-
-            {/* Second Row: Piano & Vocals */}
-            <View style={selectInstrumentStyles.instrumentGrid}>
-              {/* Piano */}
-              <Pressable 
-                style={({ pressed }) => [
-                  selectInstrumentStyles.instrumentCard,
-                  { opacity: pressed ? 0.8 : 1 }
-                ]}
-                onPress={() => handleInstrumentSelect('piano')}
-              >
-                <View style={selectInstrumentStyles.iconContainer}>
-                  <Text style={selectInstrumentStyles.instrumentIcon}>🎹</Text>
-                </View>
-                <Text style={selectInstrumentStyles.instrumentName}>Piano</Text>
-              </Pressable>
-
-              {/* Vocals */}
-              <Pressable 
-                style={({ pressed }) => [
-                  selectInstrumentStyles.instrumentCard,
-                  { opacity: pressed ? 0.8 : 1 }
-                ]}
-                onPress={() => handleInstrumentSelect('vocals')}
-              >
-                <View style={selectInstrumentStyles.iconContainer}>
-                  <Text style={selectInstrumentStyles.instrumentIcon}>🎤</Text>
-                </View>
-                <Text style={selectInstrumentStyles.instrumentName}>Vocals</Text>
-              </Pressable>
-            </View>
-
-            {/* Third Row: Tabla & Violin */}
-            <View style={selectInstrumentStyles.instrumentGrid}>
-              {/* Tabla */}
-              <Pressable 
-                style={({ pressed }) => [
-                  selectInstrumentStyles.instrumentCard,
-                  { opacity: pressed ? 0.8 : 1 }
-                ]}
-                onPress={() => handleInstrumentSelect('tabla')}
-              >
-                <View style={selectInstrumentStyles.iconContainer}>
-                  <Text style={selectInstrumentStyles.instrumentIcon}>🪘</Text>
-                </View>
-                <Text style={selectInstrumentStyles.instrumentName}>Tabla</Text>
-              </Pressable>
-
-              {/* Violin */}
-              <Pressable 
-                style={({ pressed }) => [
-                  selectInstrumentStyles.instrumentCard,
-                  { opacity: pressed ? 0.8 : 1 }
-                ]}
-                onPress={() => handleInstrumentSelect('violin')}
-              >
-                <View style={selectInstrumentStyles.iconContainer}>
-                  <Text style={selectInstrumentStyles.instrumentIcon}>🎻</Text>
-                </View>
-                <Text style={selectInstrumentStyles.instrumentName}>Violin</Text>
-              </Pressable>
-            </View>
+            ))}
           </View>
         </View>
       </View>

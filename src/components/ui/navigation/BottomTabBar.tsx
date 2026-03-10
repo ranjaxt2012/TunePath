@@ -11,7 +11,7 @@ interface BottomTabBarProps {
 }
 
 const TABS: { name: TabName; icon: string; label: string; route: string }[] = [
-  { name: 'home', icon: '🏠', label: 'Home', route: '/home' },
+  { name: 'home', icon: '🏠', label: 'Learn', route: '/home' },
   { name: 'practice', icon: '🎵', label: 'Practice', route: '/practice' },
   { name: 'progress', icon: '📊', label: 'Progress', route: '/progress' },
   { name: 'profile', icon: '👤', label: 'Profile', route: '/profile' },

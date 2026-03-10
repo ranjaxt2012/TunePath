@@ -121,6 +121,41 @@ export const homeStyles = StyleSheet.create({
     fontSize: 15,
     color: DesignSystem.colors.whiteOverlay['70'],
   },
+  // Netflix-style course discovery
+  section: {
+    marginBottom: DesignSystem.spacing['2xl'],
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: DesignSystem.colors.white,
+    marginBottom: DesignSystem.spacing.md,
+    paddingHorizontal: DesignSystem.spacing.xl,
+  },
+  horizontalScroll: {
+    paddingLeft: DesignSystem.spacing.xl,
+    paddingRight: DesignSystem.spacing.lg,
+  },
+  emptyState: {
+    paddingVertical: DesignSystem.spacing['2xl'],
+    paddingHorizontal: DesignSystem.spacing.xl,
+    alignItems: 'center',
+  },
+  emptyStateText: {
+    fontSize: 15,
+    color: DesignSystem.colors.whiteOverlay['70'],
+    textAlign: 'center',
+  },
+  verticalList: {
+    paddingHorizontal: DesignSystem.spacing.xl,
+    paddingBottom: DesignSystem.spacing.xl,
+  },
+  loadingText: {
+    fontSize: 15,
+    color: DesignSystem.colors.whiteOverlay['70'],
+    paddingVertical: DesignSystem.spacing.lg,
+    paddingHorizontal: DesignSystem.spacing.xl,
+  },
 });
 
 export default homeStyles;
