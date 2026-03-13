@@ -1,20 +1,38 @@
-import { StyleSheet } from 'react-native';
-import { sharedStyles } from './sharedStyles';
+import { Dimensions, StyleSheet } from 'react-native';
 import { DesignSystem } from './theme';
 
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const HORIZONTAL_PADDING = DesignSystem.spacing.xl; // 20 — matches auth
+const NOTE_SIZE = (SCREEN_WIDTH - HORIZONTAL_PADDING * 2 - 32 - DesignSystem.spacing.sm * 3) / 4;
+
 export const lessonPlayerStyles = StyleSheet.create({
+  // Match auth layout: safeAreaContainer → container → content
+  safeAreaContainer: {
+    flex: 1,
+  },
   container: {
     flex: 1,
-    backgroundColor: DesignSystem.colors.primary,
+    paddingHorizontal: HORIZONTAL_PADDING,
+    paddingTop: DesignSystem.spacing['3xl'],
+    paddingBottom: 0,
+    width: '100%',
   },
-  scrollView: {
+  scroll: {
     flex: 1,
   },
-  content: {
-    padding: DesignSystem.spacing.lg,
-    paddingBottom: 100, // Space for floating button
+  scrollContent: {
+    paddingBottom: 120,
+    width: '100%',
   },
-  // Back Button
+
+  // Header — matches auth back button pattern
+  header: {
+    marginBottom: DesignSystem.spacing['2xl'],
+  },
+  backBtn: {
+    marginBottom: DesignSystem.spacing.xs,
+    alignSelf: 'flex-start',
+  },
   backButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -22,365 +40,254 @@ export const lessonPlayerStyles = StyleSheet.create({
     marginBottom: DesignSystem.spacing.md,
     alignSelf: 'flex-start',
   },
-  backIcon: sharedStyles.backIcon,
-  backText: sharedStyles.backText,
-  // Header
-  header: {
-    marginBottom: 24,
+  backIcon: {
+    fontSize: 24,
+    color: DesignSystem.colors.white,
+    fontWeight: '300',
   },
-  notationInfo: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 24,
-  },
-  notationTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#A0A0A0',
-    marginBottom: 8,
-  },
-  notationType: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginBottom: 8,
-  },
-  notationDetails: {
-    fontSize: 14,
-    color: '#E0E0E0',
-    lineHeight: 20,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginBottom: 4,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '600',
+  backText: {
+    fontSize: DesignSystem.typography.fontSizes.lg,
+    fontWeight: DesignSystem.typography.fontWeights.semibold,
     color: DesignSystem.colors.white,
   },
-  // Video Container
-  videoContainer: {
-    width: '80%',
-    alignSelf: 'center',
-    aspectRatio: 16 / 9,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    borderRadius: 20,
-    overflow: 'hidden',
-    marginBottom: DesignSystem.spacing.lg,
-    borderWidth: 1,
-    borderColor: DesignSystem.colors.whiteOverlay['10'],
+  headerMeta: {
+    fontSize: DesignSystem.typography.fontSizes.sm,
+    color: DesignSystem.colors.whiteOverlay['70'],
+    marginBottom: DesignSystem.spacing.xs,
   },
-  videoContent: {
-    flex: 1,
+  lessonTitle: {
+    fontSize: DesignSystem.typography.fontSizes['3xl'],
+    fontWeight: DesignSystem.typography.fontWeights.bold,
+    color: DesignSystem.colors.white,
+  },
+
+  // Video card — glass card, full width, 16:9
+  videoCard: {
+    width: '100%',
+    aspectRatio: 16 / 9,
+    ...DesignSystem.components.glassCard,
+    overflow: 'hidden',
+    marginBottom: DesignSystem.spacing.xl,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  video: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  videoPlaceholder: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: DesignSystem.colors.whiteOverlay['10'],
+  },
+  playOverlay: {
+    position: 'absolute',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 16,
   },
-  playButton: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: DesignSystem.colors.whiteOverlay['20'],
+  playCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: DesignSystem.colors.whiteOverlay['30'],
     alignItems: 'center',
     justifyContent: 'center',
   },
   playIcon: {
-    fontSize: 22,
+    fontSize: 28,
     color: DesignSystem.colors.white,
-    fontWeight: '300',
-    marginLeft: 3,
+    marginLeft: 4,
   },
   videoInfo: {
+    position: 'absolute',
+    bottom: DesignSystem.spacing.lg,
+    left: DesignSystem.spacing.lg,
+    right: DesignSystem.spacing.lg,
     alignItems: 'center',
   },
   videoTitle: {
-    fontSize: 14,
+    fontSize: DesignSystem.typography.fontSizes.base,
+    fontWeight: DesignSystem.typography.fontWeights.semibold,
     color: DesignSystem.colors.white,
-    marginBottom: 4,
+    textAlign: 'center',
   },
   videoDuration: {
-    fontSize: 12,
-    color: DesignSystem.colors.whiteOverlay['60'],
+    fontSize: DesignSystem.typography.fontSizes.sm,
+    color: DesignSystem.colors.whiteOverlay['70'],
+    marginTop: 2,
   },
-  // Tempo Control
-  tempoControl: {
+
+  // BPM — pill style like auth inputs
+  bpmRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: DesignSystem.spacing.lg,
+    marginBottom: DesignSystem.spacing.xl,
+    gap: DesignSystem.spacing.lg,
   },
-  tempoButton: {
-    padding: DesignSystem.spacing.sm,
+  bpmBtn: {
+    width: 44,
+    height: 44,
+    backgroundColor: DesignSystem.colors.whiteOverlay['10'],
+    borderWidth: 1,
+    borderColor: DesignSystem.colors.whiteOverlay['20'],
+    borderRadius: DesignSystem.borderRadius['2xl'],
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  tempoIcon: {
-    fontSize: 20,
+  bpmBtnText: {
+    fontSize: 24,
     color: DesignSystem.colors.white,
+    lineHeight: 28,
   },
-  tempoText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: DesignSystem.colors.white,
-    minWidth: 70,
-    textAlign: 'center',
-  },
-  // Segmented Control
-  segmentedControl: {
-    ...DesignSystem.components.glassSurface,
-    padding: 4,
-    flexDirection: 'row',
-    gap: 4,
-    marginBottom: DesignSystem.spacing.lg,
-  },
-  segmentButton: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 16,
+  bpmDisplay: {
+    paddingHorizontal: DesignSystem.spacing['2xl'],
+    paddingVertical: DesignSystem.spacing.sm,
+    backgroundColor: DesignSystem.colors.whiteOverlay['10'],
+    borderWidth: 1,
+    borderColor: DesignSystem.colors.whiteOverlay['20'],
+    borderRadius: DesignSystem.borderRadius.full,
+    minWidth: 120,
     alignItems: 'center',
   },
-  segmentButtonActive: {
+  bpmText: {
+    fontSize: DesignSystem.typography.fontSizes.lg,
+    fontWeight: DesignSystem.typography.fontWeights.semibold,
+    color: DesignSystem.colors.white,
+  },
+
+  // Sargam | Staff toggle — segmented control
+  toggleContainer: {
+    flexDirection: 'row',
+    backgroundColor: DesignSystem.colors.whiteOverlay['10'],
+    borderWidth: 1,
+    borderColor: DesignSystem.colors.whiteOverlay['20'],
+    borderRadius: DesignSystem.borderRadius.full,
+    padding: 4,
+    marginBottom: DesignSystem.spacing.xl,
+  },
+  toggleOption: {
+    flex: 1,
+    paddingVertical: DesignSystem.spacing.sm,
+    borderRadius: DesignSystem.borderRadius.full,
+    alignItems: 'center',
+  },
+  toggleOptionActive: {
     backgroundColor: DesignSystem.colors.white,
   },
-  segmentButtonInactive: {
-    backgroundColor: 'transparent',
+  toggleOptionText: {
+    fontSize: DesignSystem.typography.fontSizes.base,
+    fontWeight: DesignSystem.typography.fontWeights.semibold,
+    color: DesignSystem.colors.whiteOverlay['70'],
   },
-  segmentButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  segmentButtonTextActive: {
+  toggleOptionTextActive: {
     color: DesignSystem.colors.primary,
   },
-  segmentButtonTextInactive: {
-    color: DesignSystem.colors.whiteOverlay['80'],
-  },
-  // Notation Section
-  notationSection: {
-    flex: 1,
-    ...DesignSystem.components.glassSurface,
-    padding: DesignSystem.spacing.xl,
-    borderWidth: 1,
-    borderColor: DesignSystem.colors.whiteOverlay['10'],
-  },
-  // Sargam Styles
-  sargamContainer: {
-    gap: 10,
-  },
-  measureRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  measureBar: {
-    fontSize: 14,
-    color: DesignSystem.colors.whiteOverlay['40'],
-    minWidth: 20,
-  },
-  beatsContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    gap: 8,
-  },
-  beat: {
-    flex: 1,
-    paddingVertical: 8,
-    borderRadius: 20,
-    alignItems: 'center',
-  },
-  beatActive: {
-    backgroundColor: '#8B5CF6',
-  },
-  beatInactive: {
-    backgroundColor: DesignSystem.colors.whiteOverlay['10'],
-  },
-  beatText: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  beatTextActive: {
-    color: DesignSystem.colors.white,
-  },
-  beatTextInactive: {
-    color: DesignSystem.colors.whiteOverlay['90'],
-  },
-  // Staff Styles
-  staffContainer: {
-    gap: 20,
-  },
-  staff: {
-    height: 130,
-    position: 'relative',
-  },
-  staffLine: {
-    position: 'absolute',
+
+  // Sargam grid — glass scrollable container
+  sargamGrid: {
     width: '100%',
-    height: 2,
-    backgroundColor: DesignSystem.colors.whiteOverlay['30'],
+    backgroundColor: DesignSystem.colors.whiteOverlay['10'],
+    borderWidth: 1,
+    borderColor: DesignSystem.colors.whiteOverlay['20'],
+    borderRadius: DesignSystem.borderRadius['2xl'],
+    padding: DesignSystem.spacing.lg,
+    gap: DesignSystem.spacing.sm,
   },
-  trebleClef: {
-    position: 'absolute',
-    left: 8,
-    top: '50%',
-    transform: [{ translateY: -22 }],
-    fontSize: 52,
-    color: DesignSystem.colors.white,
-    fontFamily: 'serif',
-    fontStyle: 'italic',
-  },
-  notesContainer: {
-    position: 'absolute',
-    left: 64,
-    right: 16,
-    top: 0,
-    bottom: 0,
-  },
-  note: {
-    flexDirection: 'column',
-    alignItems: 'center',
-  },
-  noteHead: {
-    width: 18,
-    height: 13,
-    borderRadius: 7,
-    transform: [{ rotate: '-12deg' }],
-  },
-  noteHeadActive: {
-    backgroundColor: '#A78BFA',
-    shadowColor: '#A855F7',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 20,
-    elevation: 10,
-  },
-  noteHeadInactive: {
-    backgroundColor: DesignSystem.colors.whiteOverlay['90'],
-  },
-  noteStem: {
-    position: 'absolute',
-    width: 2,
-    height: 26,
-    left: '85%',
-    top: -26,
-  },
-  noteStemActive: {
-    backgroundColor: '#A78BFA',
-  },
-  noteStemInactive: {
-    backgroundColor: DesignSystem.colors.whiteOverlay['90'],
-  },
-  // Tablature (Guitar Tabs)
-  tabContainer: {
-    gap: 4,
-  },
-  tabLine: {
+  sargamRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    justifyContent: 'space-between',
   },
-  tabStringLabel: {
-    fontSize: 12,
-    color: DesignSystem.colors.whiteOverlay['60'],
-    width: 16,
+  beatMarker: {
+    color: DesignSystem.colors.whiteOverlay['50'],
+    fontSize: 18,
+    width: 12,
+    textAlign: 'center',
   },
-  tabFret: {
-    fontSize: 14,
-    color: DesignSystem.colors.white,
-    paddingHorizontal: 12,
-  },
-  tabFretActive: {
-    color: '#A78BFA',
-    fontWeight: '700',
-  },
-  // Jianpu (numbered notation)
-  jianpuContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
+  noteCircle: {
+    width: NOTE_SIZE,
+    height: NOTE_SIZE,
+    borderRadius: NOTE_SIZE / 2,
+    backgroundColor: DesignSystem.colors.whiteOverlay['15'],
+    alignItems: 'center',
     justifyContent: 'center',
   },
-  jianpuBeat: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    minWidth: 40,
-    alignItems: 'center',
+  noteCircleActive: {
+    backgroundColor: 'rgba(139, 92, 246, 0.9)',
   },
-  jianpuBeatActive: {
-    backgroundColor: '#8B5CF6',
+  noteText: {
+    fontSize: NOTE_SIZE > 52 ? 14 : 12,
+    fontWeight: DesignSystem.typography.fontWeights.semibold,
+    color: DesignSystem.colors.whiteOverlay['70'],
   },
-  jianpuBeatInactive: {
+  noteTextActive: {
+    color: DesignSystem.colors.white,
+    fontWeight: DesignSystem.typography.fontWeights.bold,
+  },
+
+  staffPlaceholder: {
+    height: 200,
     backgroundColor: DesignSystem.colors.whiteOverlay['10'],
-  },
-  jianpuText: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  // Bols (Tabla notation)
-  bolsContainer: {
-    gap: 10,
-  },
-  // Staff with Lyrics
-  lyricsLine: {
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: DesignSystem.colors.whiteOverlay['20'],
-  },
-  lyricsText: {
-    fontSize: 14,
-    color: DesignSystem.colors.whiteOverlay['90'],
-    textAlign: 'center',
-    fontStyle: 'italic',
-  },
-  // Percussion Staff
-  percussionRow: {
-    flexDirection: 'row',
+    borderWidth: 1,
+    borderColor: DesignSystem.colors.whiteOverlay['20'],
+    borderRadius: DesignSystem.borderRadius['2xl'],
     alignItems: 'center',
-    marginBottom: 8,
+    justifyContent: 'center',
   },
-  percussionLabel: {
-    fontSize: 12,
-    color: DesignSystem.colors.whiteOverlay['60'],
-    width: 60,
-  },
-  percussionLine: {
-    flex: 1,
-    height: 2,
-    backgroundColor: DesignSystem.colors.whiteOverlay['30'],
-    marginHorizontal: 8,
-  },
-  percussionNote: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: DesignSystem.colors.whiteOverlay['90'],
-  },
-  percussionNoteActive: {
-    backgroundColor: '#A78BFA',
-  },
-  // Floating Button
-  floatingButtonContainer: {
+
+  // Bottom button — matches auth button style
+  bottomBar: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    padding: DesignSystem.spacing.xl,
-    backgroundColor: 'transparent',
+    paddingHorizontal: HORIZONTAL_PADDING,
+    paddingVertical: DesignSystem.spacing.xl,
+    paddingBottom: DesignSystem.spacing['4xl'],
+    backgroundColor: DesignSystem.colors.primary,
   },
-  floatingButton: {
+  guidedPracticeBtn: {
     width: '100%',
+    height: 52,
     backgroundColor: DesignSystem.colors.white,
-    paddingVertical: 14,
-    borderRadius: 20,
+    borderRadius: DesignSystem.borderRadius['2xl'],
     alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 8,
   },
-  floatingButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
+  guidedPracticeBtnText: {
+    fontSize: DesignSystem.typography.fontSizes.lg,
+    fontWeight: DesignSystem.typography.fontWeights.semibold,
     color: DesignSystem.colors.primary,
+  },
+
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mutedText: {
+    fontSize: DesignSystem.typography.fontSizes.base,
+    color: DesignSystem.colors.whiteOverlay['70'],
+  },
+  errorText: {
+    fontSize: DesignSystem.typography.fontSizes.base,
+    color: '#EF4444',
+    textAlign: 'center',
+    paddingHorizontal: DesignSystem.spacing.xl,
   },
 });
 
+export { NOTE_SIZE };
 export default lessonPlayerStyles;

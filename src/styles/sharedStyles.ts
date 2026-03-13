@@ -97,15 +97,14 @@ export const sharedStyles = StyleSheet.create({
     color: DesignSystem.colors.white,
   },
 
-  // Bottom tab bar (shared across all tab screens)
+  // Bottom tab bar (shared across all tab screens) — darkest gradient color
   bottomTabBar: {
     position: 'absolute' as const,
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: DesignSystem.colors.whiteOverlay['10'],
-    borderTopWidth: 1,
-    borderTopColor: DesignSystem.colors.whiteOverlay['20'],
+    backgroundColor: '#5B21B6',
+    borderTopWidth: 0,
   },
   tabBarContent: {
     alignSelf: 'center' as const,

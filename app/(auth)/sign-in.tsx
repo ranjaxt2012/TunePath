@@ -1,115 +1,233 @@
 import { FontAwesome5 } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Pressable, Text, View } from 'react-native';
-import { authStyles } from '../../src/styles/authStyles';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { ScreenGradient } from '@/src/components/common/ScreenGradient';
+import { DesignSystem } from '../../src/styles/theme';
 
 export default function SignInScreen() {
   const router = useRouter();
   
   const handleSignIn = () => {
     console.log('Sign In pressed!');
-    router.push('/select-instrument' as any);
+    router.push('/select/instrument' as any);
   };
 
   return (
-    <View style={authStyles.safeAreaContainer}>
-      <View style={authStyles.container}>
-        {/* Sign In Container */}
-        <View style={authStyles.signInContainer}>
+      <ScreenGradient style={styles.container}>
           {/* Title */}
-          <View style={authStyles.titleContainer}>
-            <Text style={authStyles.title}>Welcome Back</Text>
+          <View style={styles.titleContainer}>
+            <Text style={styles.title}>TunePath</Text>
           </View>
 
           {/* Subtitle */}
-          <View style={authStyles.subtitleContainer}>
-            <Text style={authStyles.subtitle}>Sign in to continue your music journey</Text>
+          <View style={styles.subtitleContainer}>
+            <Text style={styles.subtitle}>Sign in to continue your music journey</Text>
           </View>
 
           {/* Form */}
-          <View style={authStyles.formContainer}>
+          <View style={styles.formContainer}>
             {/* Email Input */}
-            <View style={authStyles.inputContainer}>
-              <Text style={authStyles.inputText}>Email</Text>
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputText}>Email</Text>
             </View>
 
             {/* Password Input */}
-            <View style={authStyles.inputContainer}>
-              <Text style={authStyles.inputText}>Password</Text>
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputText}>Password</Text>
             </View>
 
             {/* Sign In Button */}
-            <View style={authStyles.buttonContainer}>
+            <View style={styles.buttonContainer}>
               <Pressable 
                 onPress={handleSignIn}
                 style={({ pressed }) => [
-                  authStyles.button,
+                  styles.button,
                   { opacity: pressed ? 0.8 : 1 }
                 ]}
               >
-                <Text style={authStyles.buttonText}>Sign In</Text>
+                <Text style={styles.buttonText}>Sign In</Text>
               </Pressable>
             </View>
 
             {/* Divider */}
-            <View style={authStyles.dividerContainer}>
-              <View style={authStyles.dividerLine} />
-              <Text style={authStyles.dividerText}>or continue with</Text>
-              <View style={authStyles.dividerLine} />
+            <View style={styles.dividerContainer}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>or continue with</Text>
+              <View style={styles.dividerLine} />
             </View>
 
             {/* Social Auth Buttons */}
-            <View style={authStyles.socialButtonsContainer}>
+            <View style={styles.socialButtonsContainer}>
               {/* Apple */}
               <Pressable 
-                style={({ pressed }) => [authStyles.socialButton, { opacity: pressed ? 0.8 : 1 }]}
+                style={({ pressed }) => [styles.socialButton, { opacity: pressed ? 0.8 : 1 }]}
                 onPress={() => console.log('Apple Sign In pressed')}
               >
                 <FontAwesome5 name="apple" size={20} color="#1f2937" brand />
-                <Text style={authStyles.socialButtonText}>Continue with Apple</Text>
+                <Text style={styles.socialButtonText}>Continue with Apple</Text>
               </Pressable>
 
               {/* Google */}
               <Pressable 
-                style={({ pressed }) => [authStyles.socialButton, { opacity: pressed ? 0.8 : 1 }]}
+                style={({ pressed }) => [styles.socialButton, { opacity: pressed ? 0.8 : 1 }]}
                 onPress={() => console.log('Google Sign In pressed')}
               >
                 <FontAwesome5 name="google" size={20} color="#1f2937" brand />
-                <Text style={authStyles.socialButtonText}>Continue with Google</Text>
+                <Text style={styles.socialButtonText}>Continue with Google</Text>
               </Pressable>
 
               {/* Facebook */}
               <Pressable 
-                style={({ pressed }) => [authStyles.socialButton, { opacity: pressed ? 0.8 : 1 }]}
+                style={({ pressed }) => [styles.socialButton, { opacity: pressed ? 0.8 : 1 }]}
                 onPress={() => console.log('Facebook Sign In pressed')}
               >
                 <FontAwesome5 name="facebook" size={20} color="#1f2937" brand />
-                <Text style={authStyles.socialButtonText}>Continue with Facebook</Text>
+                <Text style={styles.socialButtonText}>Continue with Facebook</Text>
               </Pressable>
 
               {/* Guest */}
               <Pressable 
-                style={({ pressed }) => [authStyles.socialButton, { opacity: pressed ? 0.8 : 1 }]}
+                style={({ pressed }) => [styles.socialButton, { opacity: pressed ? 0.8 : 1 }]}
                 onPress={() => console.log('Guest Sign In pressed')}
               >
                 <FontAwesome5 name="user" size={20} color="#1f2937" />
-                <Text style={authStyles.socialButtonText}>Continue as Guest</Text>
+                <Text style={styles.socialButtonText}>Continue as Guest</Text>
               </Pressable>
             </View>
 
             {/* Sign Up Link */}
-            <View style={authStyles.footerContainer}>
-              <Text style={authStyles.footerText}>
+            <View style={styles.footerContainer}>
+              <Text style={styles.footerText}>
                 Don't have an account?{" "}
               </Text>
               <Pressable onPress={() => router.push('/(auth)/sign-up' as any)}>
-                <Text style={authStyles.linkText}>Sign Up</Text>
+                <Text style={styles.linkText}>Sign Up</Text>
               </Pressable>
             </View>
           </View>
-        </View>
-      </View>
-    </View>
+        </ScreenGradient>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 40,
+  },
+  titleContainer: { alignItems: 'center', marginBottom: 16 },
+  title: {
+    fontSize: 28,
+    fontWeight: '500',
+    color: DesignSystem.colors.white,
+    textAlign: 'center',
+    lineHeight: 42,
+  },
+  subtitleContainer: { alignItems: 'center', marginBottom: 40 },
+  subtitle: {
+    fontSize: 15,
+    fontWeight: '400',
+    color: DesignSystem.colors.whiteOverlay['70'],
+    textAlign: 'center',
+    lineHeight: 22.5,
+  },
+  formContainer: { marginBottom: 32 },
+  inputContainer: {
+    backgroundColor: DesignSystem.colors.whiteOverlay['20'],
+    borderWidth: 1,
+    borderColor: DesignSystem.colors.whiteOverlay['30'],
+    borderRadius: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    marginBottom: 16,
+    justifyContent: 'center',
+  },
+  inputText: {
+    fontSize: 14,
+    fontWeight: '400',
+    color: DesignSystem.colors.whiteOverlay['60'],
+    lineHeight: 17,
+  },
+  buttonContainer: { alignItems: 'center' },
+  button: {
+    width: 318,
+    height: 52,
+    backgroundColor: DesignSystem.colors.white,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 8,
+  },
+  buttonText: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: DesignSystem.colors.primary,
+    textAlign: 'center',
+    lineHeight: 25.5,
+  },
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    marginVertical: 24,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: DesignSystem.colors.whiteOverlay['30'],
+  },
+  dividerText: {
+    fontSize: 14,
+    color: DesignSystem.colors.whiteOverlay['70'],
+    fontWeight: '400',
+  },
+  socialButtonsContainer: {
+    flexDirection: 'column',
+    gap: 8,
+    marginBottom: 24,
+  },
+  socialButton: {
+    backgroundColor: DesignSystem.colors.whiteOverlay['90'],
+    borderWidth: 1,
+    borderColor: DesignSystem.colors.whiteOverlay['30'],
+    borderRadius: 20,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  socialButtonText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#1f2937',
+  },
+  footerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+  },
+  footerText: {
+    fontSize: 14,
+    fontWeight: '400',
+    color: DesignSystem.colors.whiteOverlay['70'],
+    textAlign: 'center',
+    lineHeight: 21,
+  },
+  linkText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: DesignSystem.colors.white,
+    textAlign: 'center',
+    lineHeight: 24,
+  },
+});
 

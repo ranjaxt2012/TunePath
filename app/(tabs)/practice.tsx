@@ -1,64 +1,52 @@
-import { useRouter } from 'expo-router';
-import React, { useCallback } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
-import { BottomTabBar } from '../../src/components/ui';
-import { practiceStyles } from '../../src/styles/practiceStyles';
+import React from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { ScreenGradient } from '@/src/components/common/ScreenGradient';
+import { BottomTabBar } from '@/src/components/ui';
+import { Colors, Typography, CommonStyles } from '@/src/constants/theme';
 
-export default function PracticeScreen() {
-  const router = useRouter();
-
-  const goToSelectCourse = useCallback(() => router.push('/select-course' as any), [router]);
-  const goToSelectLesson = useCallback(() => router.push('/select-lesson' as any), [router]);
-
+export default function LearnScreen() {
   return (
-    <View style={practiceStyles.container}>
-      <View style={practiceStyles.headerContainer}>
-        <Text style={practiceStyles.title}>Practice</Text>
-      </View>
-
-      <ScrollView
-        style={practiceStyles.mainContent}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 100 }}
-      >
-        <View style={practiceStyles.section}>
-          <Text style={practiceStyles.sectionTitle}>Choose instrument & level</Text>
-          <Pressable
-            style={({ pressed }) => [practiceStyles.lessonCard, { opacity: pressed ? 0.8 : 1 }]}
-            onPress={goToSelectCourse}
-          >
-            <View style={practiceStyles.lessonHeader}>
-              <View style={practiceStyles.lessonInfo}>
-                <Text style={practiceStyles.lessonTitle}>Browse courses</Text>
-                <Text style={practiceStyles.lessonDuration}>Select instrument and level</Text>
-              </View>
-              <Pressable style={({ pressed }) => [practiceStyles.startButton, { opacity: pressed ? 0.8 : 1 }]}>
-                <Text style={practiceStyles.startButtonText}>Go</Text>
-              </Pressable>
-            </View>
-          </Pressable>
+    <ScreenGradient style={{ flex: 1 }}>
+      <SafeAreaView style={styles.container}>
+        <View style={styles.center}>
+          <Text style={styles.emoji}>🎵</Text>
+          <Text style={styles.title}>Learn</Text>
+          <Text style={styles.subtitle}>
+            {'Coming soon — structured lessons,\nguided practice, and more.'}
+          </Text>
         </View>
-
-        <View style={practiceStyles.section}>
-          <Text style={practiceStyles.sectionTitle}>Practice from recent</Text>
-          <Pressable
-            style={({ pressed }) => [practiceStyles.lessonCard, { opacity: pressed ? 0.8 : 1 }]}
-            onPress={goToSelectLesson}
-          >
-            <View style={practiceStyles.lessonHeader}>
-              <View style={practiceStyles.lessonInfo}>
-                <Text style={practiceStyles.lessonTitle}>Practice lessons</Text>
-                <Text style={practiceStyles.lessonDuration}>Pick a course to start</Text>
-              </View>
-              <Pressable style={({ pressed }) => [practiceStyles.startButton, { opacity: pressed ? 0.8 : 1 }]}>
-                <Text style={practiceStyles.startButtonText}>Go</Text>
-              </Pressable>
-            </View>
-          </Pressable>
-        </View>
-      </ScrollView>
-
+      </SafeAreaView>
       <BottomTabBar activeTab="practice" />
-    </View>
+    </ScreenGradient>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    ...CommonStyles.screen,
+    flex: 1,
+  },
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+  },
+  emoji: {
+    fontSize: 64,
+    marginBottom: 16,
+  },
+  title: {
+    ...Typography.displayMd,
+    color: Colors.textPrimary,
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  subtitle: {
+    ...Typography.bodyLg,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 24,
+  },
+});

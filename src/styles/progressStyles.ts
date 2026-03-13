@@ -1,26 +1,41 @@
 import { StyleSheet } from 'react-native';
-import { sharedStyles } from './sharedStyles';
-import { DesignSystem } from './theme';
+import { Colors, Spacing, Radius } from '@/src/constants/theme';
 
 export const progressStyles = StyleSheet.create({
-  container: sharedStyles.screenContainer,
-  headerContainer: sharedStyles.screenHeaderContainer,
-  title: sharedStyles.whiteTitle,
-  mainContent: sharedStyles.screenMainContent,
+  container: {
+    flex: 1,
+    backgroundColor: Colors.bgPrimary,
+  },
+  headerContainer: {
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.xxxl,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: '500',
+    color: Colors.textPrimary,
+    textAlign: 'center',
+    letterSpacing: -0.3,
+  },
+  mainContent: {
+    flex: 1,
+    paddingHorizontal: Spacing.xl,
+  },
   section: {
-    marginBottom: DesignSystem.spacing.xl,
+    marginBottom: Spacing.xl,
   },
   sectionTitle: {
     fontSize: 22,
     fontWeight: '600',
-    color: DesignSystem.colors.white,
-    marginBottom: DesignSystem.spacing.lg,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.lg,
   },
-  // Stats Card Styles
+  // Stats Card
   statsCard: {
-    ...DesignSystem.components.glassCard,
-    padding: DesignSystem.spacing.xl,
-    marginBottom: DesignSystem.spacing.lg,
+    backgroundColor: Colors.cardBg,
+    borderRadius: Radius.lg,
+    padding: Spacing.xl,
+    marginBottom: Spacing.lg,
   },
   statsContainer: {
     flexDirection: 'row',
@@ -35,65 +50,67 @@ export const progressStyles = StyleSheet.create({
   },
   statIcon: {
     fontSize: 28,
-    color: DesignSystem.colors.whiteOverlay['80'],
+    color: 'rgba(255,255,255,0.80)',
   },
   statValue: {
     fontSize: 24,
     fontWeight: '600',
-    color: DesignSystem.colors.white,
+    color: Colors.textPrimary,
   },
   statLabel: {
     fontSize: 13,
-    color: DesignSystem.colors.whiteOverlay['70'],
+    color: Colors.textSecondary,
   },
   divider: {
     width: 1,
     height: 64,
-    backgroundColor: DesignSystem.colors.whiteOverlay['20'],
-    marginHorizontal: DesignSystem.spacing.lg,
+    backgroundColor: Colors.progressBg,
+    marginHorizontal: Spacing.lg,
   },
-  // Instrument Progress Styles
+  // Instrument Progress
   instrumentProgressCard: {
-    ...DesignSystem.components.glassCard,
-    padding: DesignSystem.spacing.lg,
+    backgroundColor: Colors.cardBg,
+    borderRadius: Radius.lg,
+    padding: Spacing.lg,
   },
   instrumentProgress: {
-    marginBottom: DesignSystem.spacing.lg,
+    marginBottom: Spacing.lg,
   },
   progressHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: DesignSystem.spacing.sm,
+    marginBottom: Spacing.sm,
   },
   instrumentName: {
     fontSize: 15,
     fontWeight: '500',
-    color: DesignSystem.colors.white,
+    color: Colors.textPrimary,
   },
   progressPercentage: {
     fontSize: 14,
-    color: DesignSystem.colors.whiteOverlay['70'],
+    color: Colors.textSecondary,
   },
   progressBarContainer: {
     width: '100%',
-    backgroundColor: DesignSystem.colors.whiteOverlay['20'],
-    borderRadius: 8,
+    backgroundColor: Colors.progressBg,
+    borderRadius: Radius.full,
     height: 8,
     overflow: 'hidden',
   },
   progressBar: {
-    backgroundColor: DesignSystem.colors.white,
+    backgroundColor: Colors.progressFill,
     height: '100%',
-    borderRadius: 8,
+    borderRadius: Radius.full,
   },
-  // Session Card Styles
+  // Session Cards
   sessionsContainer: {
-    gap: DesignSystem.spacing.sm,
+    gap: Spacing.sm,
   },
   sessionCard: {
-    ...DesignSystem.components.glassCard,
-    padding: DesignSystem.spacing.md,
+    backgroundColor: Colors.cardBg,
+    borderRadius: Radius.lg,
+    padding: Spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -104,17 +121,17 @@ export const progressStyles = StyleSheet.create({
   sessionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: DesignSystem.colors.white,
+    color: Colors.textPrimary,
     marginBottom: 4,
   },
   sessionDate: {
     fontSize: 14,
-    color: DesignSystem.colors.whiteOverlay['70'],
+    color: Colors.textSecondary,
   },
   sessionDuration: {
     fontSize: 14,
     fontWeight: '500',
-    color: DesignSystem.colors.whiteOverlay['90'],
+    color: Colors.textPrimary,
   },
 });
 

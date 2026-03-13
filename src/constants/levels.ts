@@ -1,11 +1,9 @@
 /**
- * Phase-1 level options. Use slug for API/identity; title for display.
+ * Phase-1 level options. Use slug for API/identity; name for display.
  */
 
-import type { Level } from '../types/models';
-
-export const LEVELS: Level[] = [
-  { slug: 'beginner', title: 'Beginner' },
-  { slug: 'intermediate', title: 'Intermediate' },
-  { slug: 'advanced', title: 'Advanced' },
+export const LEVELS: { slug: string; name: string }[] = [
+  { slug: 'beginner', name: 'Beginner' },
+  { slug: 'intermediate', name: 'Intermediate' },
+  { slug: 'advanced', name: 'Advanced' },
 ];

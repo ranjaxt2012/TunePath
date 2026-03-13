@@ -7,6 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
+import { ScreenGradient } from '@/src/components/common/ScreenGradient';
 import { getCourses, type Course } from '../src/services/apiClient';
 import { setCachedCourses } from '../src/services/metadataCache';
 import { selectLessonStyles } from '../src/styles/selectLessonStyles';
@@ -27,7 +28,7 @@ export default function SelectCourseScreen() {
       const lvl = savedLevel ?? 'beginner';
       setInstrument(inst);
       setLevel(lvl);
-      const data = await getCourses(inst, lvl);
+      const data = await getCourses({ instrument: inst, level: lvl });
       setCourses(data);
       setCachedCourses(data);
     } catch (e) {
@@ -42,7 +43,7 @@ export default function SelectCourseScreen() {
     loadCourses();
   }, [loadCourses]);
 
-  const handleCourseSelect = (courseId: number) => {
+  const handleCourseSelect = (courseId: string) => {
     router.push(`/course/${courseId}` as any);
   };
 
@@ -51,7 +52,7 @@ export default function SelectCourseScreen() {
   };
 
   return (
-    <View style={selectLessonStyles.container}>
+    <ScreenGradient style={selectLessonStyles.container}>
       <View style={selectLessonStyles.backButtonContainer}>
         <Pressable
           style={({ pressed }) => [selectLessonStyles.backButton, { opacity: pressed ? 0.8 : 1 }]}
@@ -90,7 +91,7 @@ export default function SelectCourseScreen() {
               <View style={selectLessonStyles.lessonHeader}>
                 <Text style={selectLessonStyles.lessonTitle}>{course.title}</Text>
                 <Text style={selectLessonStyles.lessonSubtitle}>
-                  {course.description ?? `${course.instrument} · ${course.level}`}
+                  {course.description ?? `${course.instrument_slug} · ${course.level_slug}`}
                 </Text>
               </View>
             </Pressable>
@@ -103,6 +104,6 @@ export default function SelectCourseScreen() {
           <Text style={selectLessonStyles.continueButtonText}>Continue to Learn</Text>
         </Pressable>
       </ScrollView>
-    </View>
+    </ScreenGradient>
   );
 }

@@ -9,17 +9,18 @@ import { useHarmoniumSound } from '../../hooks/useHarmoniumSound';
 import { getLessonDetail } from '../../services/apiClient';
 import { getCachedLesson, setCachedLesson } from '../../services/metadataCache';
 import type { LessonDetail } from '../../services/apiClient';
+import type { LessonSection } from '../../types/lessonContent';
 import { DesignSystem } from '../../styles/theme';
 import { LessonVideoPlayer } from './LessonVideoPlayer';
 import { SargamDisplay } from './SargamDisplay';
 
 interface LessonPlayerProps {
-  courseId: number;
-  lessonId: number;
+  courseId: string;
+  lessonId: string;
   onProgressSave?: (positionSec: number, progressPercent: number, completed: boolean) => void;
 }
 
-function useRemoteLesson(lessonId: number) {
+function useRemoteLesson(lessonId: string) {
   const [lesson, setLesson] = useState<LessonDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -51,9 +52,9 @@ export function LessonPlayer({ courseId, lessonId, onProgressSave }: LessonPlaye
   const { playFirstNote } = useHarmoniumSound();
   const { lesson, loading, error } = useRemoteLesson(lessonId);
 
-  const sections = (lesson?.sections ?? []).map((s) => ({ start: s.start, end: s.end, notation: s.notation }));
+  const sections: LessonSection[] = [];
   const videoSource = lesson?.video_url ?? '';
-  const thumbnailUrl = lesson?.thumbnail_url;
+  const thumbnailUrl = lesson?.thumbnail_url ?? undefined;
 
   const handleTimeUpdate = useCallback(
     (timeSec: number) => {

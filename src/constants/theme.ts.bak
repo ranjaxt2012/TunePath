@@ -1,0 +1,199 @@
+import { Dimensions, Platform } from 'react-native';
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+// ── App boundary ──────────────────────────────────────────────
+// All content is constrained to this width on large screens
+// On phones this equals SCREEN_WIDTH - horizontal padding
+const BASE_PADDING = 16;
+const CONTENT_WIDTH = Math.min(SCREEN_WIDTH - BASE_PADDING * 2, 428);
+// 428px = iPhone 14 Pro Max width — caps content on tablets
+
+// ── Colors ────────────────────────────────────────────────────
+export const Colors = {
+  // Brand
+  primary:        '#7C3AED',  // main purple
+  primaryDark:    '#6B21A8',  // darker purple
+  primaryLight:   '#A855F7',  // lighter purple
+
+  // Cards / surfaces on purple background
+  cardBg:         'rgba(255,255,255,0.15)',
+  cardBgSelected: 'rgba(255,255,255,0.30)',
+  cardBorder:     'rgba(255,255,255,0.40)',
+
+  // Text on purple background
+  textPrimary:    '#FFFFFF',
+  textSecondary:  'rgba(255,255,255,0.70)',
+  textTertiary:   'rgba(255,255,255,0.50)',
+
+  // Text on white background
+  textDark:       '#1F2937',
+  textMuted:      '#6B7280',
+
+  // Status
+  success:        '#10B981',
+  warning:        '#F59E0B',
+  error:          '#EF4444',
+
+  // Misc
+  white:          '#FFFFFF',
+  transparent:    'transparent',
+  overlay:        'rgba(0,0,0,0.5)',
+};
+
+// ── Spacing ───────────────────────────────────────────────────
+export const Spacing = {
+  xs:   4,
+  sm:   8,
+  md:   12,
+  lg:   16,   // base padding — use for screen edges
+  xl:   24,
+  xxl:  32,
+  xxxl: 48,
+};
+
+// ── Border radius ─────────────────────────────────────────────
+export const Radius = {
+  sm:   8,
+  md:   12,
+  lg:   16,   // standard card radius
+  xl:   24,
+  full: 999,  // pill shape
+};
+
+// ── Typography ────────────────────────────────────────────────
+export const Typography = {
+  // Display
+  displayLg: { fontSize: 32, fontWeight: '700' as const, color: Colors.textPrimary },
+  displayMd: { fontSize: 28, fontWeight: '700' as const, color: Colors.textPrimary },
+  displaySm: { fontSize: 24, fontWeight: '700' as const, color: Colors.textPrimary },
+
+  // Headings
+  h1: { fontSize: 22, fontWeight: '700' as const, color: Colors.textPrimary },
+  h2: { fontSize: 18, fontWeight: '600' as const, color: Colors.textPrimary },
+  h3: { fontSize: 16, fontWeight: '600' as const, color: Colors.textPrimary },
+
+  // Body
+  bodyLg: { fontSize: 16, fontWeight: '400' as const, color: Colors.textPrimary },
+  bodyMd: { fontSize: 14, fontWeight: '400' as const, color: Colors.textPrimary },
+  bodySm: { fontSize: 12, fontWeight: '400' as const, color: Colors.textPrimary },
+
+  // Labels
+  labelLg: { fontSize: 15, fontWeight: '600' as const, color: Colors.textPrimary },
+  labelMd: { fontSize: 13, fontWeight: '600' as const, color: Colors.textPrimary },
+  labelSm: { fontSize: 11, fontWeight: '600' as const, color: Colors.textPrimary },
+
+  // Muted variants
+  bodyMdMuted:  { fontSize: 14, fontWeight: '400' as const, color: Colors.textSecondary },
+  bodySmMuted:  { fontSize: 12, fontWeight: '400' as const, color: Colors.textSecondary },
+};
+
+// ── Layout ────────────────────────────────────────────────────
+export const Layout = {
+  screenWidth:  SCREEN_WIDTH,
+  screenHeight: SCREEN_HEIGHT,
+  contentWidth: CONTENT_WIDTH,
+  basePadding:  BASE_PADDING,
+
+  // Card widths
+  cardFull:    CONTENT_WIDTH,               // full width card
+  cardHalf:    (CONTENT_WIDTH - 12) / 2,   // 2-col grid card
+  cardThird:   (CONTENT_WIDTH - 24) / 3,   // 3-col grid card
+
+  // Common heights
+  navBarHeight:    56,
+  tabBarHeight:    80,
+  buttonHeight:    52,
+  inputHeight:     52,
+  cardMinHeight:   80,
+
+  // Safe area
+  isSmallScreen: SCREEN_HEIGHT < 700,
+};
+
+// ── Shadows ───────────────────────────────────────────────────
+export const Shadows = {
+  sm: Platform.select({
+    ios: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.1,
+      shadowRadius: 2,
+    },
+    android: { elevation: 2 },
+  }),
+  md: Platform.select({
+    ios: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.15,
+      shadowRadius: 8,
+    },
+    android: { elevation: 4 },
+  }),
+  lg: Platform.select({
+    ios: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.2,
+      shadowRadius: 16,
+    },
+    android: { elevation: 8 },
+  }),
+};
+
+// ── Common component styles ───────────────────────────────────
+// Reusable style objects — spread these into StyleSheet.create
+export const CommonStyles = {
+  // Screen container
+  screen: {
+    flex: 1,
+    backgroundColor: Colors.primary,
+  },
+  // Content area with standard padding
+  content: {
+    flex: 1,
+    paddingHorizontal: Spacing.lg,
+    width: '100%' as const,
+    maxWidth: Layout.contentWidth + Spacing.lg * 2,
+    alignSelf: 'center' as const,
+  },
+  // Standard card
+  card: {
+    backgroundColor: Colors.cardBg,
+    borderRadius: Radius.lg,
+    padding: Spacing.xl,
+    width: '100%' as const,
+  },
+  // Selected card
+  cardSelected: {
+    backgroundColor: Colors.cardBgSelected,
+    borderWidth: 2,
+    borderColor: Colors.cardBorder,
+  },
+  // Primary button
+  button: {
+    height: Layout.buttonHeight,
+    backgroundColor: Colors.white,
+    borderRadius: Radius.full,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    width: '100%' as const,
+  },
+  buttonText: {
+    ...Typography.labelLg,
+    color: Colors.primary,
+  },
+  // Screen title
+  screenTitle: {
+    ...Typography.displayMd,
+    textAlign: 'center' as const,
+    marginBottom: Spacing.sm,
+  },
+  // Screen subtitle
+  screenSubtitle: {
+    ...Typography.bodyMdMuted,
+    textAlign: 'center' as const,
+    marginBottom: Spacing.xxl,
+  },
+};

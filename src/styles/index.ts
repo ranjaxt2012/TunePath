@@ -1,7 +1,6 @@
 // Design System Exports
 // Centralized styling system for TunePath
 
-export { authStyles } from './authStyles';
 export { commonStyles } from './commonStyles';
 export { homeStyles } from './homeStyles';
 export { practiceStyles } from './practiceStyles';

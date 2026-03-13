@@ -31,9 +31,9 @@ export function CourseCard({ course, variant = 'vertical' }: CourseCardProps) {
       onPress={handlePress}
     >
       <View style={[styles.thumbnail, isHorizontal ? styles.thumbnailHorizontal : styles.thumbnailVertical]}>
-        {course.thumbnail_url ? (
+        {course.thumbnail_key ? (
           <Image
-            source={{ uri: course.thumbnail_url }}
+            source={{ uri: course.thumbnail_key }}
             style={styles.thumbnailImage}
             resizeMode="cover"
           />
@@ -46,7 +46,7 @@ export function CourseCard({ course, variant = 'vertical' }: CourseCardProps) {
           {course.title}
         </Text>
         <Text style={styles.subtitle} numberOfLines={1}>
-          {course.description ?? ([course.tutor_name ?? course.display_tutor_name, course.instrument, course.level].filter(Boolean).join(' · ') || `${course.instrument} · ${course.level}`)}
+          {course.description ?? `${course.instrument_slug} · ${course.level_slug}`}
         </Text>
       </View>
     </Pressable>

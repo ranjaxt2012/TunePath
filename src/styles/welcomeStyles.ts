@@ -8,8 +8,6 @@ export const welcomeStyles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    // Gradient background: linear-gradient(135deg, rgba(152, 16, 250, 1) 0%, rgba(173, 70, 255, 1) 50%, rgba(43, 127, 255, 1) 100%)
-    backgroundColor: DesignSystem.colors.primary,
   },
   logoContainer: sharedStyles.largeMargin,
   logoCircle: {

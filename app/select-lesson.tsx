@@ -8,7 +8,7 @@ import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { CourseCard } from '../src/components/course';
-import { EmptyState, ErrorState, LoadingState } from '../src/components/shared';
+import { EmptyState, ErrorState, LoadingState, ScreenGradient } from '@/src/components/common';
 import { getCourses, type Course } from '../src/services/apiClient';
 import { selectLessonStyles } from '../src/styles/selectLessonStyles';
 
@@ -30,7 +30,7 @@ export default function SelectLessonScreen() {
       const l = lvl ?? 'beginner';
       setInstrument(i);
       setLevel(l);
-      const data = await getCourses(i, l);
+      const data = await getCourses({ instrument: i, level: l });
       setCourses(data);
     } catch {
       setCourses([]);
@@ -49,7 +49,7 @@ export default function SelectLessonScreen() {
   }, [router]);
 
   return (
-    <View style={selectLessonStyles.container}>
+    <ScreenGradient style={selectLessonStyles.container}>
       <View style={selectLessonStyles.backButtonContainer}>
         <Pressable
           style={({ pressed }) => [selectLessonStyles.backButton, { opacity: pressed ? 0.8 : 1 }]}
@@ -75,9 +75,9 @@ export default function SelectLessonScreen() {
         {loading ? (
           <LoadingState message="Loading courses..." />
         ) : error ? (
-          <ErrorState message="Could not load courses" />
+          <ErrorState message="Could not load courses" onRetry={load} />
         ) : courses.length === 0 ? (
-          <EmptyState message="No courses found. Choose instrument & level first." />
+          <EmptyState title="No courses found" subtitle="Choose instrument & level first." />
         ) : (
           courses.map((course) => (
             <View key={course.id} style={{ marginBottom: 16 }}>
@@ -92,6 +92,6 @@ export default function SelectLessonScreen() {
           <Text style={selectLessonStyles.continueButtonText}>Continue to Learn</Text>
         </Pressable>
       </ScrollView>
-    </View>
+    </ScreenGradient>
   );
 }

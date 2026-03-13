@@ -1,6 +1,7 @@
 import React from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { BottomTabBar } from '../../src/components/ui';
+import { ScreenGradient } from '@/src/components/common/ScreenGradient';
 import { profileStyles } from '../../src/styles/profileStyles';
 
 // Settings Item Component
@@ -26,7 +27,7 @@ const SettingsItem = React.memo(function SettingsItem({ icon, label, value, onPr
 
 export default function ProfileScreen() {
   return (
-    <View style={profileStyles.container}>
+    <ScreenGradient style={profileStyles.container}>
       {/* Header */}
       <View style={profileStyles.headerContainer}>
         <Text style={profileStyles.title}>Profile</Text>
@@ -99,6 +100,6 @@ export default function ProfileScreen() {
       </ScrollView>
 
       <BottomTabBar activeTab="profile" />
-    </View>
+    </ScreenGradient>
   );
 }

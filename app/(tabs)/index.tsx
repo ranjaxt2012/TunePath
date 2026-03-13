@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
+import { ScreenGradient } from '@/src/components/common/ScreenGradient';
 import { welcomeStyles } from '../../src/styles/welcomeStyles';
 
 export default function WelcomeScreen() {
@@ -10,7 +11,7 @@ export default function WelcomeScreen() {
   };
 
   return (
-    <View style={welcomeStyles.container}>
+    <ScreenGradient style={welcomeStyles.container}>
       <View style={welcomeStyles.backgroundGradient}>
         <View style={welcomeStyles.logoContainer}>
           <View style={welcomeStyles.logoCircle}>
@@ -34,6 +35,6 @@ export default function WelcomeScreen() {
           </Pressable>
         </View>
       </View>
-    </View>
+    </ScreenGradient>
   );
 }

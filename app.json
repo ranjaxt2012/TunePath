@@ -23,7 +23,8 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.anonymous.TunePath"
     },
     "web": {
       "bundler": "metro",
@@ -32,7 +33,9 @@
     },
     "plugins": [
       "expo-router",
-      "expo-video"
+      "expo-video",
+      "expo-secure-store",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true

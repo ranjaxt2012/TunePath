@@ -8,30 +8,29 @@ import { useCallback, useEffect } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { LessonPlayer } from '../src/components/lesson';
 import { lessonPlayerStyles } from '../src/styles/lessonPlayerStyles';
-import { updateProgress } from '../src/services/apiClient';
+import { saveProgress } from '../src/services/apiClient';
 
 export default function LessonPlayerScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ courseId?: string; lessonId?: string }>();
-  const courseId = params.courseId ? parseInt(params.courseId, 10) : undefined;
-  const lessonId = params.lessonId ? parseInt(params.lessonId, 10) : undefined;
+  const courseId = params.courseId ?? undefined;
+  const lessonId = params.lessonId ?? undefined;
 
   useEffect(() => {
-    if (courseId == null || lessonId == null || isNaN(courseId) || isNaN(lessonId)) {
+    if (!courseId || !lessonId) {
       router.replace('/home' as any);
     }
   }, [courseId, lessonId, router]);
 
   const handleProgressSave = useCallback(
     async (positionSec: number, progressPercent: number, completed: boolean) => {
-      if (courseId == null || lessonId == null) return;
+      if (!courseId || !lessonId) return;
       try {
-        await updateProgress({
-          course_id: courseId,
+        await saveProgress({
           lesson_id: lessonId,
+          course_id: courseId,
+          watch_percent: completed ? 100 : Math.round(progressPercent),
           last_position_seconds: Math.round(positionSec),
-          progress_percent: progressPercent,
-          completed,
         });
       } catch (e) {
         console.warn('Failed to save progress:', e);
@@ -44,7 +43,7 @@ export default function LessonPlayerScreen() {
     router.back();
   }, [router]);
 
-  if (courseId == null || lessonId == null) {
+  if (!courseId || !lessonId) {
     return null;
   }
 

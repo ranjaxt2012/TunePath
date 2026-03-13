@@ -1,8 +1,11 @@
 // UI Components
 export * from './ui';
 
-// Feature Components
-// export * from './features'; // Commented out until features are implemented
+// Common (atoms)
+export * from './common';
 
-// Shared Components
-// export * from './shared'; // Commented out until shared components are implemented
+// Course
+export * from './course';
+
+// Lesson
+export * from './lesson';

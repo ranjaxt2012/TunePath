@@ -1,11 +1,25 @@
 /**
  * useHarmoniumSound - play harmonium notes from sargam
  * Resolves sargam -> western note -> .wav sample, plays via expo-av
+ * Uses lazy require to avoid crash when ExponentAV native module is unavailable (Expo Go / dev).
  */
 
-import { Audio } from 'expo-av';
 import { useCallback } from 'react';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { resolveSargamToSample } from '../services/soundResolver';
+
+function getExpoAudio(): typeof import('expo-av').Audio | null {
+  const canUseExpoAV =
+    Constants.executionEnvironment === ExecutionEnvironment.Standalone ||
+    Constants.executionEnvironment === ExecutionEnvironment.Bare;
+  if (!canUseExpoAV) return null;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    return require('expo-av').Audio;
+  } catch {
+    return null;
+  }
+}
 
 const SARGAM_REGEX = /\b(Sa|Re|Ga|Ma|Pa|Dha|Ni)\b/gi;
 const SEQUENCE_DELAY_MS = 400;
@@ -38,6 +52,9 @@ export function parseSargamNotes(notation: string): string[] {
  */
 export function useHarmoniumSound() {
   const playNote = useCallback(async (sargam: string, octave?: number) => {
+    const Audio = getExpoAudio();
+    if (!Audio) return;
+
     const source = resolveSargamToSample(sargam, octave);
     if (source === null) return;
 

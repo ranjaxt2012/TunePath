@@ -1,8 +1,2 @@
-// API Services
-export * from './api';
-
-// Storage Services
-export * from './storage';
-
-// Real-time Services
-export * from './realtime';
+// Service modules — import directly: apiClient, auth, courses, lessons, etc.
+// Add api/, storage/, realtime/ subfolders when those services are implemented.

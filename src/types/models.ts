@@ -1,69 +1,107 @@
-/**
- * Phase-1 frontend data model - aligned with backend API contracts.
- * Use IDs (course.id, lesson.id, instrument.slug, level.slug) for identity.
- * Titles/names are display-only; duplicate titles must be supported safely.
- */
+export type UserRole = 'learner' | 'tutor' | 'contributor' | 'admin' | 'power_admin';
+export type ActiveMode = 'learner' | 'tutor' | 'admin';
+export type ContentStatus = 'draft' | 'in_review' | 'scheduled' | 'published' | 'archived';
+export type ProgressStatus = 'not_started' | 'in_progress' | 'completed';
 
-export interface Instrument {
+export type TunePathUser = {
+  id: string;
+  clerkUserId: string;
+  email: string;
+  displayName: string;
+  avatarUrl: string | null;
+  roles: UserRole[];
+  activeMode: string;
+};
+
+export type Instrument = {
+  id: string;
+  slug: string;
+  name: string;
+  icon_url: string | null;
+  sort_order: number;
+};
+
+export type Level = {
+  id: string;
+  slug: string;
+  name: string;
+  sort_order: number;
+};
+
+export type Course = {
+  id: string;
   slug: string;
   title: string;
-}
+  description: string | null;
+  thumbnail_key: string | null;
+  instrument_slug: string;
+  level_slug: string;
+  is_free: boolean;
+  status: ContentStatus;
+  tutor_id: string;
+  sort_order: number;
+};
 
-export interface Level {
+export type LessonSummary = {
+  id: string;
+  title: string;
+  slug: string;
+  duration_seconds: number | null;
+  thumbnail_key: string | null;
+  is_free: boolean;
+  lesson_number: number | null;
+  sort_order: number;
+};
+
+// Alias used by LessonRow
+export type LessonListItem = LessonSummary;
+
+export type CourseDetail = Course & {
+  lessons: LessonSummary[];
+};
+
+export type LessonDetail = {
+  id: string;
   slug: string;
   title: string;
-}
+  description: string | null;
+  tutor_id: string;
+  course_id: string | null;
+  lesson_number: number | null;
+  duration_seconds: number | null;
+  video_url: string | null;
+  thumbnail_url: string | null;
+  notation_url: string | null;
+  youtube_url: string | null;
+  is_free: boolean;
+  instrument_slug: string | null;
+};
 
-export interface Course {
-  id: number;
-  external_key?: string;
-  title: string;
-  description?: string;
-  instrument: string;
-  level: string;
-  tutor_name?: string;
-  display_tutor_name?: string;
-  thumbnail_url?: string;
-  lesson_count?: number;
-  is_published?: boolean;
-  is_upcoming?: boolean;
-  sort_order?: number;
-}
+export type UserProgress = {
+  lesson_id: string;
+  status: ProgressStatus;
+  watch_percent: number;
+  last_position_seconds: number;
+};
 
-export interface LessonListItem {
-  id: number;
-  external_key?: string;
-  course_id: number;
-  title: string;
-  description?: string;
-  lesson_order: number;
-  thumbnail_url?: string;
-  duration_seconds?: number;
-  is_preview?: boolean;
-}
+export type ProgressSummary = {
+  total_practice_seconds: number;
+  completed_lessons: number;
+  recent_sessions: {
+    lesson_title: string;
+    duration_seconds: number;
+    started_at: string;
+  }[];
+  by_instrument: {
+    slug: string;
+    name: string;
+    percent: number;
+  }[];
+};
 
-export interface LessonDetail {
-  id: number;
-  course_id: number;
-  title: string;
-  description?: string;
-  lesson_order: number;
-  thumbnail_url?: string;
-  video_url?: string;
-  audio_url?: string;
-  notation_url?: string;
-  duration_seconds?: number;
-  is_preview?: boolean;
-  sections?: { start: number; end: number; notation: string }[];
-}
-
-export interface CourseProgress {
-  course_id: number;
-  started?: boolean;
-  completed?: boolean;
-  current_lesson_id?: number;
-  last_lesson_id?: number;
-  last_position_seconds?: number;
-  progress_percent: number;
-  last_accessed_at?: string;
-}
+export type SaveProgressPayload = {
+  lesson_id: string;
+  course_id: string | null;
+  watch_percent: number;
+  last_position_seconds: number;
+};

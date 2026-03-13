@@ -1,74 +1,89 @@
 import { StyleSheet } from 'react-native';
-import { sharedStyles } from './sharedStyles';
-import { DesignSystem } from './theme';
+import { Colors, Spacing, Radius } from '@/src/constants/theme';
 
 export const profileStyles = StyleSheet.create({
-  container: sharedStyles.screenContainer,
-  headerContainer: sharedStyles.screenHeaderContainer,
-  title: sharedStyles.whiteTitle,
-  mainContent: sharedStyles.screenMainContent,
+  container: {
+    flex: 1,
+  },
+  headerContainer: {
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.xxxl,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: '500',
+    color: Colors.textPrimary,
+    textAlign: 'center',
+    letterSpacing: -0.3,
+  },
+  mainContent: {
+    flex: 1,
+    paddingHorizontal: Spacing.xl,
+  },
   section: {
-    marginBottom: DesignSystem.spacing.xl,
+    marginBottom: Spacing.xl,
   },
   sectionTitle: {
     fontSize: 17,
     fontWeight: '600',
-    color: DesignSystem.colors.white,
-    marginBottom: DesignSystem.spacing.md,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.md,
     paddingHorizontal: 4,
   },
-  // User Info Card Styles
+  // User Info Card
   userInfoCard: {
-    ...DesignSystem.components.glassCard,
-    padding: DesignSystem.spacing.xl,
+    backgroundColor: Colors.cardBg,
+    borderRadius: Radius.lg,
+    padding: Spacing.xl,
     alignItems: 'center',
-    marginBottom: DesignSystem.spacing.lg,
+    marginBottom: Spacing.lg,
   },
   avatar: {
     width: 96,
     height: 96,
     borderRadius: 48,
-    backgroundColor: DesignSystem.colors.whiteOverlay['20'],
+    backgroundColor: Colors.progressBg,
     borderWidth: 2,
-    borderColor: DesignSystem.colors.whiteOverlay['40'],
+    borderColor: 'rgba(255,255,255,0.40)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: DesignSystem.spacing.md,
+    marginBottom: Spacing.md,
   },
   avatarIcon: {
     fontSize: 48,
-    color: DesignSystem.colors.white,
+    color: Colors.textPrimary,
   },
   userName: {
     fontSize: 22,
     fontWeight: '600',
-    color: DesignSystem.colors.white,
+    color: Colors.textPrimary,
     marginBottom: 4,
   },
   userInstrument: {
     fontSize: 15,
-    color: DesignSystem.colors.whiteOverlay['70'],
+    color: Colors.textSecondary,
     marginBottom: 2,
   },
   userLevel: {
     fontSize: 14,
-    color: DesignSystem.colors.whiteOverlay['60'],
+    color: Colors.textTertiary,
   },
-  // Section Card Styles
+  // Section Card
   sectionCard: {
-    ...DesignSystem.components.glassCard,
+    backgroundColor: Colors.cardBg,
+    borderRadius: Radius.lg,
     overflow: 'hidden',
   },
   divider: {
     height: 1,
-    backgroundColor: DesignSystem.colors.whiteOverlay['10'],
+    backgroundColor: 'rgba(255,255,255,0.10)',
   },
-  // Settings Item Styles
+  // Settings Items
   settingsItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: DesignSystem.spacing.md,
+    padding: Spacing.md,
   },
   settingsItemLeft: {
     flexDirection: 'row',
@@ -77,12 +92,12 @@ export const profileStyles = StyleSheet.create({
   },
   settingsItemIcon: {
     fontSize: 20,
-    color: DesignSystem.colors.whiteOverlay['80'],
+    color: 'rgba(255,255,255,0.80)',
   },
   settingsItemLabel: {
     fontSize: 16,
     fontWeight: '500',
-    color: DesignSystem.colors.white,
+    color: Colors.textPrimary,
   },
   settingsItemRight: {
     flexDirection: 'row',
@@ -91,11 +106,11 @@ export const profileStyles = StyleSheet.create({
   },
   settingsItemValue: {
     fontSize: 15,
-    color: DesignSystem.colors.whiteOverlay['60'],
+    color: Colors.textTertiary,
   },
   chevron: {
     fontSize: 20,
-    color: DesignSystem.colors.whiteOverlay['40'],
+    color: 'rgba(255,255,255,0.40)',
   },
 });
 

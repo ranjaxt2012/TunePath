@@ -1,124 +1,336 @@
-import React from 'react';
-import { ScrollView, Text, View } from 'react-native';
-import { BottomTabBar } from '../../src/components/ui';
-import { progressStyles } from '../../src/styles/progressStyles';
+import React, { useState } from 'react';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { ScreenGradient } from '@/src/components/common/ScreenGradient';
+import { BottomTabBar } from '@/src/components/ui';
+import { Colors, Spacing, Radius, Typography, CommonStyles } from '@/src/constants/theme';
+import {
+  MOCK_PROGRESS_STATS,
+  MOCK_WEEKLY_PROGRESS,
+  MOCK_INSTRUMENT_PROGRESS,
+  MOCK_RECENT_SESSIONS,
+} from '@/src/constants/mockData';
 
-// Stat Card Component
-const StatCard = React.memo(function StatCard({ icon, label, value }: { icon: string; label: string; value: string }) {
-  return (
-    <View style={progressStyles.statCard}>
-      <Text style={progressStyles.statIcon}>{icon}</Text>
-      <Text style={progressStyles.statValue}>{value}</Text>
-      <Text style={progressStyles.statLabel}>{label}</Text>
-    </View>
-  );
-});
+const MAX_MINUTES = Math.max(...MOCK_WEEKLY_PROGRESS.map((d) => d.minutes), 1);
+const BAR_MAX_HEIGHT = 72;
 
-// Instrument Progress Component
-const InstrumentProgress = React.memo(function InstrumentProgress({ name, progress }: { name: string; progress: number }) {
-  return (
-    <View style={progressStyles.instrumentProgress}>
-      <View style={progressStyles.progressHeader}>
-        <Text style={progressStyles.instrumentName}>{name}</Text>
-        <Text style={progressStyles.progressPercentage}>{progress}%</Text>
-      </View>
-      <View style={progressStyles.progressBarContainer}>
-        <View style={[progressStyles.progressBar, { width: `${progress}%` }]} />
-      </View>
-    </View>
-  );
-});
-
-// Session Card Component
-const SessionCard = React.memo(function SessionCard({ lessonName, date, duration }: { lessonName: string; date: string; duration: string }) {
-  return (
-    <View style={progressStyles.sessionCard}>
-      <View style={progressStyles.sessionInfo}>
-        <Text style={progressStyles.sessionTitle}>{lessonName}</Text>
-        <Text style={progressStyles.sessionDate}>{date}</Text>
-      </View>
-      <Text style={progressStyles.sessionDuration}>{duration}</Text>
-    </View>
-  );
-});
-
-const INSTRUMENTS = [
-  { name: 'Harmonium', progress: 65 },
-  { name: 'Guitar', progress: 20 },
-  { name: 'Piano', progress: 0 },
-];
-
-const RECENT_SESSIONS = [
-  { lessonName: 'Raag Yaman Basics', date: 'Today', duration: '10 mins' },
-  { lessonName: 'Scale Practice', date: 'Yesterday', duration: '15 mins' },
-  { lessonName: 'Rhythm Exercises', date: 'Feb 25', duration: '12 mins' },
-  { lessonName: 'Harmonium Basics', date: 'Feb 24', duration: '20 mins' },
-];
+function formatDuration(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
 
 export default function ProgressScreen() {
-  return (
-    <View style={progressStyles.container}>
-      {/* Header */}
-      <View style={progressStyles.headerContainer}>
-        <Text style={progressStyles.title}>Your Progress</Text>
-      </View>
+  const [period, setPeriod] = useState<'week' | 'overall'>('week');
 
-      {/* Main Content */}
-      <ScrollView style={progressStyles.mainContent} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
-        {/* Summary Stats Card */}
-        <View style={progressStyles.statsCard}>
-          <View style={progressStyles.statsContainer}>
-            <StatCard
-              icon="⏰"
-              label="Practice Time"
-              value="2h 35m"
-            />
-            <View style={progressStyles.divider} />
-            <StatCard
-              icon="🏆"
-              label="Completed"
-              value="12"
-            />
-            <View style={progressStyles.divider} />
-            <StatCard
-              icon="🔥"
-              label="Day Streak"
-              value="5"
-            />
+  return (
+    <ScreenGradient style={styles.container}>
+      <SafeAreaView edges={['top']}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Your Progress</Text>
+          <View style={styles.toggleRow}>
+            <TouchableOpacity
+              style={[styles.togglePill, period === 'week' && styles.togglePillActive]}
+              onPress={() => setPeriod('week')}
+            >
+              <Text style={[styles.toggleText, period === 'week' && styles.toggleTextActive]}>
+                This Week
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.togglePill, period === 'overall' && styles.togglePillActive]}
+              onPress={() => setPeriod('overall')}
+            >
+              <Text style={[styles.toggleText, period === 'overall' && styles.toggleTextActive]}>
+                Overall
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </SafeAreaView>
+
+      <ScrollView
+        style={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {/* ── Stats Row ─────────────────────────────────── */}
+        <View style={styles.statsRow}>
+          <View style={styles.statCard}>
+            <Text style={styles.statIcon}>⏰</Text>
+            <Text style={styles.statValue}>{MOCK_PROGRESS_STATS.total_minutes}m</Text>
+            <Text style={styles.statLabel}>Practice Time</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statCard}>
+            <Text style={styles.statIcon}>✅</Text>
+            <Text style={styles.statValue}>{MOCK_PROGRESS_STATS.completed_lessons}</Text>
+            <Text style={styles.statLabel}>Completed</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statCard}>
+            <Text style={styles.statIcon}>🔥</Text>
+            <Text style={styles.statValue}>{MOCK_PROGRESS_STATS.streak_days}</Text>
+            <Text style={styles.statLabel}>Day Streak</Text>
           </View>
         </View>
 
-        {/* Progress by Instrument */}
-        <View style={progressStyles.section}>
-          <Text style={progressStyles.sectionTitle}>Progress by Instrument</Text>
-          <View style={progressStyles.instrumentProgressCard}>
-            {INSTRUMENTS.map((instrument) => (
-              <InstrumentProgress
-                key={instrument.name}
-                name={instrument.name}
-                progress={instrument.progress}
-              />
+        {/* ── Weekly Bar Chart ───────────────────────────── */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Daily Practice</Text>
+          <View style={styles.chartCard}>
+            <View style={styles.chartBars}>
+              {MOCK_WEEKLY_PROGRESS.map((item) => {
+                const barH = item.minutes > 0
+                  ? Math.max(4, Math.round((item.minutes / MAX_MINUTES) * BAR_MAX_HEIGHT))
+                  : 4;
+                const isToday = item.day === 'Thu'; // placeholder "today" marker
+                return (
+                  <View key={item.day} style={styles.barColumn}>
+                    <View style={styles.barTrack}>
+                      <View
+                        style={[
+                          styles.bar,
+                          { height: barH },
+                          isToday && styles.barToday,
+                          item.minutes === 0 && styles.barEmpty,
+                        ]}
+                      />
+                    </View>
+                    <Text style={styles.barLabel}>{item.day}</Text>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+        </View>
+
+        {/* ── Instrument Progress ────────────────────────── */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>By Instrument</Text>
+          <View style={styles.card}>
+            {MOCK_INSTRUMENT_PROGRESS.map((inst) => (
+              <View key={inst.slug} style={styles.instrumentRow}>
+                <View style={styles.instrumentRowHeader}>
+                  <Text style={styles.instrumentName}>{inst.name}</Text>
+                  <Text style={styles.instrumentPercent}>{inst.percent}%</Text>
+                </View>
+                <View style={styles.progressBarBg}>
+                  <View style={[styles.progressBarFill, { width: `${inst.percent}%` as any }]} />
+                </View>
+              </View>
             ))}
           </View>
         </View>
 
-        {/* Recent Sessions */}
-        <View style={progressStyles.section}>
-          <Text style={progressStyles.sectionTitle}>Recent Sessions</Text>
-          <View style={progressStyles.sessionsContainer}>
-            {RECENT_SESSIONS.map((session) => (
-              <SessionCard
-                key={session.lessonName}
-                lessonName={session.lessonName}
-                date={session.date}
-                duration={session.duration}
-              />
+        {/* ── Recent Sessions ────────────────────────────── */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Recent Sessions</Text>
+          <View style={styles.sessionsList}>
+            {MOCK_RECENT_SESSIONS.map((session) => (
+              <View key={session.id} style={styles.sessionCard}>
+                <View style={styles.sessionInfo}>
+                  <Text style={styles.sessionTitle}>{session.lesson_title}</Text>
+                  <Text style={styles.sessionDate}>{session.date}</Text>
+                </View>
+                <Text style={styles.sessionDuration}>{formatDuration(session.duration_seconds)}</Text>
+              </View>
             ))}
           </View>
         </View>
       </ScrollView>
 
       <BottomTabBar activeTab="progress" />
-    </View>
+    </ScreenGradient>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    ...CommonStyles.screen,
+  },
+  header: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.lg,
+    paddingBottom: Spacing.md,
+  },
+  title: {
+    ...Typography.displayMd,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.md,
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  togglePill: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radius.full,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.40)',
+  },
+  togglePillActive: {
+    backgroundColor: Colors.white,
+    borderColor: Colors.white,
+  },
+  toggleText: {
+    ...Typography.labelSm,
+    color: Colors.textSecondary,
+  },
+  toggleTextActive: {
+    color: Colors.bgPrimary,
+  },
+
+  scroll: { flex: 1 },
+  scrollContent: {
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: 100,
+  },
+
+  // Stats
+  statsRow: {
+    flexDirection: 'row',
+    backgroundColor: Colors.cardBg,
+    borderRadius: Radius.lg,
+    padding: Spacing.xl,
+    marginBottom: Spacing.xl,
+    alignItems: 'center',
+  },
+  statCard: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 6,
+  },
+  statIcon: {
+    fontSize: 24,
+  },
+  statValue: {
+    ...Typography.h1,
+    color: Colors.textPrimary,
+  },
+  statLabel: {
+    ...Typography.caption,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+  },
+  statDivider: {
+    width: 1,
+    height: 56,
+    backgroundColor: Colors.progressBg,
+    marginHorizontal: Spacing.sm,
+  },
+
+  // Sections
+  section: {
+    marginBottom: Spacing.xl,
+  },
+  sectionTitle: {
+    ...Typography.h2,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.md,
+  },
+  card: {
+    backgroundColor: Colors.cardBg,
+    borderRadius: Radius.lg,
+    padding: Spacing.lg,
+  },
+
+  // Bar chart
+  chartCard: {
+    backgroundColor: Colors.cardBg,
+    borderRadius: Radius.lg,
+    padding: Spacing.lg,
+    paddingBottom: Spacing.md,
+  },
+  chartBars: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    height: BAR_MAX_HEIGHT + 28,
+  },
+  barColumn: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  barTrack: {
+    width: '60%',
+    height: BAR_MAX_HEIGHT,
+    justifyContent: 'flex-end',
+    marginBottom: Spacing.xs,
+  },
+  bar: {
+    width: '100%',
+    backgroundColor: 'rgba(255,255,255,0.50)',
+    borderRadius: Radius.sm,
+  },
+  barToday: {
+    backgroundColor: Colors.white,
+  },
+  barEmpty: {
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    height: 4,
+  },
+  barLabel: {
+    ...Typography.caption,
+    color: Colors.textSecondary,
+  },
+
+  // Instrument progress
+  instrumentRow: {
+    marginBottom: Spacing.lg,
+  },
+  instrumentRowHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.sm,
+  },
+  instrumentName: {
+    ...Typography.labelMd,
+    color: Colors.textPrimary,
+  },
+  instrumentPercent: {
+    ...Typography.bodyMd,
+    color: Colors.textSecondary,
+  },
+  progressBarBg: {
+    height: 8,
+    backgroundColor: Colors.progressBg,
+    borderRadius: Radius.full,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: Colors.progressFill,
+    borderRadius: Radius.full,
+  },
+
+  // Sessions
+  sessionsList: {
+    gap: Spacing.sm,
+  },
+  sessionCard: {
+    backgroundColor: Colors.cardBg,
+    borderRadius: Radius.lg,
+    padding: Spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  sessionInfo: {
+    flex: 1,
+  },
+  sessionTitle: {
+    ...Typography.labelMd,
+    color: Colors.textPrimary,
+    marginBottom: 2,
+  },
+  sessionDate: {
+    ...Typography.caption,
+    color: Colors.textSecondary,
+  },
+  sessionDuration: {
+    ...Typography.labelSm,
+    color: Colors.textSecondary,
+  },
+});

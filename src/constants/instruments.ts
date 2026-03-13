@@ -1,14 +1,12 @@
 /**
- * Phase-1 instrument options. Use slug for API/identity; title for display.
+ * Phase-1 instrument options. Use slug for API/identity; name for display.
  */
 
-import type { Instrument } from '../types/models';
-
-export const INSTRUMENTS: Instrument[] = [
-  { slug: 'harmonium', title: 'Harmonium' },
-  { slug: 'guitar', title: 'Guitar' },
-  { slug: 'piano', title: 'Piano' },
-  { slug: 'vocals', title: 'Vocals' },
-  { slug: 'tabla', title: 'Tabla' },
-  { slug: 'violin', title: 'Violin' },
+export const INSTRUMENTS: { slug: string; name: string }[] = [
+  { slug: 'harmonium', name: 'Harmonium' },
+  { slug: 'guitar', name: 'Guitar' },
+  { slug: 'piano', name: 'Piano' },
+  { slug: 'vocals', name: 'Vocals' },
+  { slug: 'tabla', name: 'Tabla' },
+  { slug: 'violin', name: 'Violin' },
 ];

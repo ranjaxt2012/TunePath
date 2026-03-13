@@ -5,7 +5,6 @@ import { DesignSystem } from './theme';
 export const selectLessonStyles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: DesignSystem.colors.primary,
   },
   backButtonContainer: {
     paddingHorizontal: DesignSystem.spacing.xl,
