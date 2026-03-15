@@ -1,6 +1,8 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
 import { ScreenGradient } from '@/src/components/common/ScreenGradient';
+import { Colors } from '@/src/constants/theme';
 import { welcomeStyles } from '../../src/styles/welcomeStyles';
 
 export default function WelcomeScreen() {
@@ -15,7 +17,7 @@ export default function WelcomeScreen() {
       <View style={welcomeStyles.backgroundGradient}>
         <View style={welcomeStyles.logoContainer}>
           <View style={welcomeStyles.logoCircle}>
-            <Text style={welcomeStyles.logoIcon}>🎵</Text>
+            <Ionicons name="musical-notes" size={64} color={Colors.textPrimary} />
           </View>
         </View>
         

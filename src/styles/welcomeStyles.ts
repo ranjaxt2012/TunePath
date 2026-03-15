@@ -25,7 +25,7 @@ export const welcomeStyles = StyleSheet.create({
   },
   logoIcon: {
     fontSize: DesignSystem.typography.fontSizes['4xl'],
-    fontWeight: DesignSystem.typography.fontWeights.light,
+    fontFamily: DesignSystem.typography.fontFamilies.light,
     ...sharedStyles.whiteText,
   },
   titleContainer: sharedStyles.mediumMargin,
@@ -33,7 +33,7 @@ export const welcomeStyles = StyleSheet.create({
   subtitleContainer: sharedStyles.largeMargin,
   subtitle: {
     fontSize: DesignSystem.typography.fontSizes.base,
-    fontWeight: DesignSystem.typography.fontWeights.regular,
+    fontFamily: DesignSystem.typography.fontFamilies.regular,
     ...sharedStyles.whiteText,
     opacity: 0.9,
     textAlign: 'center',
@@ -57,7 +57,7 @@ export const welcomeStyles = StyleSheet.create({
   },
   buttonText: {
     fontSize: DesignSystem.typography.fontSizes.base,
-    fontWeight: DesignSystem.typography.fontWeights.semibold,
+    fontFamily: DesignSystem.typography.fontFamilies.semibold,
     color: DesignSystem.colors.primary,
     textAlign: 'center',
   },

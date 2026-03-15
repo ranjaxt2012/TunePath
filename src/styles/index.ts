@@ -3,11 +3,8 @@
 
 export { commonStyles } from './commonStyles';
 export { homeStyles } from './homeStyles';
-export { practiceStyles } from './practiceStyles';
 export { profileStyles } from './profileStyles';
 export { progressStyles } from './progressStyles';
-export { selectInstrumentStyles } from './selectInstrumentStyles';
-export { selectLevelStyles } from './selectLevelStyles';
 export { sharedStyles } from './sharedStyles';
 export { DesignSystem, br, createButtonStyle, createCardStyle, createTextStyle, fs, sp } from './theme';
 export type {

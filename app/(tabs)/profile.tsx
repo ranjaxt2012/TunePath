@@ -1,25 +1,29 @@
 import React from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import type { ComponentProps } from 'react';
 import { BottomTabBar } from '../../src/components/ui';
 import { ScreenGradient } from '@/src/components/common/ScreenGradient';
+import { Colors } from '@/src/constants/theme';
 import { profileStyles } from '../../src/styles/profileStyles';
 
-// Settings Item Component
-const SettingsItem = React.memo(function SettingsItem({ icon, label, value, onPress }: { icon: string; label: string; value?: string; onPress?: () => void }) {
+type IconName = ComponentProps<typeof Ionicons>['name'];
+
+const SettingsItem = React.memo(function SettingsItem({ icon, label, value, onPress }: { icon: IconName; label: string; value?: string; onPress?: () => void }) {
   return (
     <Pressable
       style={({ pressed }) => [profileStyles.settingsItem, { opacity: pressed ? 0.8 : 1 }]}
       onPress={onPress}
     >
       <View style={profileStyles.settingsItemLeft}>
-        <Text style={profileStyles.settingsItemIcon}>{icon}</Text>
+        <Ionicons name={icon} size={20} color={Colors.textPrimary} style={profileStyles.settingsItemIcon} />
         <Text style={profileStyles.settingsItemLabel}>{label}</Text>
       </View>
       <View style={profileStyles.settingsItemRight}>
         {value && (
           <Text style={profileStyles.settingsItemValue}>{value}</Text>
         )}
-        <Text style={profileStyles.chevron}>›</Text>
+        <Ionicons name="chevron-forward" size={20} color={Colors.textSecondary} />
       </View>
     </Pressable>
   );
@@ -39,7 +43,7 @@ export default function ProfileScreen() {
         <View style={profileStyles.userInfoCard}>
           {/* Avatar */}
           <View style={profileStyles.avatar}>
-            <Text style={profileStyles.avatarIcon}>👤</Text>
+            <Ionicons name="person" size={48} color={Colors.textPrimary} />
           </View>
           
           {/* User Details */}
@@ -53,24 +57,24 @@ export default function ProfileScreen() {
           <Text style={profileStyles.sectionTitle}>Settings</Text>
           <View style={profileStyles.sectionCard}>
             <SettingsItem
-              icon="🎵"
+              icon="musical-notes"
               label="Change Instrument"
               value="Harmonium"
             />
             <View style={profileStyles.divider} />
             <SettingsItem
-              icon="📊"
+              icon="bar-chart"
               label="Change Level"
               value="Beginner"
             />
             <View style={profileStyles.divider} />
             <SettingsItem
-              icon="🔔"
+              icon="notifications-outline"
               label="Notification Settings"
             />
             <View style={profileStyles.divider} />
             <SettingsItem
-              icon="⚙️"
+              icon="settings-outline"
               label="App Preferences"
             />
           </View>
@@ -81,19 +85,19 @@ export default function ProfileScreen() {
           <Text style={profileStyles.sectionTitle}>Account</Text>
           <View style={profileStyles.sectionCard}>
             <SettingsItem
-              icon="💳"
+              icon="card-outline"
               label="Manage Subscription"
             />
             <View style={profileStyles.divider} />
             <SettingsItem
-              icon="🛡️"
+              icon="shield-checkmark-outline"
               label="Privacy Policy"
             />
             <View style={profileStyles.divider} />
             <SettingsItem
-              icon="🚪"
+              icon="log-out-outline"
               label="Log Out"
-              onPress={() => console.log('Log Out pressed')}
+              onPress={() => { /* TODO: implement logout */ }}
             />
           </View>
         </View>

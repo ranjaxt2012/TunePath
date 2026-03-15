@@ -26,14 +26,14 @@ export const selectLessonStyles = StyleSheet.create({
   },
   title: {
     fontSize: DesignSystem.typography.fontSizes['4xl'],
-    fontWeight: DesignSystem.typography.fontWeights.medium,
+    fontFamily: DesignSystem.typography.fontFamilies.medium,
     color: DesignSystem.colors.white,
     textAlign: 'center',
     letterSpacing: DesignSystem.typography.letterSpacing.tight,
   },
   subtitle: {
     fontSize: DesignSystem.typography.fontSizes.base,
-    fontWeight: DesignSystem.typography.fontWeights.regular,
+    fontFamily: DesignSystem.typography.fontFamilies.regular,
     color: DesignSystem.colors.white,
     textAlign: 'center',
   },
@@ -59,7 +59,7 @@ export const selectLessonStyles = StyleSheet.create({
   },
   lessonTitle: {
     fontSize: 22,
-    fontWeight: DesignSystem.typography.fontWeights.semibold,
+    fontFamily: DesignSystem.typography.fontFamilies.semibold,
     color: DesignSystem.colors.white,
     marginBottom: 4,
   },
@@ -82,7 +82,7 @@ export const selectLessonStyles = StyleSheet.create({
   },
   continueButtonText: {
     fontSize: 17,
-    fontWeight: '600',
+    fontFamily: DesignSystem.typography.fontFamilies.semibold,
     color: DesignSystem.colors.primary,
   },
 });

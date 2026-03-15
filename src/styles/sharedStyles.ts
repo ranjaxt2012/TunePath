@@ -9,13 +9,13 @@ export const sharedStyles = StyleSheet.create({
   // Common text patterns
   title: {
     fontSize: DesignSystem.typography.fontSizes['3xl'],
-    fontWeight: DesignSystem.typography.fontWeights.semibold,
+    fontFamily: DesignSystem.typography.fontFamilies.semibold,
     color: DesignSystem.colors.text.primary,
     letterSpacing: DesignSystem.typography.letterSpacing.tight,
   },
   whiteTitle: {
     fontSize: DesignSystem.typography.fontSizes['4xl'],
-    fontWeight: DesignSystem.typography.fontWeights.medium,
+    fontFamily: DesignSystem.typography.fontFamilies.medium,
     color: DesignSystem.colors.white,
     textAlign: 'center',
     letterSpacing: DesignSystem.typography.letterSpacing.tight,
@@ -23,7 +23,7 @@ export const sharedStyles = StyleSheet.create({
   
   subtitle: {
     fontSize: DesignSystem.typography.fontSizes.base,
-    fontWeight: DesignSystem.typography.fontWeights.regular,
+    fontFamily: DesignSystem.typography.fontFamilies.regular,
     color: DesignSystem.colors.text.secondary,
   },
   
@@ -90,7 +90,7 @@ export const sharedStyles = StyleSheet.create({
   backIcon: {
     fontSize: 20,
     color: DesignSystem.colors.white,
-    fontWeight: '300' as const,
+    fontFamily: DesignSystem.typography.fontFamilies.regular,
   },
   backText: {
     fontSize: 16,
@@ -127,7 +127,7 @@ export const sharedStyles = StyleSheet.create({
   },
   tabTextActive: {
     fontSize: 10,
-    fontWeight: '500' as const,
+    fontFamily: DesignSystem.typography.fontFamilies.medium,
     color: DesignSystem.colors.white,
   },
   tabIconInactive: {
@@ -137,7 +137,7 @@ export const sharedStyles = StyleSheet.create({
   },
   tabTextInactive: {
     fontSize: 10,
-    fontWeight: '500' as const,
+    fontFamily: DesignSystem.typography.fontFamilies.medium,
     color: DesignSystem.colors.white,
     opacity: 0.6,
   },
@@ -157,7 +157,7 @@ export const sharedStyles = StyleSheet.create({
   },
   helpLabel: {
     fontSize: 10,
-    fontWeight: '500' as const,
+    fontFamily: DesignSystem.typography.fontFamilies.medium,
     color: DesignSystem.colors.white,
     opacity: 0.6,
   },
@@ -174,7 +174,7 @@ export const sharedStyles = StyleSheet.create({
   },
   hoverLabelText: {
     fontSize: 12,
-    fontWeight: '500' as const,
+    fontFamily: DesignSystem.typography.fontFamilies.medium,
     color: DesignSystem.colors.white,
   },
 

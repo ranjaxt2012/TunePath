@@ -1,7 +1,7 @@
 // TunePath Design System
-// Centralized styling for consistent design across all screens
-// All token maps are frozen with `as const` so TypeScript infers literal types.
-// Use the exported ThemeXxx types to enforce boundaries in components & styles.
+// Centralized styling for consistent design across all screens.
+// Font families: import Typography from @/src/constants/theme — no hardcoded font names here.
+import { Typography as TypographyTokens } from '@/src/constants/theme';
 
 // Base design tokens
 const colors = {
@@ -41,7 +41,13 @@ const colors = {
 } as const;
 
 const typography = {
-  fontFamily: 'Inter',
+  fontFamilies: {
+    regular: TypographyTokens.regular,
+    medium: TypographyTokens.medium,
+    semibold: TypographyTokens.semiBold,
+    bold: TypographyTokens.bold,
+    light: TypographyTokens.regular,
+  },
   fontWeights: {
     light: '300',
     regular: '400',
@@ -156,10 +162,11 @@ const components = {
       borderRadius: 33.5,
     },
   },
+  /** Min 20px — vector icons (FontAwesome5, etc.) render poorly below native size */
   icon: {
     small: {
-      width: 16,
-      height: 16,
+      width: 20,
+      height: 20,
       borderRadius: borderRadius.sm,
     },
     medium: {
@@ -254,9 +261,8 @@ export const createTextStyle = (
   weight: ThemeFontWeight = 'regular',
   color: string = DesignSystem.colors.text.primary,
 ) => ({
-  fontFamily: DesignSystem.typography.fontFamily,
+  fontFamily: DesignSystem.typography.fontFamilies[weight],
   fontSize: DesignSystem.typography.fontSizes[size],
-  fontWeight: DesignSystem.typography.fontWeights[weight],
   color,
 });
 

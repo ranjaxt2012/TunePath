@@ -1,9 +1,8 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text } from 'react-native';
-import { EmptyState, ErrorState, LoadingState, ScreenGradient } from '@/src/components/common';
-import { INSTRUMENT_ICONS } from '@/src/constants/instrumentIcons';
-import { Colors, CommonStyles, Layout, Radius, Spacing, Typography } from '@/src/constants/theme';
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { EmptyState, ErrorState, InstrumentIcon, LoadingState, ScreenGradient } from '@/src/components/common';
+import { Colors, CommonStyles, Layout, Radius, Spacing, TextPresets, Typography } from '@/src/constants/theme';
 import { useInstruments } from '@/src/hooks/useInstruments';
 import { useAuthStore } from '@/src/store/authStore';
 
@@ -46,9 +45,9 @@ export default function SelectInstrumentScreen() {
                 style={[styles.card, isSelected && styles.cardSelected]}
                 onPress={() => handleInstrumentSelect(item.slug)}
               >
-                <Text style={styles.icon}>
-                  {INSTRUMENT_ICONS[item.slug] ?? '🎵'}
-                </Text>
+                <View style={styles.icon}>
+                  <InstrumentIcon slug={item.slug} size={36} />
+                </View>
                 <Text style={styles.name}>{item.name}</Text>
               </Pressable>
             );
@@ -65,14 +64,14 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.xxl,
   },
   title: {
-    ...Typography.displayMd,
+    ...TextPresets.displayMd,
     color: Colors.textPrimary,
     textAlign: 'center',
     marginBottom: Spacing.sm,
     paddingHorizontal: Spacing.lg,
   },
   subtitle: {
-    ...Typography.bodyMd,
+    ...TextPresets.bodyMd,
     color: Colors.textSecondary,
     textAlign: 'center',
     marginBottom: Spacing.xxl,
@@ -102,11 +101,10 @@ const styles = StyleSheet.create({
     ...CommonStyles.cardSelected,
   },
   icon: {
-    fontSize: 36,
     marginBottom: Spacing.sm,
   },
   name: {
-    ...Typography.labelMd,
+    ...TextPresets.labelMd,
     color: Colors.textPrimary,
     textAlign: 'center',
   },

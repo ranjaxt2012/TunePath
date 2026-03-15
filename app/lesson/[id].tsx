@@ -9,25 +9,32 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
+  Platform,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { CompleteCheckbox } from '@/src/components/common/CompleteCheckbox';
 import { ScreenGradient } from '@/src/components/common/ScreenGradient';
+import type { NotationMode } from '@/src/types/models';
 import { useLesson } from '@/src/hooks/useLesson';
-import { saveProgress } from '@/src/services/apiClient';
+import { useNotation } from '@/src/hooks/useNotation';
+import { HarmoniumPlayer } from '@/instruments/harmonium/HarmoniumPlayer';
+import { getLessonProgress, saveProgress } from '@/src/services/apiClient';
 import { useAuthStore } from '@/src/store/authStore';
+import { useProgressStore } from '@/src/store/progressStore';
+import { Colors } from '@/src/constants/theme';
 import { lessonPlayerStyles } from '@/src/styles/lessonPlayerStyles';
 
 let _expoAV: typeof import('expo-av') | null | 'uninit' = 'uninit';
 let _expoAVFailed = false;
 
 function getExpoAV(): typeof import('expo-av') | null {
-  // Only load expo-av in Standalone or Bare — Expo Go lacks ExponentAV native module
-  const canUseExpoAV =
-    Constants.executionEnvironment === ExecutionEnvironment.Standalone ||
-    Constants.executionEnvironment === ExecutionEnvironment.Bare;
-  if (!canUseExpoAV) return null;
+  // Only load expo-av in Standalone builds — Expo Go and Bare lack ExponentAV in some setups
+  if (Platform.OS === 'web') return null;
+  if (Constants.executionEnvironment !== ExecutionEnvironment.Standalone) return null;
   if (_expoAVFailed) return null;
   if (_expoAV === 'uninit') {
     try {
@@ -41,33 +48,59 @@ function getExpoAV(): typeof import('expo-av') | null {
   return _expoAV === 'uninit' ? null : _expoAV;
 }
 
-const SARGAM_ROWS = [
-  ['Sa', 'Re', 'Ga', 'Ma'],
-  ['Pa', 'Dha', 'Ni', 'Sa'],
-  ['Sa', 'Sa', 'Re', 'Re'],
-  ['Ga', 'Ga', 'Ma', 'Ma'],
-  ['Pa', 'Pa', 'Dha', 'Dha'],
-  ['Ni', 'Ni', 'Sa', 'Sa'],
-];
-
-const ACTIVE_NOTE_INDEX = 0;
 
 export default function LessonPlayerScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { user } = useAuthStore();
   const { lesson, loading, error } = useLesson(id);
+  const { isComplete, setComplete, setCompletionFromApi } = useProgressStore();
 
   const videoRef = useRef<unknown>(null);
   const [status, setStatus] = useState<import('expo-av').AVPlaybackStatus | null>(null);
-  const [bpm, setBpm] = useState(80);
-  const [notationMode, setNotationMode] = useState<'sargam' | 'staff'>('sargam');
+  const [completeLoading, setCompleteLoading] = useState(false);
+  const modes = (lesson?.instrument_notation_modes ?? ['sargam']) as NotationMode[];
+  const defaultMode = modes[0] ?? 'sargam';
+  const [notationMode, setNotationMode] = useState<NotationMode>(defaultMode);
+
+  const lessonComplete = lesson ? isComplete(lesson.id) : false;
+
+  // Load completion state from API when lesson loads
+  useEffect(() => {
+    if (!user || !lesson?.id) return;
+    getLessonProgress(lesson.id).then((p) => {
+      if (p) setCompletionFromApi(lesson.id, p.status === 'completed');
+    });
+  }, [lesson?.id, user, setCompletionFromApi]);
+
+  // Sync notationMode when lesson loads with a different instrument
+  useEffect(() => {
+    if (lesson && modes.length > 0 && !modes.includes(notationMode)) {
+      setNotationMode(defaultMode);
+    }
+  }, [lesson?.id, defaultMode, modes, notationMode]);
 
   const progressRef = useRef({ positionMs: 0, durationMs: 0 });
   const isPlaying = status?.isLoaded ? status.isPlaying : false;
   const positionMs = status?.isLoaded ? status.positionMillis ?? 0 : 0;
   const durationMs = status?.isLoaded ? status.durationMillis ?? 0 : 0;
   progressRef.current = { positionMs, durationMs };
+
+  const { notes, loading: notationLoading, error: notationError } = useNotation(lesson?.notation_url ?? null);
+
+  // Auto-check when video reaches end
+  useEffect(() => {
+    if (!user || !lesson || lessonComplete || durationMs <= 0) return;
+    if (positionMs >= durationMs - 500) {
+      setComplete(lesson.id, true);
+      void saveProgress({
+        lesson_id: lesson.id,
+        course_id: lesson.course_id ?? null,
+        watch_percent: 100,
+        last_position_seconds: Math.floor(durationMs / 1000),
+      });
+    }
+  }, [user, lesson, lessonComplete, positionMs, durationMs, setComplete]);
 
   function formatTime(ms: number) {
     const totalSec = Math.floor(ms / 1000);
@@ -91,6 +124,29 @@ export default function LessonPlayerScreen() {
       // Progress save is best-effort
     }
   }, [user, lesson]);
+
+  const handleCompleteToggle = useCallback(async () => {
+    if (!user || !lesson) return;
+    const nextComplete = !lessonComplete;
+    const prevComplete = lessonComplete;
+    setComplete(lesson.id, nextComplete);
+    setCompleteLoading(true);
+    const { positionMs: pos, durationMs: dur } = progressRef.current;
+    const watchPercent = dur > 0 ? Math.round((pos / dur) * 100) : 0;
+    try {
+      await saveProgress({
+        lesson_id: lesson.id,
+        course_id: lesson.course_id ?? null,
+        watch_percent: nextComplete ? 100 : watchPercent,
+        last_position_seconds: Math.floor(pos / 1000),
+      });
+    } catch {
+      setComplete(lesson.id, prevComplete);
+      Alert.alert('Error', 'Could not update completion. Please try again.');
+    } finally {
+      setCompleteLoading(false);
+    }
+  }, [user, lesson, lessonComplete, setComplete]);
 
   useEffect(() => {
     return () => {
@@ -164,7 +220,23 @@ export default function LessonPlayerScreen() {
                 : 'Lesson'}
               {' • Beginner'}
             </Text>
-            <Text style={lessonPlayerStyles.lessonTitle}>{lesson.title}</Text>
+            <View style={lessonPlayerStyles.lessonTitleRow}>
+              <Text
+                style={[lessonPlayerStyles.lessonTitle, lessonPlayerStyles.lessonTitleFlex]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+              >
+                {lesson.title}
+              </Text>
+              <View style={lessonPlayerStyles.checkboxWrap}>
+                <CompleteCheckbox
+                  isComplete={lessonComplete}
+                  onToggle={handleCompleteToggle}
+                  loading={completeLoading}
+                  compact
+                />
+              </View>
+            </View>
           </View>
 
           <ScrollView
@@ -223,117 +295,75 @@ export default function LessonPlayerScreen() {
               </View>
             </View>
 
-            <View style={lessonPlayerStyles.bpmRow}>
-              <TouchableOpacity
-                style={lessonPlayerStyles.bpmBtn}
-                onPress={() => setBpm((b) => Math.max(40, b - 5))}
-              >
-                <Text style={lessonPlayerStyles.bpmBtnText}>−</Text>
-              </TouchableOpacity>
-              <View style={lessonPlayerStyles.bpmDisplay}>
-                <Text style={lessonPlayerStyles.bpmText}>{bpm} BPM</Text>
-              </View>
-              <TouchableOpacity
-                style={lessonPlayerStyles.bpmBtn}
-                onPress={() => setBpm((b) => Math.min(200, b + 5))}
-              >
-                <Text style={lessonPlayerStyles.bpmBtnText}>+</Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={lessonPlayerStyles.toggleContainer}>
-              <TouchableOpacity
-                style={[
-                  lessonPlayerStyles.toggleOption,
-                  notationMode === 'sargam' && lessonPlayerStyles.toggleOptionActive,
-                ]}
-                onPress={() => setNotationMode('sargam')}
-              >
-                <Text
-                  style={[
-                    lessonPlayerStyles.toggleOptionText,
-                    notationMode === 'sargam' &&
-                      lessonPlayerStyles.toggleOptionTextActive,
-                  ]}
-                >
-                  Sargam
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  lessonPlayerStyles.toggleOption,
-                  notationMode === 'staff' && lessonPlayerStyles.toggleOptionActive,
-                ]}
-                onPress={() => setNotationMode('staff')}
-              >
-                <Text
-                  style={[
-                    lessonPlayerStyles.toggleOptionText,
-                    notationMode === 'staff' &&
-                      lessonPlayerStyles.toggleOptionTextActive,
-                  ]}
-                >
-                  Staff
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {notationMode === 'sargam' && (
-              <View style={lessonPlayerStyles.sargamGrid}>
-                {SARGAM_ROWS.map((row, rowIdx) => (
-                  <View key={rowIdx} style={lessonPlayerStyles.sargamRow}>
-                    <Text style={lessonPlayerStyles.beatMarker}>|</Text>
-                    {row.map((note, noteIdx) => {
-                      const isActive = noteIdx === ACTIVE_NOTE_INDEX;
-                      return (
-                        <View
-                          key={noteIdx}
-                          style={[
-                            lessonPlayerStyles.noteCircle,
-                            isActive && lessonPlayerStyles.noteCircleActive,
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              lessonPlayerStyles.noteText,
-                              isActive && lessonPlayerStyles.noteTextActive,
-                            ]}
-                          >
-                            {note}
-                          </Text>
-                        </View>
-                      );
-                    })}
-                    <Text style={lessonPlayerStyles.beatMarker}>|</Text>
-                  </View>
+            {modes.length > 1 && (
+              <View style={lessonPlayerStyles.toggleContainer}>
+                {modes.map((mode) => (
+                  <TouchableOpacity
+                    key={mode}
+                    style={[
+                      lessonPlayerStyles.toggleOption,
+                      notationMode === mode && lessonPlayerStyles.toggleOptionActive,
+                    ]}
+                    onPress={() => setNotationMode(mode)}
+                  >
+                    <Text
+                      style={[
+                        lessonPlayerStyles.toggleOptionText,
+                        notationMode === mode &&
+                          lessonPlayerStyles.toggleOptionTextActive,
+                      ]}
+                    >
+                      {mode.charAt(0).toUpperCase() + mode.slice(1)}
+                    </Text>
+                  </TouchableOpacity>
                 ))}
               </View>
             )}
 
-            {notationMode === 'staff' && (
+            {notationMode === 'sargam' && (
+              notationLoading ? (
+                <View style={lessonPlayerStyles.staffPlaceholder}>
+                  <ActivityIndicator size="small" color={Colors.textSecondary} />
+                </View>
+              ) : notationError ? (
+                <View style={lessonPlayerStyles.staffPlaceholder}>
+                  <Text style={lessonPlayerStyles.mutedText}>
+                    Could not load notation: {notationError}
+                  </Text>
+                </View>
+              ) : !lesson?.notation_url ? (
+                <View style={lessonPlayerStyles.staffPlaceholder}>
+                  <Text style={lessonPlayerStyles.mutedText}>
+                    No notation available for this lesson
+                  </Text>
+                </View>
+              ) : notes.length === 0 ? (
+                <View style={lessonPlayerStyles.staffPlaceholder}>
+                  <Text style={lessonPlayerStyles.mutedText}>
+                    No notation sections in this lesson
+                  </Text>
+                </View>
+              ) : (
+                <HarmoniumPlayer
+                  lesson={lesson}
+                  notes={notes}
+                  onComplete={() => {}}
+                  onProgress={() => {}}
+                />
+              )
+            )}
+
+            {(notationMode === 'staff' || notationMode === 'tabs' ||
+              notationMode === 'chords' || notationMode === 'bols') && (
               <View style={lessonPlayerStyles.staffPlaceholder}>
                 <Text style={lessonPlayerStyles.mutedText}>
-                  Staff notation coming soon
+                  {notationMode.charAt(0).toUpperCase() + notationMode.slice(1)} notation coming soon
                 </Text>
               </View>
             )}
           </ScrollView>
         </View>
       </SafeAreaView>
-
-      <View style={lessonPlayerStyles.bottomBar}>
-        <TouchableOpacity
-          style={lessonPlayerStyles.guidedPracticeBtn}
-          onPress={() => {
-            void handleSaveProgress(true).then(() => router.back());
-          }}
-          activeOpacity={0.9}
-        >
-          <Text style={lessonPlayerStyles.guidedPracticeBtnText}>
-            Start Guided Practice
-          </Text>
-        </TouchableOpacity>
-      </View>
     </ScreenGradient>
   );
 }

@@ -64,21 +64,46 @@ export const Radius = {
   full: 999,
 };
 
-// ── Typography — colors NOT included, add per-style explicitly ─────────────
+// ── Typography — single source of truth for font families (theme.ts only) ───
 export const Typography = {
-  displayLg: { fontSize: 32, fontWeight: '700' as const, letterSpacing: -0.5 },
-  displayMd: { fontSize: 26, fontWeight: '700' as const, letterSpacing: -0.3 },
-  displaySm: { fontSize: 22, fontWeight: '700' as const },
-  h1:        { fontSize: 20, fontWeight: '700' as const },
-  h2:        { fontSize: 17, fontWeight: '600' as const },
-  h3:        { fontSize: 15, fontWeight: '600' as const },
-  bodyLg:    { fontSize: 16, fontWeight: '400' as const },
-  bodyMd:    { fontSize: 14, fontWeight: '400' as const },
-  bodySm:    { fontSize: 12, fontWeight: '400' as const },
-  labelLg:   { fontSize: 15, fontWeight: '600' as const },
-  labelMd:   { fontSize: 13, fontWeight: '600' as const },
-  labelSm:   { fontSize: 11, fontWeight: '600' as const },
-  caption:   { fontSize: 11, fontWeight: '400' as const },
+  regular:  'Inter_400Regular',
+  medium:   'Inter_500Medium',
+  semiBold: 'Inter_600SemiBold',
+  bold:     'Inter_700Bold',
+  mono:     'SpaceMono',
+} as const;
+
+export const FontSize = {
+  xs:   11,
+  sm:   13,
+  md:   15,
+  lg:   17,
+  xl:   20,
+  xxl:  24,
+  hero: 30,
+} as const;
+
+export const LineHeight = {
+  tight:  1.2,
+  normal: 1.5,
+  loose:  1.8,
+} as const;
+
+/** Compound text presets — use Typography + FontSize, no hardcoded font names */
+export const TextPresets = {
+  displayLg: { fontSize: FontSize.hero, fontFamily: Typography.bold, letterSpacing: -0.3 },
+  displayMd: { fontSize: FontSize.xxl, fontFamily: Typography.bold, letterSpacing: -0.3 },
+  displaySm: { fontSize: FontSize.xl, fontFamily: Typography.bold, letterSpacing: -0.3 },
+  h1:        { fontSize: FontSize.xl, fontFamily: Typography.bold, letterSpacing: -0.3 },
+  h2:        { fontSize: FontSize.lg, fontFamily: Typography.semiBold },
+  h3:        { fontSize: FontSize.md, fontFamily: Typography.semiBold },
+  bodyLg:    { fontSize: FontSize.md, fontFamily: Typography.regular },
+  bodyMd:    { fontSize: FontSize.sm, fontFamily: Typography.regular },
+  bodySm:    { fontSize: FontSize.xs, fontFamily: Typography.regular },
+  labelLg:   { fontSize: FontSize.md, fontFamily: Typography.semiBold },
+  labelMd:   { fontSize: FontSize.sm, fontFamily: Typography.semiBold },
+  labelSm:   { fontSize: FontSize.xs, fontFamily: Typography.semiBold },
+  caption:   { fontSize: FontSize.xs, fontFamily: Typography.regular },
 };
 
 // ── Layout ─────────────────────────────────────────────────────────────────
@@ -150,8 +175,8 @@ export const CommonStyles = {
     justifyContent: 'center' as const,
   },
   primaryButtonText: {
-    fontSize: 15,
-    fontWeight: '600' as const,
+    fontSize: FontSize.md,
+    fontFamily: Typography.semiBold,
     color: '#7C3AED',
   },
   ghostButton: {
@@ -163,8 +188,8 @@ export const CommonStyles = {
     paddingHorizontal: Spacing.lg,
   },
   ghostButtonText: {
-    fontSize: 14,
-    fontWeight: '600' as const,
+    fontSize: FontSize.sm,
+    fontFamily: Typography.semiBold,
     color: '#FFFFFF',
   },
   sectionHeader: {
@@ -175,13 +200,13 @@ export const CommonStyles = {
     paddingHorizontal: BASE_PADDING,
   },
   sectionTitle: {
-    fontSize: 17,
-    fontWeight: '700' as const,
+    fontSize: FontSize.lg,
+    fontFamily: Typography.bold,
     color: '#FFFFFF',
   },
   sectionLink: {
-    fontSize: 13,
-    fontWeight: '500' as const,
+    fontSize: FontSize.sm,
+    fontFamily: Typography.medium,
     color: 'rgba(255,255,255,0.70)',
   },
 };

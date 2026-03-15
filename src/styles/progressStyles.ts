@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { Colors, Spacing, Radius } from '@/src/constants/theme';
+import { Colors, Spacing, Radius, Typography } from '@/src/constants/theme';
 
 export const progressStyles = StyleSheet.create({
   container: {
@@ -12,7 +12,7 @@ export const progressStyles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: '500',
+    fontFamily: Typography.medium,
     color: Colors.textPrimary,
     textAlign: 'center',
     letterSpacing: -0.3,
@@ -26,7 +26,7 @@ export const progressStyles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 22,
-    fontWeight: '600',
+    fontFamily: Typography.semiBold,
     color: Colors.textPrimary,
     marginBottom: Spacing.lg,
   },
@@ -54,7 +54,7 @@ export const progressStyles = StyleSheet.create({
   },
   statValue: {
     fontSize: 24,
-    fontWeight: '600',
+    fontFamily: Typography.semiBold,
     color: Colors.textPrimary,
   },
   statLabel: {
@@ -84,7 +84,7 @@ export const progressStyles = StyleSheet.create({
   },
   instrumentName: {
     fontSize: 15,
-    fontWeight: '500',
+    fontFamily: Typography.medium,
     color: Colors.textPrimary,
   },
   progressPercentage: {
@@ -120,7 +120,7 @@ export const progressStyles = StyleSheet.create({
   },
   sessionTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: Typography.semiBold,
     color: Colors.textPrimary,
     marginBottom: 4,
   },
@@ -130,7 +130,7 @@ export const progressStyles = StyleSheet.create({
   },
   sessionDuration: {
     fontSize: 14,
-    fontWeight: '500',
+    fontFamily: Typography.medium,
     color: Colors.textPrimary,
   },
 });

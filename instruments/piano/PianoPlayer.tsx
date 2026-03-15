@@ -3,6 +3,7 @@
  */
 
 import { StyleSheet, Text, View } from 'react-native';
+import { Colors, Typography } from '@/src/constants/theme';
 import type { LessonPlayerProps } from '@/src/registry/types';
 
 export function PianoPlayer({ lesson }: LessonPlayerProps) {
@@ -23,8 +24,8 @@ const styles = StyleSheet.create({
   },
   text: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#fff',
+    fontFamily: Typography.semiBold,
+    color: Colors.textPrimary,
   },
   subtext: {
     fontSize: 14,

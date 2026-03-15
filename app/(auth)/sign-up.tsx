@@ -1,13 +1,14 @@
 import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ScreenGradient } from '@/src/components/common/ScreenGradient';
+import { Typography } from '@/src/constants/theme';
 import { DesignSystem } from '../../src/styles/theme';
 
 export default function SignUpScreen() {
   const router = useRouter();
   
   const handleSignUp = () => {
-    console.log('Sign Up pressed!');
+    // TODO: add proper logging
     router.push('/select/instrument' as any);
   };
 
@@ -119,17 +120,17 @@ const styles = StyleSheet.create({
   backIcon: {
     fontSize: 24,
     color: DesignSystem.colors.white,
-    fontWeight: '300',
+    fontFamily: Typography.regular,
   },
   backText: {
     fontSize: 16,
     color: DesignSystem.colors.white,
-    fontWeight: '400',
+    fontFamily: Typography.regular,
   },
   titleContainer: { alignItems: 'center', marginBottom: 16 },
   title: {
     fontSize: 28,
-    fontWeight: '500',
+    fontFamily: Typography.medium,
     color: DesignSystem.colors.white,
     textAlign: 'center',
     lineHeight: 42,
@@ -137,7 +138,7 @@ const styles = StyleSheet.create({
   subtitleContainer: { alignItems: 'center', marginBottom: 40 },
   subtitle: {
     fontSize: 15,
-    fontWeight: '400',
+    fontFamily: Typography.regular,
     color: DesignSystem.colors.whiteOverlay['70'],
     textAlign: 'center',
     lineHeight: 22.5,
@@ -155,7 +156,7 @@ const styles = StyleSheet.create({
   },
   inputText: {
     fontSize: 14,
-    fontWeight: '400',
+    fontFamily: Typography.regular,
     color: DesignSystem.colors.whiteOverlay['60'],
     lineHeight: 17,
   },
@@ -175,7 +176,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     fontSize: 17,
-    fontWeight: '600',
+    fontFamily: Typography.semiBold,
     color: DesignSystem.colors.primary,
     textAlign: 'center',
     lineHeight: 25.5,
@@ -189,7 +190,7 @@ const styles = StyleSheet.create({
   },
   termsText: {
     fontSize: 12,
-    fontWeight: '400',
+    fontFamily: Typography.regular,
     color: DesignSystem.colors.whiteOverlay['50'],
     textAlign: 'center',
     lineHeight: 19.5,
@@ -197,7 +198,7 @@ const styles = StyleSheet.create({
   linkContainer: { marginLeft: 4 },
   linkText: {
     fontSize: 16,
-    fontWeight: '500',
+    fontFamily: Typography.medium,
     color: DesignSystem.colors.white,
     textAlign: 'center',
     lineHeight: 24,
@@ -210,7 +211,7 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 14,
-    fontWeight: '400',
+    fontFamily: Typography.regular,
     color: DesignSystem.colors.whiteOverlay['70'],
     textAlign: 'center',
     lineHeight: 21,

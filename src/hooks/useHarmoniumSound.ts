@@ -5,14 +5,13 @@
  */
 
 import { useCallback } from 'react';
+import { Platform } from 'react-native';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { resolveSargamToSample } from '../services/soundResolver';
 
 function getExpoAudio(): typeof import('expo-av').Audio | null {
-  const canUseExpoAV =
-    Constants.executionEnvironment === ExecutionEnvironment.Standalone ||
-    Constants.executionEnvironment === ExecutionEnvironment.Bare;
-  if (!canUseExpoAV) return null;
+  if (Platform.OS === 'web') return null;
+  if (Constants.executionEnvironment !== ExecutionEnvironment.Standalone) return null;
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     return require('expo-av').Audio;
@@ -65,9 +64,9 @@ export function useHarmoniumSound() {
       setTimeout(() => {
         sound.unloadAsync().catch(() => {});
       }, 1500);
-    } catch (err) {
+    } catch (_err) {
       if (__DEV__) {
-        console.warn(`[HarmoniumSound] Failed to play "${sargam}":`, err);
+        // TODO: add proper logger for play failure
       }
     }
   }, []);
@@ -78,7 +77,7 @@ export function useHarmoniumSound() {
       if (note) {
         playNote(note);
       } else if (__DEV__) {
-        console.warn(`[HarmoniumSound] No sargam note found in: "${notation}"`);
+        // TODO: add proper logger for sargam parse
       }
     },
     [playNote]

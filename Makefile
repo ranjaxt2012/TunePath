@@ -1,7 +1,7 @@
 # TunePath — Expo app targets
 # Run from TunePath/ directory
 
-.PHONY: start web ios android debug install lint lint-fix lint-ts clear tunnel help
+.PHONY: start web ios android debug install lint lint-fix lint-ts clear tunnel ios-log android-log help
 
 # Default: interactive dev server (press w/i/a for web/iOS/Android)
 start:
@@ -47,6 +47,16 @@ clear:
 tunnel:
 	npx expo start --tunnel
 
+# iOS with logs piped to file — run from Cursor terminal, then open logs/expo-ios.log
+ios-log:
+	@mkdir -p logs
+	npx expo start --ios 2>&1 | tee logs/expo-ios.log
+
+# Android with logs piped to file
+android-log:
+	@mkdir -p logs
+	npx expo start --android 2>&1 | tee logs/expo-android.log
+
 help:
 	@echo "TunePath — Available targets"
 	@echo ""
@@ -61,3 +71,5 @@ help:
 	@echo "  make lint-fix  Run ESLint with auto-fix"
 	@echo "  make lint-ts   TypeScript check"
 	@echo "  make clear     Clear Metro cache"
+	@echo "  make ios-log   iOS + save logs to logs/expo-ios.log"
+	@echo "  make android-log  Android + save logs to logs/expo-android.log"

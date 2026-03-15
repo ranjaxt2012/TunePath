@@ -1,8 +1,10 @@
 import type { ComponentType } from 'react';
 import type { LessonDetail } from '@/src/types/models';
+import type { Note } from '@/src/utils/notation';
 
 export interface LessonPlayerProps {
   lesson: LessonDetail;
+  notes?: Note[];
   onComplete: () => void;
   onProgress: (percent: number, positionSeconds: number) => void;
 }

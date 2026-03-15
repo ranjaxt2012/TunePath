@@ -1,4 +1,5 @@
 import { StyleSheet, Text } from 'react-native';
+import { Typography } from '@/src/constants/theme';
 import { DesignSystem } from '@/src/styles/theme';
 
 interface SectionHeaderProps {
@@ -14,7 +15,7 @@ export function SectionHeader({ title }: SectionHeaderProps) {
 const styles = StyleSheet.create({
   title: {
     fontSize: 20,
-    fontWeight: '600',
+    fontFamily: Typography.semiBold,
     color: DesignSystem.colors.white,
     marginBottom: DesignSystem.spacing.md,
     paddingHorizontal: DesignSystem.spacing.xl,

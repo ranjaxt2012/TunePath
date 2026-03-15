@@ -1,5 +1,7 @@
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { LessonListItem } from '@/src/types/models';
+import { InstrumentIcon } from '@/src/components/common/InstrumentIcon';
+import { Typography } from '@/src/constants/theme';
 import { DesignSystem } from '@/src/styles/theme';
 
 interface LessonRowProps {
@@ -26,7 +28,7 @@ export function LessonRow({ lesson, isCurrent, onPress }: LessonRowProps) {
         />
       ) : (
         <View style={[styles.thumbnail, styles.thumbnailPlaceholder]}>
-          <Text style={styles.placeholderIcon}>🎵</Text>
+          <InstrumentIcon slug={(lesson as { instrument_slug?: string }).instrument_slug ?? ''} size={24} />
         </View>
       )}
       <View style={styles.content}>
@@ -64,15 +66,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  placeholderIcon: {
-    fontSize: 24,
-  },
   content: {
     flex: 1,
   },
   title: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: Typography.semiBold,
     color: DesignSystem.colors.white,
     marginBottom: 4,
   },

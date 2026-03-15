@@ -90,8 +90,102 @@ export async function saveProgress(payload: SaveProgressPayload): Promise<UserPr
   });
 }
 
+export async function getLessonProgress(
+  lessonId: string
+): Promise<UserProgress | null> {
+  try {
+    return await request<UserProgress>(`/api/progress/lessons/${lessonId}`);
+  } catch {
+    return null;
+  }
+}
+
 export async function getProgressSummary(): Promise<ProgressSummary> {
   return request<ProgressSummary>('/api/progress/summary');
+}
+
+// ── User preferences ───────────────────────────────────────────────────
+export type UserPreferences = {
+  preferred_genres: string[];
+  preferred_theme: string;
+};
+
+export async function getPreferences(): Promise<UserPreferences> {
+  return request<UserPreferences>('/api/users/preferences');
+}
+
+export async function patchPreferences(payload: UserPreferences): Promise<UserPreferences> {
+  return request<UserPreferences>('/api/users/preferences', {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+}
+
+// ── Tutor (lesson upload) ───────────────────────────────────────────────────
+export type YouTubePreview = {
+  title: string;
+  duration_seconds: number;
+  thumbnail_url: string;
+  channel: string;
+  video_id: string;
+};
+
+export type UploadResponse = {
+  lesson_id: string;
+  job_id: string;
+  status: string;
+};
+
+export type UploadYouTubeResponse = UploadResponse & {
+  prefilled_title: string;
+  prefilled_thumbnail: string;
+  duration_seconds: number;
+};
+
+export type LessonStatusResponse = {
+  status: string;
+  source_type: string;
+  notation_draft: Record<string, unknown> | null;
+  error_message: string | null;
+};
+
+export async function getYouTubePreview(url: string): Promise<YouTubePreview> {
+  const params = new URLSearchParams({ url });
+  return request<YouTubePreview>(`/api/tutor/youtube/preview?${params.toString()}`);
+}
+
+export async function uploadLessonVideo(formData: FormData): Promise<UploadResponse> {
+  const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000';
+  const token = _getToken ? await _getToken() : null;
+  const res = await fetch(`${API_URL}/api/tutor/lessons/upload`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: formData,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { detail?: string })?.detail ?? `HTTP ${res.status}`);
+  }
+  return res.json() as Promise<UploadResponse>;
+}
+
+export async function uploadLessonYouTube(body: {
+  youtube_url: string;
+  title?: string;
+  instrument_id: string;
+  level_id: string;
+  course_id: string;
+  shruti?: string;
+  confirmed_own_content: boolean;
+}): Promise<UploadYouTubeResponse> {
+  return request<UploadYouTubeResponse>('/api/tutor/lessons/upload-youtube', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function getLessonStatus(lessonId: string): Promise<LessonStatusResponse> {
+  return request<LessonStatusResponse>(`/api/tutor/lessons/${lessonId}/status`);
 }
 
 // ── Legacy helper kept for useUserSync compatibility ─────────────────────
@@ -102,4 +196,4 @@ export async function apiPost<T>(path: string, body: unknown): Promise<T> {
   });
 }
 
-export type { Course, CourseDetail, LessonDetail, UserProgress, ProgressSummary, SaveProgressPayload, TunePathUser };
+export type { Instrument, Level, Course, CourseDetail, LessonDetail, UserProgress, ProgressSummary, SaveProgressPayload, TunePathUser };

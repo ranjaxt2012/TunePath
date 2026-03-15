@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { Typography as TypographyTokens } from '../src/constants/theme';
 
 export const Colors = {
   light: {
@@ -36,12 +37,12 @@ export const Colors = {
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 
 export const Typography = {
-  heading1: { fontSize: 32, fontWeight: '700' as const },
-  heading2: { fontSize: 24, fontWeight: '600' as const },
-  heading3: { fontSize: 20, fontWeight: '600' as const },
-  body: { fontSize: 16, fontWeight: '400' as const },
-  caption: { fontSize: 12, fontWeight: '400' as const },
-  small: { fontSize: 14, fontWeight: '400' as const },
+  heading1: { fontSize: 32, fontFamily: TypographyTokens.bold },
+  heading2: { fontSize: 24, fontFamily: TypographyTokens.semiBold },
+  heading3: { fontSize: 20, fontFamily: TypographyTokens.semiBold },
+  body: { fontSize: 16, fontFamily: TypographyTokens.regular },
+  caption: { fontSize: 12, fontFamily: TypographyTokens.regular },
+  small: { fontSize: 14, fontFamily: TypographyTokens.regular },
 };
 
 export const Spacing = {
