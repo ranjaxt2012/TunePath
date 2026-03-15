@@ -102,7 +102,15 @@ function RootLayoutNav() {
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-        <Stack.Screen name="lesson/[id]" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="lesson/[id]"
+          options={{
+            headerShown: false,
+            gestureEnabled: true,
+            gestureDirection: 'horizontal',
+            fullScreenGestureEnabled: true,
+          }}
+        />
         <Stack.Screen name="select-instrument" options={{ headerShown: false }} />
         <Stack.Screen name="select-level" options={{ headerShown: false }} />
         <Stack.Screen name="course/[id]" options={{ headerShown: false }} />

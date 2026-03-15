@@ -59,18 +59,18 @@ export function CompleteCheckbox({
       {!isComplete && !compact && (
         <Text style={styles.label}>Done</Text>
       )}
-      <View style={styles.circleWrap}>
+      <View style={styles.squareWrap}>
         {loading ? (
           <ActivityIndicator size="small" color={Colors.white} />
         ) : (
           <Animated.View
             style={[
-              styles.circle,
-              isComplete ? styles.circleFilled : styles.circleOutline,
+              styles.square,
+              isComplete ? styles.squareComplete : styles.squareDefault,
               { transform: [{ scale: scaleAnim }] },
             ]}
           >
-            {isComplete && <Text style={styles.checkmark}>{CHECKMARK}</Text>}
+            <Text style={styles.checkmark}>{CHECKMARK}</Text>
           </Animated.View>
         )}
       </View>
@@ -89,25 +89,24 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: 'rgba(255,255,255,0.6)',
   },
-  circleWrap: {
+  squareWrap: {
     width: SIZE,
     height: SIZE,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  circle: {
+  square: {
     width: SIZE,
     height: SIZE,
-    borderRadius: SIZE / 2,
+    borderRadius: 4,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  circleOutline: {
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.4)',
-  },
-  circleFilled: {
+  squareDefault: {
     backgroundColor: Colors.bgPrimary,
+  },
+  squareComplete: {
+    backgroundColor: Colors.success,
   },
   checkmark: {
     color: Colors.white,

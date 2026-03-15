@@ -14,14 +14,12 @@ import {
   Easing,
   LayoutChangeEvent,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, FontSize, Radius, Spacing, Typography } from '@/src/constants/theme';
 import { chunkNotes } from '@/src/utils/notation';
 import type { Note } from '@/src/utils/notation';
 
 const LINE_HEIGHT = 56;
 const NOTES_PER_LINE = 4;
-const FADE_COLOR = Colors.bgPrimary;
 
 type ScrollingNotationProps = {
   notes: Note[];
@@ -29,7 +27,7 @@ type ScrollingNotationProps = {
 };
 
 export function ScrollingNotation({ notes, activeNoteIndex }: ScrollingNotationProps) {
-  const [panelHeight, setPanelHeight] = useState(200);
+  const [panelHeight, setPanelHeight] = useState(300);
   const [dismissed, setDismissed] = useState<Set<number>>(() => new Set());
   const scrollRef = useRef<ScrollView>(null);
 
@@ -42,9 +40,14 @@ export function ScrollingNotation({ notes, activeNoteIndex }: ScrollingNotationP
   }, []);
 
   useEffect(() => {
-    const y = activeLine < 0 ? 0 : Math.max(0, activeLine * LINE_HEIGHT - panelHeight * 0.3);
+    if (activeNoteIndex < 0) {
+      scrollRef.current?.scrollTo({ y: 0, animated: true });
+      return;
+    }
+    const activeLineIdx = Math.floor(activeNoteIndex / NOTES_PER_LINE);
+    const y = Math.max(0, activeLineIdx * LINE_HEIGHT - panelHeight * 0.3);
     scrollRef.current?.scrollTo({ y, animated: true });
-  }, [activeLine, panelHeight]);
+  }, [activeNoteIndex, panelHeight]);
 
   const handleDismiss = useCallback((lineIndex: number) => {
     setDismissed((prev) => new Set(prev).add(lineIndex));
@@ -84,16 +87,6 @@ export function ScrollingNotation({ notes, activeNoteIndex }: ScrollingNotationP
           );
         })}
       </ScrollView>
-      <LinearGradient
-        colors={[FADE_COLOR, 'transparent']}
-        style={styles.fadeTop}
-        pointerEvents="none"
-      />
-      <LinearGradient
-        colors={['transparent', FADE_COLOR]}
-        style={styles.fadeBottom}
-        pointerEvents="none"
-      />
     </View>
   );
 }
@@ -147,7 +140,7 @@ function NotationLine({
     return (
       <Animated.View
         style={[
-          styles.line,
+          styles.lineBase,
           {
             opacity,
             transform: [{ translateY }],
@@ -167,7 +160,7 @@ function NotationLine({
   return (
     <View
       style={[
-        styles.line,
+        styles.lineBase,
         isActiveLine && styles.lineActive,
         isNextLine && styles.lineNext,
         isFuture && styles.lineFuture,
@@ -283,42 +276,41 @@ const styles = StyleSheet.create({
   panel: {
     flex: 1,
     width: '100%',
-    borderTopWidth: 0.5,
-    borderTopColor: 'rgba(255,255,255,0.2)',
-    paddingTop: Spacing.md,
-    overflow: 'hidden',
   },
   scroll: {
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.lg,
-    paddingBottom: 64,
+    paddingVertical: 8,
   },
-  line: {
+  lineBase: {
     flexDirection: 'row',
-    alignItems: 'center',
-    height: LINE_HEIGHT,
+    height: 56,
   },
   lineActive: {
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderRadius: Radius.md,
-    marginHorizontal: -Spacing.lg,
-    paddingHorizontal: Spacing.lg,
+    flexDirection: 'row',
+    height: 56,
   },
   lineNext: {
+    flexDirection: 'row',
+    height: 56,
     opacity: 0.5,
   },
   lineFuture: {
+    flexDirection: 'row',
+    height: 56,
     opacity: 0.25,
+  },
+  linePast: {
+    flexDirection: 'row',
+    height: 56,
+    opacity: 0,
   },
   cell: {
     flex: 1,
-    height: LINE_HEIGHT,
+    height: 56,
     alignItems: 'center',
     justifyContent: 'center',
-    marginHorizontal: 2,
   },
   cellActive: {
     alignItems: 'center',
@@ -327,53 +319,35 @@ const styles = StyleSheet.create({
   cellActiveInner: {
     backgroundColor: Colors.bgPrimary,
     borderRadius: Radius.md,
-    paddingVertical: 12,
-    paddingHorizontal: 18,
-    alignSelf: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
   },
   cellTextActive: {
-    fontSize: FontSize.md,
     fontFamily: Typography.bold,
+    fontSize: FontSize.lg,
     color: Colors.textPrimary,
-  },
-  cellLyric: {
-    fontSize: FontSize.xs,
-    fontFamily: Typography.regular,
-    color: Colors.textPrimary,
-    opacity: 0.7,
-    marginTop: 2,
   },
   cellTextNext: {
-    fontSize: FontSize.md,
     fontFamily: Typography.regular,
+    fontSize: FontSize.md,
     color: Colors.textSecondary,
-    opacity: 0.7,
+  },
+  cellTextFuture: {
+    fontFamily: Typography.regular,
+    fontSize: FontSize.md,
+    color: Colors.textSecondary,
   },
   cellTextPast: {
-    fontSize: FontSize.md,
     fontFamily: Typography.regular,
+    fontSize: FontSize.md,
     color: Colors.textSecondary,
     opacity: 0.2,
   },
-  cellTextFuture: {
-    fontSize: FontSize.md,
+  cellLyric: {
     fontFamily: Typography.regular,
+    fontSize: FontSize.xs,
     color: Colors.textSecondary,
-  },
-  fadeTop: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 32,
-    pointerEvents: 'none',
-  },
-  fadeBottom: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 32,
-    pointerEvents: 'none',
+    opacity: 0.7,
+    marginTop: 2,
   },
 });

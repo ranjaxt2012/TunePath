@@ -159,12 +159,6 @@ export default function LessonPlayerScreen() {
       <ScreenGradient style={lessonPlayerStyles.safeAreaContainer}>
         <SafeAreaView edges={['top']} style={{ flex: 1 }}>
           <View style={lessonPlayerStyles.container}>
-            <TouchableOpacity
-              style={lessonPlayerStyles.backBtn}
-              onPress={() => router.back()}
-            >
-              <Text style={lessonPlayerStyles.backText}>← Back</Text>
-            </TouchableOpacity>
             <View style={lessonPlayerStyles.center}>
               <Text style={lessonPlayerStyles.mutedText}>Loading...</Text>
             </View>
@@ -179,12 +173,6 @@ export default function LessonPlayerScreen() {
       <ScreenGradient style={lessonPlayerStyles.safeAreaContainer}>
         <SafeAreaView edges={['top']} style={{ flex: 1 }}>
           <View style={lessonPlayerStyles.container}>
-            <TouchableOpacity
-              style={lessonPlayerStyles.backBtn}
-              onPress={() => router.back()}
-            >
-              <Text style={lessonPlayerStyles.backText}>← Back</Text>
-            </TouchableOpacity>
             <View style={lessonPlayerStyles.center}>
               <Text style={lessonPlayerStyles.errorText}>
                 {error ?? 'Lesson not found'}
@@ -207,24 +195,11 @@ export default function LessonPlayerScreen() {
       <SafeAreaView edges={['top']} style={{ flex: 1 }}>
         <View style={lessonPlayerStyles.container}>
           <View style={lessonPlayerStyles.header}>
-            <TouchableOpacity
-              style={lessonPlayerStyles.backBtn}
-              onPress={() => router.back()}
-            >
-              <Text style={lessonPlayerStyles.backText}>← Back</Text>
-            </TouchableOpacity>
-            <Text style={lessonPlayerStyles.headerMeta}>
-              {lesson.instrument_slug
-                ? lesson.instrument_slug.charAt(0).toUpperCase() +
-                  lesson.instrument_slug.slice(1)
-                : 'Lesson'}
-              {' • Beginner'}
-            </Text>
             <View style={lessonPlayerStyles.lessonTitleRow}>
               <Text
-                style={[lessonPlayerStyles.lessonTitle, lessonPlayerStyles.lessonTitleFlex]}
+                style={[lessonPlayerStyles.videoTitle, lessonPlayerStyles.lessonTitleFlex, { textAlign: 'left' }]}
                 numberOfLines={1}
-                adjustsFontSizeToFit
+                ellipsizeMode="tail"
               >
                 {lesson.title}
               </Text>
@@ -284,9 +259,6 @@ export default function LessonPlayerScreen() {
               </TouchableOpacity>
 
               <View style={lessonPlayerStyles.videoInfo}>
-                <Text style={lessonPlayerStyles.videoTitle} numberOfLines={1}>
-                  {lesson.title}
-                </Text>
                 {displayDuration !== '' && (
                   <Text style={lessonPlayerStyles.videoDuration}>
                     {displayDuration}

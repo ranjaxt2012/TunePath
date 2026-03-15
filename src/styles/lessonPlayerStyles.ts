@@ -38,33 +38,8 @@ export const lessonPlayerStyles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: DesignSystem.spacing.xs,
   },
-  backBtn: {
-    alignSelf: 'flex-start',
-  },
   headerRight: {
     alignSelf: 'center',
-  },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: DesignSystem.spacing.md,
-    alignSelf: 'flex-start',
-  },
-  backIcon: {
-    fontSize: 24,
-    color: DesignSystem.colors.white,
-    fontFamily: DesignSystem.typography.fontFamilies.regular,
-  },
-  backText: {
-    fontSize: DesignSystem.typography.fontSizes.lg,
-    fontFamily: DesignSystem.typography.fontFamilies.semibold,
-    color: DesignSystem.colors.white,
-  },
-  headerMeta: {
-    fontSize: DesignSystem.typography.fontSizes.sm,
-    color: DesignSystem.colors.whiteOverlay['70'],
-    marginBottom: DesignSystem.spacing.xs,
   },
   lessonTitle: {
     fontSize: DesignSystem.typography.fontSizes['3xl'],
