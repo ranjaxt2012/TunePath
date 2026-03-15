@@ -1,6 +1,6 @@
 /**
  * Lesson Player Screen — layout matches sign-in: safeAreaContainer → container → full-width content.
- * expo-av is lazy-loaded to avoid crash when ExponentAV native module is unavailable.
+ * Uses expo-video for video playback (SDK 55+).
  */
 
 import React, { useRef, useState, useEffect, useCallback } from 'react';
@@ -9,65 +9,97 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
-import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { VideoView, useVideoPlayer } from 'expo-video';
+import { CompleteCheckbox } from '@/src/components/common/CompleteCheckbox';
 import { ScreenGradient } from '@/src/components/common/ScreenGradient';
+import type { NotationMode } from '@/src/types/models';
 import { useLesson } from '@/src/hooks/useLesson';
-import { saveProgress } from '@/src/services/apiClient';
+import { useNotation } from '@/src/hooks/useNotation';
+import { getPlugin } from '@/src/registry/instrumentRegistry';
+import { getLessonProgress, saveProgress } from '@/src/services/apiClient';
 import { useAuthStore } from '@/src/store/authStore';
+import { useProgressStore } from '@/src/store/progressStore';
+import { Colors } from '@/src/constants/theme';
 import { lessonPlayerStyles } from '@/src/styles/lessonPlayerStyles';
 
-let _expoAV: typeof import('expo-av') | null | 'uninit' = 'uninit';
-let _expoAVFailed = false;
-
-function getExpoAV(): typeof import('expo-av') | null {
-  // Only load expo-av in Standalone or Bare — Expo Go lacks ExponentAV native module
-  const canUseExpoAV =
-    Constants.executionEnvironment === ExecutionEnvironment.Standalone ||
-    Constants.executionEnvironment === ExecutionEnvironment.Bare;
-  if (!canUseExpoAV) return null;
-  if (_expoAVFailed) return null;
-  if (_expoAV === 'uninit') {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      _expoAV = require('expo-av');
-    } catch {
-      _expoAVFailed = true;
-      _expoAV = null;
-    }
-  }
-  return _expoAV === 'uninit' ? null : _expoAV;
-}
-
-const SARGAM_ROWS = [
-  ['Sa', 'Re', 'Ga', 'Ma'],
-  ['Pa', 'Dha', 'Ni', 'Sa'],
-  ['Sa', 'Sa', 'Re', 'Re'],
-  ['Ga', 'Ga', 'Ma', 'Ma'],
-  ['Pa', 'Pa', 'Dha', 'Dha'],
-  ['Ni', 'Ni', 'Sa', 'Sa'],
-];
-
-const ACTIVE_NOTE_INDEX = 0;
 
 export default function LessonPlayerScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { user } = useAuthStore();
   const { lesson, loading, error } = useLesson(id);
+  const { isComplete, setComplete, setCompletionFromApi } = useProgressStore();
 
-  const videoRef = useRef<unknown>(null);
-  const [status, setStatus] = useState<import('expo-av').AVPlaybackStatus | null>(null);
-  const [bpm, setBpm] = useState(80);
-  const [notationMode, setNotationMode] = useState<'sargam' | 'staff'>('sargam');
+  const videoRef = useRef<VideoView>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [positionMs, setPositionMs] = useState(0);
+  const [durationMs, setDurationMs] = useState(0);
+  const [completeLoading, setCompleteLoading] = useState(false);
+  const modes = (lesson?.instrument_notation_modes ?? ['sargam']) as NotationMode[];
+  const defaultMode = modes[0] ?? 'sargam';
+  const [notationMode, setNotationMode] = useState<NotationMode>(defaultMode);
+
+  const lessonComplete = lesson ? isComplete(lesson.id) : false;
+
+  // Create video player — updates when lesson.video_url changes
+  const videoPlayer = useVideoPlayer(lesson?.video_url ?? null, (player) => {
+    player.loop = false;
+    player.timeUpdateEventInterval = 1; // emit timeUpdate every 1 second
+  });
+
+  // Subscribe to player events
+  useEffect(() => {
+    const sub1 = videoPlayer.addListener('playingChange', (e) => {
+      setIsPlaying(e.isPlaying);
+    });
+    const sub2 = videoPlayer.addListener('timeUpdate', (e) => {
+      setPositionMs(Math.round(e.currentTime * 1000));
+      setDurationMs(Math.round(videoPlayer.duration * 1000));
+    });
+    return () => {
+      sub1.remove();
+      sub2.remove();
+    };
+  }, [videoPlayer]);
+
+  // Load completion state from API when lesson loads
+  useEffect(() => {
+    if (!user || !lesson?.id) return;
+    getLessonProgress(lesson.id).then((p) => {
+      if (p) setCompletionFromApi(lesson.id, p.status === 'completed');
+    });
+  }, [lesson?.id, user, setCompletionFromApi]);
+
+  // Sync notationMode when lesson loads with a different instrument
+  useEffect(() => {
+    if (lesson && modes.length > 0 && !modes.includes(notationMode)) {
+      setNotationMode(defaultMode);
+    }
+  }, [lesson?.id, defaultMode, modes, notationMode]);
 
   const progressRef = useRef({ positionMs: 0, durationMs: 0 });
-  const isPlaying = status?.isLoaded ? status.isPlaying : false;
-  const positionMs = status?.isLoaded ? status.positionMillis ?? 0 : 0;
-  const durationMs = status?.isLoaded ? status.durationMillis ?? 0 : 0;
   progressRef.current = { positionMs, durationMs };
+
+  const { notes, loading: notationLoading, error: notationError } = useNotation(lesson?.notation_url ?? null);
+
+  // Auto-check when video reaches end
+  useEffect(() => {
+    if (!user || !lesson || lessonComplete || durationMs <= 0) return;
+    if (positionMs >= durationMs - 500) {
+      setComplete(lesson.id, true);
+      void saveProgress({
+        lesson_id: lesson.id,
+        course_id: lesson.course_id ?? null,
+        watch_percent: 100,
+        last_position_seconds: Math.floor(durationMs / 1000),
+      });
+    }
+  }, [user, lesson, lessonComplete, positionMs, durationMs, setComplete]);
 
   function formatTime(ms: number) {
     const totalSec = Math.floor(ms / 1000);
@@ -92,6 +124,29 @@ export default function LessonPlayerScreen() {
     }
   }, [user, lesson]);
 
+  const handleCompleteToggle = useCallback(async () => {
+    if (!user || !lesson) return;
+    const nextComplete = !lessonComplete;
+    const prevComplete = lessonComplete;
+    setComplete(lesson.id, nextComplete);
+    setCompleteLoading(true);
+    const { positionMs: pos, durationMs: dur } = progressRef.current;
+    const watchPercent = dur > 0 ? Math.round((pos / dur) * 100) : 0;
+    try {
+      await saveProgress({
+        lesson_id: lesson.id,
+        course_id: lesson.course_id ?? null,
+        watch_percent: nextComplete ? 100 : watchPercent,
+        last_position_seconds: Math.floor(pos / 1000),
+      });
+    } catch {
+      setComplete(lesson.id, prevComplete);
+      Alert.alert('Error', 'Could not update completion. Please try again.');
+    } finally {
+      setCompleteLoading(false);
+    }
+  }, [user, lesson, lessonComplete, setComplete]);
+
   useEffect(() => {
     return () => {
       void handleSaveProgress();
@@ -103,12 +158,6 @@ export default function LessonPlayerScreen() {
       <ScreenGradient style={lessonPlayerStyles.safeAreaContainer}>
         <SafeAreaView edges={['top']} style={{ flex: 1 }}>
           <View style={lessonPlayerStyles.container}>
-            <TouchableOpacity
-              style={lessonPlayerStyles.backBtn}
-              onPress={() => router.back()}
-            >
-              <Text style={lessonPlayerStyles.backText}>← Back</Text>
-            </TouchableOpacity>
             <View style={lessonPlayerStyles.center}>
               <Text style={lessonPlayerStyles.mutedText}>Loading...</Text>
             </View>
@@ -123,12 +172,6 @@ export default function LessonPlayerScreen() {
       <ScreenGradient style={lessonPlayerStyles.safeAreaContainer}>
         <SafeAreaView edges={['top']} style={{ flex: 1 }}>
           <View style={lessonPlayerStyles.container}>
-            <TouchableOpacity
-              style={lessonPlayerStyles.backBtn}
-              onPress={() => router.back()}
-            >
-              <Text style={lessonPlayerStyles.backText}>← Back</Text>
-            </TouchableOpacity>
             <View style={lessonPlayerStyles.center}>
               <Text style={lessonPlayerStyles.errorText}>
                 {error ?? 'Lesson not found'}
@@ -151,20 +194,23 @@ export default function LessonPlayerScreen() {
       <SafeAreaView edges={['top']} style={{ flex: 1 }}>
         <View style={lessonPlayerStyles.container}>
           <View style={lessonPlayerStyles.header}>
-            <TouchableOpacity
-              style={lessonPlayerStyles.backBtn}
-              onPress={() => router.back()}
-            >
-              <Text style={lessonPlayerStyles.backText}>← Back</Text>
-            </TouchableOpacity>
-            <Text style={lessonPlayerStyles.headerMeta}>
-              {lesson.instrument_slug
-                ? lesson.instrument_slug.charAt(0).toUpperCase() +
-                  lesson.instrument_slug.slice(1)
-                : 'Lesson'}
-              {' • Beginner'}
-            </Text>
-            <Text style={lessonPlayerStyles.lessonTitle}>{lesson.title}</Text>
+            <View style={lessonPlayerStyles.lessonTitleRow}>
+              <Text
+                style={[lessonPlayerStyles.videoTitle, lessonPlayerStyles.lessonTitleFlex, { textAlign: 'left' }]}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                {lesson.title}
+              </Text>
+              <View style={lessonPlayerStyles.checkboxWrap}>
+                <CompleteCheckbox
+                  isComplete={lessonComplete}
+                  onToggle={handleCompleteToggle}
+                  loading={completeLoading}
+                  compact
+                />
+              </View>
+            </View>
           </View>
 
           <ScrollView
@@ -173,33 +219,25 @@ export default function LessonPlayerScreen() {
             showsVerticalScrollIndicator={false}
           >
             <View style={lessonPlayerStyles.videoCard}>
-              {(() => {
-                const av = getExpoAV();
-                const VideoComponent = av?.Video;
-                return lesson.video_url && VideoComponent ? (
-                  <VideoComponent
-                    ref={videoRef as never}
-                    source={{ uri: lesson.video_url }}
-                    style={lessonPlayerStyles.video}
-                    resizeMode={av.ResizeMode.CONTAIN}
-                    useNativeControls={false}
-                    onPlaybackStatusUpdate={setStatus}
-                    shouldPlay={false}
-                  />
-                ) : (
-                  <View style={lessonPlayerStyles.videoPlaceholder} />
-                );
-              })()}
+              {lesson.video_url ? (
+                <VideoView
+                  ref={videoRef}
+                  player={videoPlayer}
+                  style={lessonPlayerStyles.video}
+                  contentFit="contain"
+                  nativeControls={false}
+                />
+              ) : (
+                <View style={lessonPlayerStyles.videoPlaceholder} />
+              )}
 
               <TouchableOpacity
                 style={lessonPlayerStyles.playOverlay}
-                onPress={async () => {
-                  const v = videoRef.current as { playAsync?: () => Promise<void>; pauseAsync?: () => Promise<void> } | null;
-                  if (!v?.playAsync || !v?.pauseAsync) return;
+                onPress={() => {
                   if (isPlaying) {
-                    await v.pauseAsync();
+                    videoPlayer.pause();
                   } else {
-                    await v.playAsync();
+                    videoPlayer.play();
                   }
                 }}
                 activeOpacity={0.8}
@@ -212,9 +250,6 @@ export default function LessonPlayerScreen() {
               </TouchableOpacity>
 
               <View style={lessonPlayerStyles.videoInfo}>
-                <Text style={lessonPlayerStyles.videoTitle} numberOfLines={1}>
-                  {lesson.title}
-                </Text>
                 {displayDuration !== '' && (
                   <Text style={lessonPlayerStyles.videoDuration}>
                     {displayDuration}
@@ -223,117 +258,88 @@ export default function LessonPlayerScreen() {
               </View>
             </View>
 
-            <View style={lessonPlayerStyles.bpmRow}>
-              <TouchableOpacity
-                style={lessonPlayerStyles.bpmBtn}
-                onPress={() => setBpm((b) => Math.max(40, b - 5))}
-              >
-                <Text style={lessonPlayerStyles.bpmBtnText}>−</Text>
-              </TouchableOpacity>
-              <View style={lessonPlayerStyles.bpmDisplay}>
-                <Text style={lessonPlayerStyles.bpmText}>{bpm} BPM</Text>
-              </View>
-              <TouchableOpacity
-                style={lessonPlayerStyles.bpmBtn}
-                onPress={() => setBpm((b) => Math.min(200, b + 5))}
-              >
-                <Text style={lessonPlayerStyles.bpmBtnText}>+</Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={lessonPlayerStyles.toggleContainer}>
-              <TouchableOpacity
-                style={[
-                  lessonPlayerStyles.toggleOption,
-                  notationMode === 'sargam' && lessonPlayerStyles.toggleOptionActive,
-                ]}
-                onPress={() => setNotationMode('sargam')}
-              >
-                <Text
-                  style={[
-                    lessonPlayerStyles.toggleOptionText,
-                    notationMode === 'sargam' &&
-                      lessonPlayerStyles.toggleOptionTextActive,
-                  ]}
-                >
-                  Sargam
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  lessonPlayerStyles.toggleOption,
-                  notationMode === 'staff' && lessonPlayerStyles.toggleOptionActive,
-                ]}
-                onPress={() => setNotationMode('staff')}
-              >
-                <Text
-                  style={[
-                    lessonPlayerStyles.toggleOptionText,
-                    notationMode === 'staff' &&
-                      lessonPlayerStyles.toggleOptionTextActive,
-                  ]}
-                >
-                  Staff
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {notationMode === 'sargam' && (
-              <View style={lessonPlayerStyles.sargamGrid}>
-                {SARGAM_ROWS.map((row, rowIdx) => (
-                  <View key={rowIdx} style={lessonPlayerStyles.sargamRow}>
-                    <Text style={lessonPlayerStyles.beatMarker}>|</Text>
-                    {row.map((note, noteIdx) => {
-                      const isActive = noteIdx === ACTIVE_NOTE_INDEX;
-                      return (
-                        <View
-                          key={noteIdx}
-                          style={[
-                            lessonPlayerStyles.noteCircle,
-                            isActive && lessonPlayerStyles.noteCircleActive,
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              lessonPlayerStyles.noteText,
-                              isActive && lessonPlayerStyles.noteTextActive,
-                            ]}
-                          >
-                            {note}
-                          </Text>
-                        </View>
-                      );
-                    })}
-                    <Text style={lessonPlayerStyles.beatMarker}>|</Text>
-                  </View>
+            {modes.length > 1 && (
+              <View style={lessonPlayerStyles.toggleContainer}>
+                {modes.map((mode) => (
+                  <TouchableOpacity
+                    key={mode}
+                    style={[
+                      lessonPlayerStyles.toggleOption,
+                      notationMode === mode && lessonPlayerStyles.toggleOptionActive,
+                    ]}
+                    onPress={() => setNotationMode(mode)}
+                  >
+                    <Text
+                      style={[
+                        lessonPlayerStyles.toggleOptionText,
+                        notationMode === mode &&
+                          lessonPlayerStyles.toggleOptionTextActive,
+                      ]}
+                    >
+                      {mode.charAt(0).toUpperCase() + mode.slice(1)}
+                    </Text>
+                  </TouchableOpacity>
                 ))}
               </View>
             )}
 
-            {notationMode === 'staff' && (
+            {notationMode === 'sargam' && (
+              notationLoading ? (
+                <View style={lessonPlayerStyles.staffPlaceholder}>
+                  <ActivityIndicator size="small" color={Colors.textSecondary} />
+                </View>
+              ) : notationError ? (
+                <View style={lessonPlayerStyles.staffPlaceholder}>
+                  <Text style={lessonPlayerStyles.mutedText}>
+                    Could not load notation: {notationError}
+                  </Text>
+                </View>
+              ) : !lesson?.notation_url ? (
+                <View style={lessonPlayerStyles.staffPlaceholder}>
+                  <Text style={lessonPlayerStyles.mutedText}>
+                    No notation available for this lesson
+                  </Text>
+                </View>
+              ) : notes.length === 0 ? (
+                <View style={lessonPlayerStyles.staffPlaceholder}>
+                  <Text style={lessonPlayerStyles.mutedText}>
+                    No notation sections in this lesson
+                  </Text>
+                </View>
+              ) : (() => {
+                const plugin = getPlugin(lesson.instrument_slug ?? '');
+                if (!plugin) {
+                  return (
+                    <View style={lessonPlayerStyles.staffPlaceholder}>
+                      <Text style={lessonPlayerStyles.mutedText}>
+                        No player available for {lesson.instrument_slug}
+                      </Text>
+                    </View>
+                  );
+                }
+                const { PlayerScreen } = plugin;
+                return (
+                  <PlayerScreen
+                    lesson={lesson}
+                    notes={notes}
+                    onComplete={() => {}}
+                    onProgress={() => {}}
+                  />
+                );
+              })()
+            )}
+
+            {(notationMode === 'staff' || notationMode === 'tabs' ||
+              notationMode === 'chords' || notationMode === 'bols') && (
               <View style={lessonPlayerStyles.staffPlaceholder}>
                 <Text style={lessonPlayerStyles.mutedText}>
-                  Staff notation coming soon
+                  {notationMode.charAt(0).toUpperCase() + notationMode.slice(1)} notation coming soon
                 </Text>
               </View>
             )}
           </ScrollView>
         </View>
       </SafeAreaView>
-
-      <View style={lessonPlayerStyles.bottomBar}>
-        <TouchableOpacity
-          style={lessonPlayerStyles.guidedPracticeBtn}
-          onPress={() => {
-            void handleSaveProgress(true).then(() => router.back());
-          }}
-          activeOpacity={0.9}
-        >
-          <Text style={lessonPlayerStyles.guidedPracticeBtnText}>
-            Start Guided Practice
-          </Text>
-        </TouchableOpacity>
-      </View>
     </ScreenGradient>
   );
 }

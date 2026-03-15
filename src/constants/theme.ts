@@ -64,21 +64,46 @@ export const Radius = {
   full: 999,
 };
 
-// ── Typography — colors NOT included, add per-style explicitly ─────────────
+// ── Typography — single source of truth for font families (theme.ts only) ───
 export const Typography = {
-  displayLg: { fontSize: 32, fontWeight: '700' as const, letterSpacing: -0.5 },
-  displayMd: { fontSize: 26, fontWeight: '700' as const, letterSpacing: -0.3 },
-  displaySm: { fontSize: 22, fontWeight: '700' as const },
-  h1:        { fontSize: 20, fontWeight: '700' as const },
-  h2:        { fontSize: 17, fontWeight: '600' as const },
-  h3:        { fontSize: 15, fontWeight: '600' as const },
-  bodyLg:    { fontSize: 16, fontWeight: '400' as const },
-  bodyMd:    { fontSize: 14, fontWeight: '400' as const },
-  bodySm:    { fontSize: 12, fontWeight: '400' as const },
-  labelLg:   { fontSize: 15, fontWeight: '600' as const },
-  labelMd:   { fontSize: 13, fontWeight: '600' as const },
-  labelSm:   { fontSize: 11, fontWeight: '600' as const },
-  caption:   { fontSize: 11, fontWeight: '400' as const },
+  regular:  'Inter_400Regular',
+  medium:   'Inter_500Medium',
+  semiBold: 'Inter_600SemiBold',
+  bold:     'Inter_700Bold',
+  mono:     'SpaceMono',
+} as const;
+
+export const FontSize = {
+  xs:   11,
+  sm:   13,
+  md:   15,
+  lg:   17,
+  xl:   20,
+  xxl:  24,
+  hero: 30,
+} as const;
+
+export const LineHeight = {
+  tight:  1.2,
+  normal: 1.5,
+  loose:  1.8,
+} as const;
+
+/** Compound text presets — use Typography + FontSize, no hardcoded font names */
+export const TextPresets = {
+  displayLg: { fontSize: FontSize.hero, fontFamily: Typography.bold, letterSpacing: -0.3 },
+  displayMd: { fontSize: FontSize.xxl, fontFamily: Typography.bold, letterSpacing: -0.3 },
+  displaySm: { fontSize: FontSize.xl, fontFamily: Typography.bold, letterSpacing: -0.3 },
+  h1:        { fontSize: FontSize.xl, fontFamily: Typography.bold, letterSpacing: -0.3 },
+  h2:        { fontSize: FontSize.lg, fontFamily: Typography.semiBold },
+  h3:        { fontSize: FontSize.md, fontFamily: Typography.semiBold },
+  bodyLg:    { fontSize: FontSize.md, fontFamily: Typography.regular },
+  bodyMd:    { fontSize: FontSize.sm, fontFamily: Typography.regular },
+  bodySm:    { fontSize: FontSize.xs, fontFamily: Typography.regular },
+  labelLg:   { fontSize: FontSize.md, fontFamily: Typography.semiBold },
+  labelMd:   { fontSize: FontSize.sm, fontFamily: Typography.semiBold },
+  labelSm:   { fontSize: FontSize.xs, fontFamily: Typography.semiBold },
+  caption:   { fontSize: FontSize.xs, fontFamily: Typography.regular },
 };
 
 // ── Layout ─────────────────────────────────────────────────────────────────
@@ -150,8 +175,8 @@ export const CommonStyles = {
     justifyContent: 'center' as const,
   },
   primaryButtonText: {
-    fontSize: 15,
-    fontWeight: '600' as const,
+    fontSize: FontSize.md,
+    fontFamily: Typography.semiBold,
     color: '#7C3AED',
   },
   ghostButton: {
@@ -163,8 +188,8 @@ export const CommonStyles = {
     paddingHorizontal: Spacing.lg,
   },
   ghostButtonText: {
-    fontSize: 14,
-    fontWeight: '600' as const,
+    fontSize: FontSize.sm,
+    fontFamily: Typography.semiBold,
     color: '#FFFFFF',
   },
   sectionHeader: {
@@ -175,13 +200,140 @@ export const CommonStyles = {
     paddingHorizontal: BASE_PADDING,
   },
   sectionTitle: {
-    fontSize: 17,
-    fontWeight: '700' as const,
+    fontSize: FontSize.lg,
+    fontFamily: Typography.bold,
     color: '#FFFFFF',
   },
   sectionLink: {
-    fontSize: 13,
-    fontWeight: '500' as const,
+    fontSize: FontSize.sm,
+    fontFamily: Typography.medium,
     color: 'rgba(255,255,255,0.70)',
+  },
+};
+
+// ── DesignSystem compatibility shim ────────────────────────────────────────
+// Consumed by files previously importing from src/styles/theme.
+// Maps src/styles/theme token names → src/constants/theme tokens.
+export const DesignSystem = {
+  colors: {
+    primary:      Colors.bgPrimary,
+    white:        Colors.white,
+    background:   Colors.bgPrimary,
+    text: {
+      primary:   Colors.textPrimary,
+      secondary: Colors.textSecondary,
+      light:     Colors.bgPrimary,
+    },
+    border: {
+      light:  'rgba(255,255,255,0.25)',
+      medium: 'rgba(255,255,255,0.40)',
+      dark:   'rgba(255,255,255,0.60)',
+    },
+    whiteOverlay: {
+      '10': 'rgba(255, 255, 255, 0.1)',
+      '15': 'rgba(255, 255, 255, 0.15)',
+      '20': 'rgba(255, 255, 255, 0.2)',
+      '30': 'rgba(255, 255, 255, 0.3)',
+      '40': 'rgba(255, 255, 255, 0.4)',
+      '50': 'rgba(255, 255, 255, 0.5)',
+      '60': 'rgba(255, 255, 255, 0.6)',
+      '70': 'rgba(255, 255, 255, 0.7)',
+      '80': 'rgba(255, 255, 255, 0.8)',
+      '90': 'rgba(255, 255, 255, 0.9)',
+    },
+  },
+  typography: {
+    fontFamilies: {
+      regular:  Typography.regular,
+      medium:   Typography.medium,
+      semibold: Typography.semiBold,
+      bold:     Typography.bold,
+      light:    Typography.regular,
+    },
+    fontWeights: {
+      light:    '300',
+      regular:  '400',
+      medium:   '500',
+      semibold: '600',
+      bold:     '700',
+    },
+    fontSizes: {
+      xs:   12,
+      sm:   14,
+      base: 16,
+      lg:   17,
+      xl:   18,
+      '2xl': 20,
+      '3xl': 24,
+      '4xl': 28,
+    },
+    letterSpacing: {
+      tight:  -0.5,
+      normal: 0,
+      wide:   0.5,
+    },
+  },
+  spacing: {
+    xs:   Spacing.xs,
+    sm:   Spacing.sm,
+    md:   Spacing.md,
+    lg:   Spacing.lg,
+    xl:   Spacing.xl,
+    '2xl': Spacing.xxl,
+    '3xl': Spacing.xxxl,
+    '4xl': 48,
+  },
+  borderRadius: {
+    sm:    Radius.sm,
+    md:    Radius.md,
+    lg:    Radius.lg,
+    xl:    Radius.xl,
+    '2xl': Radius.xxl,
+    full:  Radius.full,
+  },
+  components: {
+    glassCard:         CommonStyles.card,
+    glassCardSelected: CommonStyles.cardSelected,
+    card: {
+      backgroundColor:   Colors.white,
+      borderRadius:       Radius.xl,
+      shadowColor:        '#000000',
+      shadowOffset:       { width: 0, height: 2 },
+      shadowOpacity:      0.1,
+      shadowRadius:       8,
+      elevation:          4,
+    },
+    button: {
+      primary: {
+        backgroundColor:   Colors.bgPrimary,
+        borderRadius:       Radius.md,
+        paddingVertical:    Spacing.lg,
+        paddingHorizontal:  Spacing.xl,
+      },
+      secondary: {
+        backgroundColor:   Colors.white,
+        borderWidth:        1,
+        borderColor:        'rgba(255,255,255,0.25)',
+        borderRadius:       Radius.md,
+        paddingVertical:    Spacing.lg,
+        paddingHorizontal:  Spacing.xl,
+      },
+    },
+    avatar: {
+      small:  { width: 40, height: 40, borderRadius: 20 },
+      medium: { width: 60, height: 60, borderRadius: 30 },
+      large:  { width: 67, height: 67, borderRadius: 33.5 },
+    },
+    icon: {
+      small:  { width: 20, height: 20, borderRadius: Radius.sm },
+      medium: { width: 20, height: 20, borderRadius: Radius.sm },
+      large:  { width: 24, height: 24, borderRadius: Radius.sm },
+    },
+  },
+  layout: {
+    container: {
+      flex: 1,
+      backgroundColor: Colors.bgPrimary,
+    },
   },
 };

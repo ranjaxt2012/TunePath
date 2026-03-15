@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { Colors, Spacing, Radius } from '@/src/constants/theme';
+import { Colors, Spacing, Radius, Typography } from '@/src/constants/theme';
 
 export const profileStyles = StyleSheet.create({
   container: {
@@ -11,7 +11,7 @@ export const profileStyles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: '500',
+    fontFamily: Typography.medium,
     color: Colors.textPrimary,
     textAlign: 'center',
     letterSpacing: -0.3,
@@ -25,7 +25,7 @@ export const profileStyles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 17,
-    fontWeight: '600',
+    fontFamily: Typography.semiBold,
     color: Colors.textPrimary,
     marginBottom: Spacing.md,
     paddingHorizontal: 4,
@@ -55,7 +55,7 @@ export const profileStyles = StyleSheet.create({
   },
   userName: {
     fontSize: 22,
-    fontWeight: '600',
+    fontFamily: Typography.semiBold,
     color: Colors.textPrimary,
     marginBottom: 4,
   },
@@ -90,13 +90,10 @@ export const profileStyles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
-  settingsItemIcon: {
-    fontSize: 20,
-    color: 'rgba(255,255,255,0.80)',
-  },
+  settingsItemIcon: {},
   settingsItemLabel: {
     fontSize: 16,
-    fontWeight: '500',
+    fontFamily: Typography.medium,
     color: Colors.textPrimary,
   },
   settingsItemRight: {
@@ -107,10 +104,6 @@ export const profileStyles = StyleSheet.create({
   settingsItemValue: {
     fontSize: 15,
     color: Colors.textTertiary,
-  },
-  chevron: {
-    fontSize: 20,
-    color: 'rgba(255,255,255,0.40)',
   },
 });
 

@@ -1,10 +1,23 @@
-// TODO: Zustand store — cached progress by course
-import type { UserProgress } from '@/src/types/models';
+import { create } from 'zustand';
 
 type ProgressState = {
-  byCourseId: Record<string, UserProgress | null>;
+  completionMap: Record<string, boolean>;
+  setComplete: (lessonId: string, value: boolean) => void;
+  setCompletionFromApi: (lessonId: string, completed: boolean) => void;
+  isComplete: (lessonId: string) => boolean;
 };
 
-export const useProgressStore = (): ProgressState => ({
-  byCourseId: {},
-});
+export const useProgressStore = create<ProgressState>((set, get) => ({
+  completionMap: {},
+  setComplete: (lessonId: string, value: boolean) => {
+    set((state) => ({
+      completionMap: { ...state.completionMap, [lessonId]: value },
+    }));
+  },
+  setCompletionFromApi: (lessonId: string, completed: boolean) => {
+    set((state) => ({
+      completionMap: { ...state.completionMap, [lessonId]: completed },
+    }));
+  },
+  isComplete: (lessonId: string) => Boolean(get().completionMap[lessonId]),
+}));

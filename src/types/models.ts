@@ -13,12 +13,15 @@ export type TunePathUser = {
   activeMode: string;
 };
 
+export type NotationMode = 'sargam' | 'staff' | 'tabs' | 'chords' | 'bols';
+
 export type Instrument = {
   id: string;
   slug: string;
   name: string;
   icon_url: string | null;
   sort_order: number;
+  notation_modes: NotationMode[];
 };
 
 export type Level = {
@@ -75,6 +78,7 @@ export type LessonDetail = {
   youtube_url: string | null;
   is_free: boolean;
   instrument_slug: string | null;
+  instrument_notation_modes: NotationMode[];
 };
 
 export type UserProgress = {

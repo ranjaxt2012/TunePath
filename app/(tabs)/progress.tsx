@@ -3,7 +3,7 @@ import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScreenGradient } from '@/src/components/common/ScreenGradient';
 import { BottomTabBar } from '@/src/components/ui';
-import { Colors, Spacing, Radius, Typography, CommonStyles } from '@/src/constants/theme';
+import { Colors, Spacing, Radius, TextPresets, Typography, CommonStyles } from '@/src/constants/theme';
 import {
   MOCK_PROGRESS_STATS,
   MOCK_WEEKLY_PROGRESS,
@@ -155,7 +155,7 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.md,
   },
   title: {
-    ...Typography.displayMd,
+    ...TextPresets.displayMd,
     color: Colors.textPrimary,
     marginBottom: Spacing.md,
   },
@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.white,
   },
   toggleText: {
-    ...Typography.labelSm,
+    ...TextPresets.labelSm,
     color: Colors.textSecondary,
   },
   toggleTextActive: {
@@ -206,11 +206,11 @@ const styles = StyleSheet.create({
     fontSize: 24,
   },
   statValue: {
-    ...Typography.h1,
+    ...TextPresets.h1,
     color: Colors.textPrimary,
   },
   statLabel: {
-    ...Typography.caption,
+    ...TextPresets.caption,
     color: Colors.textSecondary,
     textAlign: 'center',
   },
@@ -226,7 +226,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xl,
   },
   sectionTitle: {
-    ...Typography.h2,
+    ...TextPresets.h2,
     color: Colors.textPrimary,
     marginBottom: Spacing.md,
   },
@@ -272,7 +272,7 @@ const styles = StyleSheet.create({
     height: 4,
   },
   barLabel: {
-    ...Typography.caption,
+    ...TextPresets.caption,
     color: Colors.textSecondary,
   },
 
@@ -286,11 +286,11 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   instrumentName: {
-    ...Typography.labelMd,
+    ...TextPresets.labelMd,
     color: Colors.textPrimary,
   },
   instrumentPercent: {
-    ...Typography.bodyMd,
+    ...TextPresets.bodyMd,
     color: Colors.textSecondary,
   },
   progressBarBg: {
@@ -321,16 +321,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   sessionTitle: {
-    ...Typography.labelMd,
+    ...TextPresets.labelMd,
     color: Colors.textPrimary,
     marginBottom: 2,
   },
   sessionDate: {
-    ...Typography.caption,
+    ...TextPresets.caption,
     color: Colors.textSecondary,
   },
   sessionDuration: {
-    ...Typography.labelSm,
+    ...TextPresets.labelSm,
     color: Colors.textSecondary,
   },
 });

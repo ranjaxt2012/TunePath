@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
-import { Colors, Typography, CommonStyles } from '@/src/constants/theme';
+import { Colors, TextPresets, CommonStyles } from '@/src/constants/theme';
 
 type Props = {
   message?: string;
@@ -24,7 +24,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   text: {
-    ...Typography.bodyMd,
+    ...TextPresets.bodyMd,
     color: Colors.textSecondary,
   },
 });

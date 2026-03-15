@@ -1,5 +1,6 @@
 import { useSSO } from '@clerk/clerk-expo';
 import * as WebBrowser from 'expo-web-browser';
+import { Typography } from '@/src/constants/theme';
 import { useRouter } from 'expo-router';
 import { useCallback } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -19,7 +20,7 @@ export default function LoginScreen() {
           router.replace('/(tabs)/home' as any);
         }
       } catch (err) {
-        console.error('SSO error', err);
+        // TODO: add proper logger for SSO error
       }
     },
     [startSSOFlow, router]
@@ -68,7 +69,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 26,
-    fontWeight: '700',
+    fontFamily: Typography.bold,
     color: '#FFFFFF',
     textAlign: 'center',
     marginBottom: 4,
@@ -87,7 +88,7 @@ const styles = StyleSheet.create({
   },
   socialButtonText: {
     color: '#6B46C1',
-    fontWeight: '600',
+    fontFamily: Typography.semiBold,
     fontSize: 15,
   },
   guestButton: {
@@ -99,7 +100,7 @@ const styles = StyleSheet.create({
   },
   guestButtonText: {
     color: '#FFFFFF',
-    fontWeight: '500',
+    fontFamily: Typography.medium,
     fontSize: 15,
   },
 });

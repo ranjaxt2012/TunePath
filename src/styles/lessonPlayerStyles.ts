@@ -1,9 +1,12 @@
 import { Dimensions, StyleSheet } from 'react-native';
-import { DesignSystem } from './theme';
+import { DesignSystem } from '@/src/constants/theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const HORIZONTAL_PADDING = DesignSystem.spacing.xl; // 20 — matches auth
-const NOTE_SIZE = (SCREEN_WIDTH - HORIZONTAL_PADDING * 2 - 32 - DesignSystem.spacing.sm * 3) / 4;
+// Sargam: 4 capsule notes per row — reduced grid h-padding, more row gap
+const AVAILABLE = SCREEN_WIDTH - HORIZONTAL_PADDING * 2 - DesignSystem.spacing.sm * 2 - DesignSystem.spacing.xs * 3;
+const CAPSULE_HEIGHT = Math.min(40, Math.floor(AVAILABLE / 8));
+const CAPSULE_WIDTH = Math.floor((AVAILABLE - DesignSystem.spacing.xs * 3) / 4);
 
 export const lessonPlayerStyles = StyleSheet.create({
   // Match auth layout: safeAreaContainer → container → content
@@ -29,36 +32,33 @@ export const lessonPlayerStyles = StyleSheet.create({
   header: {
     marginBottom: DesignSystem.spacing['2xl'],
   },
-  backBtn: {
-    marginBottom: DesignSystem.spacing.xs,
-    alignSelf: 'flex-start',
-  },
-  backButton: {
+  headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: DesignSystem.spacing.md,
-    alignSelf: 'flex-start',
-  },
-  backIcon: {
-    fontSize: 24,
-    color: DesignSystem.colors.white,
-    fontWeight: '300',
-  },
-  backText: {
-    fontSize: DesignSystem.typography.fontSizes.lg,
-    fontWeight: DesignSystem.typography.fontWeights.semibold,
-    color: DesignSystem.colors.white,
-  },
-  headerMeta: {
-    fontSize: DesignSystem.typography.fontSizes.sm,
-    color: DesignSystem.colors.whiteOverlay['70'],
+    justifyContent: 'space-between',
     marginBottom: DesignSystem.spacing.xs,
+  },
+  headerRight: {
+    alignSelf: 'center',
   },
   lessonTitle: {
     fontSize: DesignSystem.typography.fontSizes['3xl'],
-    fontWeight: DesignSystem.typography.fontWeights.bold,
+    fontFamily: DesignSystem.typography.fontFamilies.bold,
     color: DesignSystem.colors.white,
+  },
+  lessonTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  lessonTitleFlex: {
+    flex: 1,
+  },
+  checkboxWrap: {
+    marginLeft: DesignSystem.spacing.md,
+    width: 28,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   // Video card — glass card, full width, 16:9
@@ -113,7 +113,7 @@ export const lessonPlayerStyles = StyleSheet.create({
   },
   videoTitle: {
     fontSize: DesignSystem.typography.fontSizes.base,
-    fontWeight: DesignSystem.typography.fontWeights.semibold,
+    fontFamily: DesignSystem.typography.fontFamilies.semibold,
     color: DesignSystem.colors.white,
     textAlign: 'center',
   },
@@ -158,7 +158,7 @@ export const lessonPlayerStyles = StyleSheet.create({
   },
   bpmText: {
     fontSize: DesignSystem.typography.fontSizes.lg,
-    fontWeight: DesignSystem.typography.fontWeights.semibold,
+    fontFamily: DesignSystem.typography.fontFamilies.semibold,
     color: DesignSystem.colors.white,
   },
 
@@ -183,21 +183,20 @@ export const lessonPlayerStyles = StyleSheet.create({
   },
   toggleOptionText: {
     fontSize: DesignSystem.typography.fontSizes.base,
-    fontWeight: DesignSystem.typography.fontWeights.semibold,
+    fontFamily: DesignSystem.typography.fontFamilies.semibold,
     color: DesignSystem.colors.whiteOverlay['70'],
   },
   toggleOptionTextActive: {
     color: DesignSystem.colors.primary,
   },
 
-  // Sargam grid — glass scrollable container
+  // Sargam grid — no box (transparent, for visual test — may roll back)
   sargamGrid: {
+    alignSelf: 'center',
     width: '100%',
-    backgroundColor: DesignSystem.colors.whiteOverlay['10'],
-    borderWidth: 1,
-    borderColor: DesignSystem.colors.whiteOverlay['20'],
-    borderRadius: DesignSystem.borderRadius['2xl'],
-    padding: DesignSystem.spacing.lg,
+    maxWidth: SCREEN_WIDTH - HORIZONTAL_PADDING * 2,
+    paddingHorizontal: DesignSystem.spacing.sm,
+    paddingVertical: DesignSystem.spacing.md,
     gap: DesignSystem.spacing.sm,
   },
   sargamRow: {
@@ -205,31 +204,25 @@ export const lessonPlayerStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  beatMarker: {
-    color: DesignSystem.colors.whiteOverlay['50'],
-    fontSize: 18,
-    width: 12,
-    textAlign: 'center',
-  },
-  noteCircle: {
-    width: NOTE_SIZE,
-    height: NOTE_SIZE,
-    borderRadius: NOTE_SIZE / 2,
+  noteCapsule: {
+    width: CAPSULE_WIDTH,
+    height: CAPSULE_HEIGHT,
+    borderRadius: CAPSULE_HEIGHT / 2,
     backgroundColor: DesignSystem.colors.whiteOverlay['15'],
     alignItems: 'center',
     justifyContent: 'center',
   },
-  noteCircleActive: {
+  noteCapsuleActive: {
     backgroundColor: 'rgba(139, 92, 246, 0.9)',
   },
   noteText: {
-    fontSize: NOTE_SIZE > 52 ? 14 : 12,
-    fontWeight: DesignSystem.typography.fontWeights.semibold,
+    fontSize: CAPSULE_HEIGHT >= 36 ? 12 : 11,
+    fontFamily: DesignSystem.typography.fontFamilies.semibold,
     color: DesignSystem.colors.whiteOverlay['70'],
   },
   noteTextActive: {
     color: DesignSystem.colors.white,
-    fontWeight: DesignSystem.typography.fontWeights.bold,
+    fontFamily: DesignSystem.typography.fontFamilies.bold,
   },
 
   staffPlaceholder: {
@@ -268,7 +261,7 @@ export const lessonPlayerStyles = StyleSheet.create({
   },
   guidedPracticeBtnText: {
     fontSize: DesignSystem.typography.fontSizes.lg,
-    fontWeight: DesignSystem.typography.fontWeights.semibold,
+    fontFamily: DesignSystem.typography.fontFamilies.semibold,
     color: DesignSystem.colors.primary,
   },
 
@@ -289,5 +282,4 @@ export const lessonPlayerStyles = StyleSheet.create({
   },
 });
 
-export { NOTE_SIZE };
 export default lessonPlayerStyles;

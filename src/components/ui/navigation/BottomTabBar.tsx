@@ -1,7 +1,8 @@
-import { FontAwesome5 } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
+import { Colors } from '@/src/constants/theme';
 import { sharedStyles } from '../../../styles/sharedStyles';
 
 type TabName = 'home' | 'practice' | 'progress' | 'profile';
@@ -10,11 +11,14 @@ interface BottomTabBarProps {
   activeTab: TabName;
 }
 
-const TABS: { name: TabName; icon: string; label: string; route: string }[] = [
-  { name: 'home',     icon: '🏠', label: 'Home',     route: '/home' },
-  { name: 'practice', icon: '🎵', label: 'Learn',    route: '/practice' },
-  { name: 'progress', icon: '📊', label: 'Progress', route: '/progress' },
-  { name: 'profile',  icon: '👤', label: 'Profile',  route: '/profile' },
+const TAB_SIZE = 26;
+const HELP_SIZE = 24;
+
+const TABS: { name: TabName; icon: keyof typeof Ionicons.glyphMap; label: string; route: string }[] = [
+  { name: 'home',     icon: 'home',          label: 'Home',     route: '/home' },
+  { name: 'practice', icon: 'musical-notes', label: 'Learn',    route: '/practice' },
+  { name: 'progress', icon: 'bar-chart',     label: 'Progress', route: '/progress' },
+  { name: 'profile',  icon: 'person',        label: 'Profile',  route: '/profile' },
 ];
 
 function BottomTabBar({ activeTab }: BottomTabBarProps) {
@@ -30,7 +34,9 @@ function BottomTabBar({ activeTab }: BottomTabBarProps) {
     [activeTab, router]
   );
 
-  const onHelpPress = useCallback(() => console.log('Help & Resources pressed'), []);
+  const onHelpPress = useCallback(() => {
+    // TODO: add proper logging and help navigation
+  }, []);
   const onHelpPressIn = useCallback(() => setShowHelpLabel(true), []);
   const onHelpPressOut = useCallback(() => setShowHelpLabel(false), []);
 
@@ -45,9 +51,12 @@ function BottomTabBar({ activeTab }: BottomTabBarProps) {
               style={sharedStyles.tabButton}
               onPress={() => handlePress(tab)}
             >
-              <Text style={isActive ? sharedStyles.tabIconActive : sharedStyles.tabIconInactive}>
-                {tab.icon}
-              </Text>
+              <Ionicons
+                name={tab.icon}
+                size={TAB_SIZE}
+                color={Colors.textPrimary}
+                style={{ opacity: isActive ? 1 : 0.6 }}
+              />
               <Text style={isActive ? sharedStyles.tabTextActive : sharedStyles.tabTextInactive}>
                 {tab.label}
               </Text>
@@ -56,7 +65,6 @@ function BottomTabBar({ activeTab }: BottomTabBarProps) {
         })}
       </View>
 
-      {/* Help button — anchored to bottom-right, styled like a tab item */}
       <View style={sharedStyles.helpButtonWrapper}>
         {showHelpLabel && (
           <View style={sharedStyles.hoverLabel}>
@@ -69,7 +77,7 @@ function BottomTabBar({ activeTab }: BottomTabBarProps) {
           onPressIn={onHelpPressIn}
           onPressOut={onHelpPressOut}
         >
-          <FontAwesome5 name="question-circle" size={24} color="white" style={{ opacity: 0.6 }} />
+          <Ionicons name="help-circle" size={HELP_SIZE} color={Colors.textPrimary} style={{ opacity: 0.6 }} />
           <Text style={sharedStyles.helpLabel}>Help</Text>
         </Pressable>
       </View>
