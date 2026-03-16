@@ -68,11 +68,11 @@ export function ScrollingNotation({ notes, activeNoteIndex, noteProgress }: Scro
     const prev = prevActiveIndexRef.current;
     prevActiveIndexRef.current = activeNoteIndex;
     if (activeNoteIndex < 0 || activeNoteIndex >= prev) return;
-    const activeLine = Math.floor(activeNoteIndex / NOTES_PER_LINE);
+    const currentActiveLine = Math.floor(activeNoteIndex / NOTES_PER_LINE);
     setDismissed((prevSet) => {
       const next = new Set(prevSet);
       [...next].forEach((lineIndex) => {
-        if (lineIndex >= activeLine) next.delete(lineIndex);
+        if (lineIndex >= currentActiveLine - 1) next.delete(lineIndex);
       });
       return next;
     });
@@ -88,9 +88,8 @@ export function ScrollingNotation({ notes, activeNoteIndex, noteProgress }: Scro
       onLayout={onPanelLayout}
       pointerEvents="box-none"
     >
-      {headerLine !== undefined && (
-        <View style={activeLine > 0 ? styles.headerPast : undefined}>
-          <NotationLine
+      {headerLine !== undefined && !dismissed.has(0) && (
+        <NotationLine
             key={0}
             lineIndex={0}
             line={headerLine}
@@ -98,15 +97,16 @@ export function ScrollingNotation({ notes, activeNoteIndex, noteProgress }: Scro
             activeNoteOpacity={activeNoteOpacity}
             nextNoteOpacity={nextNoteOpacity}
             nextNoteScale={nextNoteScale}
-            isCompleted={false}
+            noteProgress={noteProgress}
+            isCompleted={activeLine >= 2}
+            isPreviousLine={activeLine === 1}
             isActiveLine={activeLine === 0}
-            isNextLine={activeLine === 1}
+            isNextLine={false}
             isFuture={false}
             onDismiss={handleDismiss}
           />
-        </View>
       )}
-      {headerLine !== undefined && <View style={styles.divider} />}
+      {headerLine !== undefined && !dismissed.has(0) && <View style={styles.divider} />}
       <ScrollView
         ref={scrollRef}
         style={styles.scroll}
@@ -116,8 +116,14 @@ export function ScrollingNotation({ notes, activeNoteIndex, noteProgress }: Scro
       >
         {scrollLines.map((line, lineIdx) => {
           const originalLineIdx = lineIdx + 1;
-          if (dismissed.has(originalLineIdx)) return null;
-          const isCompleted = originalLineIdx < activeLine;
+          const inWindow =
+            activeLine >= 0
+              ? originalLineIdx >= activeLine - 1 && originalLineIdx <= activeLine + 1
+              : originalLineIdx <= 2;
+          const animatingOut = originalLineIdx < activeLine - 1 && !dismissed.has(originalLineIdx);
+          if (!inWindow && !animatingOut) return null;
+          const isCompleted = originalLineIdx < activeLine - 1;
+          const isPreviousLine = originalLineIdx === activeLine - 1;
           const isActiveLine = originalLineIdx === activeLine;
           const isNextLine = originalLineIdx === activeLine + 1;
           const isFuture = originalLineIdx > activeLine + 1;
@@ -130,7 +136,9 @@ export function ScrollingNotation({ notes, activeNoteIndex, noteProgress }: Scro
               activeNoteOpacity={activeNoteOpacity}
               nextNoteOpacity={nextNoteOpacity}
               nextNoteScale={nextNoteScale}
+              noteProgress={noteProgress}
               isCompleted={isCompleted}
+              isPreviousLine={isPreviousLine}
               isActiveLine={isActiveLine}
               isNextLine={isNextLine}
               isFuture={isFuture}
@@ -150,7 +158,9 @@ type NotationLineProps = {
   activeNoteOpacity: number;
   nextNoteOpacity: number;
   nextNoteScale: number;
+  noteProgress: number;
   isCompleted: boolean;
+  isPreviousLine: boolean;
   isActiveLine: boolean;
   isNextLine: boolean;
   isFuture: boolean;
@@ -164,7 +174,9 @@ function NotationLine({
   activeNoteOpacity,
   nextNoteOpacity,
   nextNoteScale,
+  noteProgress,
   isCompleted,
+  isPreviousLine,
   isActiveLine,
   isNextLine,
   isFuture,
@@ -181,13 +193,13 @@ function NotationLine({
     Animated.parallel([
       Animated.timing(translateY, {
         toValue: -20,
-        duration: 300,
+        duration: 250,
         useNativeDriver: true,
         easing: Easing.out(Easing.ease),
       }),
       Animated.timing(opacity, {
         toValue: 0,
-        duration: 300,
+        duration: 250,
         useNativeDriver: true,
         easing: Easing.out(Easing.ease),
       }),
@@ -212,6 +224,20 @@ function NotationLine({
           </View>
         ))}
       </Animated.View>
+    );
+  }
+
+  if (isPreviousLine) {
+    const previousOpacity = 0.5 - noteProgress * 0.5;
+    return (
+      <View style={[styles.lineBase, { opacity: previousOpacity }]}>
+        {line.map((n, cellIdx) => (
+          <View key={flatStart + cellIdx} style={styles.cell}>
+            <Text style={styles.cellTextNext}>{n.note}</Text>
+            {n.lyric ? <Text style={styles.cellLyric}>{n.lyric}</Text> : null}
+          </View>
+        ))}
+      </View>
     );
   }
 
@@ -362,16 +388,17 @@ const styles = StyleSheet.create({
   lineActive: {
     flexDirection: 'row',
     height: 56,
+    backgroundColor: 'rgba(255,255,255,0.06)',
   },
   lineNext: {
     flexDirection: 'row',
     height: 56,
-    opacity: 0.5,
+    opacity: 0.35,
   },
   lineFuture: {
     flexDirection: 'row',
     height: 56,
-    opacity: 0.25,
+    opacity: 0.2,
   },
   linePast: {
     flexDirection: 'row',
