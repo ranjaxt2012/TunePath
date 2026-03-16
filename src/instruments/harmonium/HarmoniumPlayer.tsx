@@ -73,6 +73,7 @@ export function HarmoniumPlayer({
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1.0);
   const [videoStarted, setVideoStarted] = useState(false);
+  const [videoMounted, setVideoMounted] = useState(false);
   const [showControls, setShowControls] = useState(false);
   const progressAnim = useRef(new Animated.Value(0)).current;
   const controlsOpacity = useRef(new Animated.Value(0)).current;
@@ -101,8 +102,24 @@ export function HarmoniumPlayer({
     p.loop = false;
     p.playbackRate = playbackSpeed;
     p.timeUpdateEventInterval = 0.1;
-    p.pause();
   });
+
+  useEffect(() => {
+    if (!videoStarted) return;
+    const sub = player.addListener('statusChange', ({ status }) => {
+      if (status === 'readyToPlay') {
+        player.pause();
+        sub.remove();
+      }
+    });
+    return () => sub.remove();
+  }, [videoStarted, player]);
+
+  useEffect(() => {
+    if (!videoStarted) return;
+    const t = setTimeout(() => setVideoMounted(true), 100);
+    return () => clearTimeout(t);
+  }, [videoStarted]);
 
   const displayNotes = notes.length > 0 ? notes : getMockNotes();
   displayNotesRef.current = displayNotes;
@@ -231,13 +248,15 @@ export function HarmoniumPlayer({
         </TouchableOpacity>
       ) : (
         <View style={styles.videoContainer}>
-          <VideoView
-            player={player}
-            style={styles.video}
-            allowsFullscreen
-            allowsPictureInPicture
-            nativeControls={false}
-          />
+          {videoMounted && (
+            <VideoView
+              player={player}
+              style={styles.video}
+              allowsFullscreen
+              allowsPictureInPicture
+              nativeControls={false}
+            />
+          )}
           <TouchableOpacity
             style={StyleSheet.absoluteFill}
             onPress={handleVideoTap}
