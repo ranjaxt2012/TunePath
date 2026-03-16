@@ -100,6 +100,8 @@ export function HarmoniumPlayer({
   const player = useVideoPlayer(videoStarted ? videoSource : null, (p) => {
     p.loop = false;
     p.playbackRate = playbackSpeed;
+    p.timeUpdateEventInterval = 0.1;
+    p.pause();
   });
 
   const displayNotes = notes.length > 0 ? notes : getMockNotes();
@@ -139,18 +141,14 @@ export function HarmoniumPlayer({
     player.playbackRate = playbackSpeed;
   }, [playbackSpeed, player]);
 
-  const LOOKAHEAD_MS = 80;
   useEffect(() => {
     if (!videoStarted) return;
-    const interval = setInterval(() => {
-      const rawPosition = player.currentTime ?? 0;
-      const position = rawPosition + LOOKAHEAD_MS / 1000;
-      engineRef.current?.syncToTime(position, playbackSpeed);
+    const sub = player.addListener('timeUpdate', ({ currentTime }) => {
+      engineRef.current?.syncToTime(currentTime, playbackSpeed);
       const duration = player.duration ?? 1;
-      const ratio = duration > 0 ? rawPosition / duration : 0;
-      progressAnim.setValue(ratio);
-    }, 50);
-    return () => clearInterval(interval);
+      progressAnim.setValue(duration > 0 ? currentTime / duration : 0);
+    });
+    return () => sub.remove();
   }, [videoStarted, player, progressAnim, playbackSpeed]);
 
   useEffect(() => {
@@ -168,13 +166,6 @@ export function HarmoniumPlayer({
     });
     return () => sub.remove();
   }, [player]);
-
-  useEffect(() => {
-    if (videoStarted) {
-      player.play();
-      setIsPlaying(true);
-    }
-  }, [videoStarted]);
 
   const showVideoControls = useCallback(() => {
     if (hideControlsTimer.current) {
