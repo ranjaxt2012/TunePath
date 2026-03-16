@@ -62,16 +62,14 @@ export function HarmoniumPlayer({ lesson, notes = [], onComplete, onProgress }: 
   const [noteProgress, setNoteProgress] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1.0);
-  const [showControls, setShowControls] = useState(false);
   const progressAnim = useRef(new Animated.Value(0)).current;
-  const controlsOpacity = useRef(new Animated.Value(0)).current;
-  const hideControlsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const displayNotesRef = useRef<Note[]>([]);
 
   const videoSource = lesson.video_url ?? MOCK_VIDEO_URL;
   const player = useVideoPlayer(videoSource, (p) => {
     p.loop = false;
     p.playbackRate = playbackSpeed;
+    p.pause(); // do not auto-play; user taps play to start
   });
 
   const displayNotes = notes.length > 0 ? notes : getMockNotes();
@@ -138,43 +136,13 @@ export function HarmoniumPlayer({ lesson, notes = [], onComplete, onProgress }: 
     return () => sub.remove();
   }, [player]);
 
-  const showVideoControls = useCallback(() => {
-    if (hideControlsTimer.current) {
-      clearTimeout(hideControlsTimer.current);
-      hideControlsTimer.current = null;
-    }
-    setShowControls(true);
-    Animated.timing(controlsOpacity, {
-      toValue: 1,
-      duration: 200,
-      useNativeDriver: true,
-    }).start();
-    hideControlsTimer.current = setTimeout(() => {
-      Animated.timing(controlsOpacity, {
-        toValue: 0,
-        duration: 300,
-        useNativeDriver: true,
-      }).start(() => setShowControls(false));
-      hideControlsTimer.current = null;
-    }, 3000);
-  }, [controlsOpacity]);
-
   const handleVideoTap = useCallback(() => {
-    showVideoControls();
     if (player.playing) {
       player.pause();
     } else {
       player.play();
     }
-  }, [player, showVideoControls]);
-
-  useEffect(() => {
-    return () => {
-      if (hideControlsTimer.current) {
-        clearTimeout(hideControlsTimer.current);
-      }
-    };
-  }, []);
+  }, [player]);
 
   return (
     <View style={styles.container}>
@@ -193,11 +161,7 @@ export function HarmoniumPlayer({ lesson, notes = [], onComplete, onProgress }: 
           activeOpacity={1}
         />
 
-        {showControls && (
-          <Animated.View
-            style={[styles.controlsOverlay, { opacity: controlsOpacity }]}
-            pointerEvents="none"
-          >
+        <View style={styles.controlsOverlay} pointerEvents="none">
             <View style={styles.controlsGradient} />
             <View style={styles.centerControl}>
               <Ionicons
@@ -224,8 +188,7 @@ export function HarmoniumPlayer({ lesson, notes = [], onComplete, onProgress }: 
                 {formatTime(player.currentTime ?? 0)} / {formatTime(player.duration ?? 0)}
               </Text>
             </View>
-          </Animated.View>
-        )}
+        </View>
       </View>
 
       <View style={styles.speedRow}>
