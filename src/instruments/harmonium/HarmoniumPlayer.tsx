@@ -7,6 +7,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
+  Image,
   StyleSheet,
   ActivityIndicator,
   Animated,
@@ -62,14 +63,14 @@ export function HarmoniumPlayer({ lesson, notes = [], onComplete, onProgress }: 
   const [noteProgress, setNoteProgress] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1.0);
+  const [videoStarted, setVideoStarted] = useState(false);
   const progressAnim = useRef(new Animated.Value(0)).current;
   const displayNotesRef = useRef<Note[]>([]);
 
   const videoSource = lesson.video_url ?? MOCK_VIDEO_URL;
-  const player = useVideoPlayer(videoSource, (p) => {
+  const player = useVideoPlayer(videoStarted ? videoSource : null, (p) => {
     p.loop = false;
     p.playbackRate = playbackSpeed;
-    p.pause(); // do not auto-play; user taps play to start
   });
 
   const displayNotes = notes.length > 0 ? notes : getMockNotes();
@@ -110,6 +111,7 @@ export function HarmoniumPlayer({ lesson, notes = [], onComplete, onProgress }: 
   }, [playbackSpeed, player]);
 
   useEffect(() => {
+    if (!videoStarted) return;
     const interval = setInterval(() => {
       const position = player.currentTime ?? 0;
       engineRef.current?.syncToTime(position, playbackSpeed);
@@ -118,7 +120,7 @@ export function HarmoniumPlayer({ lesson, notes = [], onComplete, onProgress }: 
       progressAnim.setValue(ratio);
     }, 100);
     return () => clearInterval(interval);
-  }, [player, progressAnim, playbackSpeed]);
+  }, [videoStarted, player, progressAnim, playbackSpeed]);
 
   useEffect(() => {
     const sub = player.addListener('playingChange', ({ isPlaying: playing }) => {
@@ -136,6 +138,13 @@ export function HarmoniumPlayer({ lesson, notes = [], onComplete, onProgress }: 
     return () => sub.remove();
   }, [player]);
 
+  useEffect(() => {
+    if (videoStarted) {
+      player.play();
+      setIsPlaying(true);
+    }
+  }, [videoStarted]);
+
   const handleVideoTap = useCallback(() => {
     if (player.playing) {
       player.pause();
@@ -146,22 +155,45 @@ export function HarmoniumPlayer({ lesson, notes = [], onComplete, onProgress }: 
 
   return (
     <View style={styles.container}>
-      <View style={styles.videoContainer}>
-        <VideoView
-          player={player}
-          style={styles.video}
-          allowsFullscreen
-          allowsPictureInPicture
-          nativeControls={false}
-        />
-
+      {!videoStarted ? (
         <TouchableOpacity
-          style={StyleSheet.absoluteFill}
-          onPress={handleVideoTap}
-          activeOpacity={1}
-        />
-
-        <View style={styles.controlsOverlay} pointerEvents="none">
+          style={styles.posterContainer}
+          onPress={() => setVideoStarted(true)}
+          activeOpacity={0.9}
+        >
+          {lesson.thumbnail_url ? (
+            <Image
+              source={{ uri: lesson.thumbnail_url }}
+              style={styles.poster}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={styles.posterPlaceholder} />
+          )}
+          <View style={styles.posterOverlay} />
+          <View style={styles.posterPlayBtn}>
+            <Ionicons
+              name="play"
+              size={48}
+              color="rgba(255,255,255,0.95)"
+            />
+          </View>
+        </TouchableOpacity>
+      ) : (
+        <View style={styles.videoContainer}>
+          <VideoView
+            player={player}
+            style={styles.video}
+            allowsFullscreen
+            allowsPictureInPicture
+            nativeControls={false}
+          />
+          <TouchableOpacity
+            style={StyleSheet.absoluteFill}
+            onPress={handleVideoTap}
+            activeOpacity={1}
+          />
+          <View style={styles.controlsOverlay} pointerEvents="none">
             <View style={styles.controlsGradient} />
             <View style={styles.centerControl}>
               <Ionicons
@@ -188,8 +220,9 @@ export function HarmoniumPlayer({ lesson, notes = [], onComplete, onProgress }: 
                 {formatTime(player.currentTime ?? 0)} / {formatTime(player.duration ?? 0)}
               </Text>
             </View>
+          </View>
         </View>
-      </View>
+      )}
 
       <View style={styles.speedRow}>
         <Text style={styles.speedEmoji}>🐢</Text>
@@ -233,6 +266,33 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     width: '100%',
+  },
+  posterContainer: {
+    width: '100%',
+    aspectRatio: 16 / 9,
+    backgroundColor: '#000',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  poster: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  posterPlaceholder: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: Colors.cardBg,
+  },
+  posterOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+  },
+  posterPlayBtn: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1,
   },
   videoContainer: {
     width: '100%',
