@@ -25,6 +25,8 @@ export class SargamPlayerEngine {
   onPlayStateChange?: (playing: boolean) => void;
   onComplete?: () => void;
   onError?: (error: Error) => void;
+  /** Fires on every syncToTime. progress 0 = note just started, 1 = about to change. */
+  onNoteProgress?: (progress: number) => void;
 
   // ── Public API ─────────────────────────────────────────────────────────────
 
@@ -88,18 +90,10 @@ export class SargamPlayerEngine {
 
   /**
    * Sync notation index to video position (video is source of truth).
-   * Call every 100ms from HarmoniumPlayer. Keeps existing play/pause/seek as fallback.
+   * Call every 100ms from HarmoniumPlayer. playbackSpeed scales note progress for sustain.
    */
-  syncToTime(positionSeconds: number): void {
+  syncToTime(positionSeconds: number, playbackSpeed: number = 1.0): void {
     if (this.notes.length === 0) return;
-
-    const lastNoteTime = this.notes[this.notes.length - 1].time;
-    if (positionSeconds >= lastNoteTime + 1.0) {
-      this.currentIndex = -1;
-      this.onIndexChange?.(-1);
-      this.onComplete?.();
-      return;
-    }
 
     let newIndex = -1;
     for (let i = 0; i < this.notes.length; i++) {
@@ -108,6 +102,26 @@ export class SargamPlayerEngine {
       } else {
         break;
       }
+    }
+
+    if (newIndex < 0) return;
+
+    const currentNote = this.notes[newIndex];
+    const nextNote = this.notes[newIndex + 1];
+
+    if (nextNote && playbackSpeed > 0) {
+      const noteDuration = (nextNote.time - currentNote.time) / playbackSpeed;
+      const timeInNote = positionSeconds - currentNote.time;
+      const progress = Math.min(1.0, Math.max(0.0, timeInNote / noteDuration));
+      this.onNoteProgress?.(progress);
+    }
+
+    const lastNote = this.notes[this.notes.length - 1];
+    if (positionSeconds >= lastNote.time + 1.0) {
+      this.currentIndex = -1;
+      this.onIndexChange?.(-1);
+      this.onComplete?.();
+      return;
     }
 
     if (newIndex === this.currentIndex) return;
@@ -136,6 +150,7 @@ export class SargamPlayerEngine {
     this.onPlayStateChange = undefined;
     this.onComplete = undefined;
     this.onError = undefined;
+    this.onNoteProgress = undefined;
   }
 
   // ── Private methods ────────────────────────────────────────────────────────

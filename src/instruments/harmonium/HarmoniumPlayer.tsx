@@ -3,18 +3,21 @@
  * notation syncs to video position every 100ms. Engine syncToTime() replaces ticker.
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
   ActivityIndicator,
   Animated,
+  TouchableOpacity,
 } from 'react-native';
+import Slider from '@react-native-community/slider';
+import { Ionicons } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { Colors, FontSize, Radius, Spacing, Typography } from '@/src/constants/theme';
+import { formatTime } from '@/src/utils/time';
 import { ScrollingNotation } from './ScrollingNotation';
 import { SargamPlayerEngine } from './SargamPlayerEngine';
 import type { LessonPlayerProps } from '@/src/registry/types';
@@ -50,22 +53,19 @@ function getMockNotes(): Note[] {
   ];
 }
 
-const SPEEDS: Array<0.5 | 1.0 | 1.5> = [0.5, 1.0, 1.5];
-const SPEED_LABELS: Record<number, string> = {
-  0.5: '0.5x',
-  1.0: '1.0x',
-  1.5: '1.5x',
-};
-
 export function HarmoniumPlayer({ lesson, notes = [], onComplete, onProgress }: LessonPlayerProps) {
   const engineRef = useRef<SargamPlayerEngine | null>(null);
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
 
   const [activeNoteIndex, setActiveNoteIndex] = useState(-1);
+  const [noteProgress, setNoteProgress] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [playbackSpeed, setPlaybackSpeed] = useState<0.5 | 1.0 | 1.5>(1.0);
+  const [playbackSpeed, setPlaybackSpeed] = useState(1.0);
+  const [showControls, setShowControls] = useState(false);
   const progressAnim = useRef(new Animated.Value(0)).current;
+  const controlsOpacity = useRef(new Animated.Value(0)).current;
+  const hideControlsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const displayNotesRef = useRef<Note[]>([]);
 
   const videoSource = lesson.video_url ?? MOCK_VIDEO_URL;
@@ -80,6 +80,7 @@ export function HarmoniumPlayer({ lesson, notes = [], onComplete, onProgress }: 
   useEffect(() => {
     const engine = new SargamPlayerEngine();
     engine.onIndexChange = (i) => setActiveNoteIndex(i);
+    engine.onNoteProgress = (p) => setNoteProgress(p);
     engine.onComplete = () => {
       setActiveNoteIndex(-1);
       progressAnim.setValue(0);
@@ -113,13 +114,13 @@ export function HarmoniumPlayer({ lesson, notes = [], onComplete, onProgress }: 
   useEffect(() => {
     const interval = setInterval(() => {
       const position = player.currentTime ?? 0;
-      engineRef.current?.syncToTime(position);
+      engineRef.current?.syncToTime(position, playbackSpeed);
       const duration = player.duration ?? 1;
       const ratio = duration > 0 ? position / duration : 0;
       progressAnim.setValue(ratio);
     }, 100);
     return () => clearInterval(interval);
-  }, [player, progressAnim]);
+  }, [player, progressAnim, playbackSpeed]);
 
   useEffect(() => {
     const sub = player.addListener('playingChange', ({ isPlaying: playing }) => {
@@ -137,36 +138,115 @@ export function HarmoniumPlayer({ lesson, notes = [], onComplete, onProgress }: 
     return () => sub.remove();
   }, [player]);
 
+  const showVideoControls = useCallback(() => {
+    if (hideControlsTimer.current) {
+      clearTimeout(hideControlsTimer.current);
+      hideControlsTimer.current = null;
+    }
+    setShowControls(true);
+    Animated.timing(controlsOpacity, {
+      toValue: 1,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+    hideControlsTimer.current = setTimeout(() => {
+      Animated.timing(controlsOpacity, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }).start(() => setShowControls(false));
+      hideControlsTimer.current = null;
+    }, 3000);
+  }, [controlsOpacity]);
+
+  const handleVideoTap = useCallback(() => {
+    showVideoControls();
+    if (player.playing) {
+      player.pause();
+    } else {
+      player.play();
+    }
+  }, [player, showVideoControls]);
+
+  useEffect(() => {
+    return () => {
+      if (hideControlsTimer.current) {
+        clearTimeout(hideControlsTimer.current);
+      }
+    };
+  }, []);
+
   return (
     <View style={styles.container}>
-      <VideoView
-        player={player}
-        style={styles.video}
-        allowsFullscreen
-        allowsPictureInPicture
-        nativeControls
-      />
+      <View style={styles.videoContainer}>
+        <VideoView
+          player={player}
+          style={styles.video}
+          allowsFullscreen
+          allowsPictureInPicture
+          nativeControls={false}
+        />
+
+        <TouchableOpacity
+          style={StyleSheet.absoluteFill}
+          onPress={handleVideoTap}
+          activeOpacity={1}
+        />
+
+        {showControls && (
+          <Animated.View
+            style={[styles.controlsOverlay, { opacity: controlsOpacity }]}
+            pointerEvents="none"
+          >
+            <View style={styles.controlsGradient} />
+            <View style={styles.centerControl}>
+              <Ionicons
+                name={isPlaying ? 'pause' : 'play'}
+                size={48}
+                color="rgba(255,255,255,0.95)"
+              />
+            </View>
+            <View style={styles.videoProgress}>
+              <View style={styles.videoProgressTrack}>
+                <Animated.View
+                  style={[
+                    styles.videoProgressFill,
+                    {
+                      width: progressAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ['0%', '100%'],
+                      }),
+                    },
+                  ]}
+                />
+              </View>
+              <Text style={styles.videoTime}>
+                {formatTime(player.currentTime ?? 0)} / {formatTime(player.duration ?? 0)}
+              </Text>
+            </View>
+          </Animated.View>
+        )}
+      </View>
 
       <View style={styles.speedRow}>
-        {SPEEDS.map((speed) => (
-          <TouchableOpacity
-            key={speed}
-            onPress={() => setPlaybackSpeed(speed)}
-            style={[
-              styles.speedBtn,
-              playbackSpeed === speed && styles.speedBtnActive,
-            ]}
-          >
-            <Text
-              style={[
-                styles.speedText,
-                playbackSpeed === speed && styles.speedTextActive,
-              ]}
-            >
-              {SPEED_LABELS[speed]}
-            </Text>
-          </TouchableOpacity>
-        ))}
+        <Text style={styles.speedEmoji}>🐢</Text>
+        <Slider
+          style={styles.speedSlider}
+          minimumValue={0.25}
+          maximumValue={2.0}
+          step={0.05}
+          value={playbackSpeed}
+          onValueChange={(val) => {
+            setPlaybackSpeed(Math.round(val * 20) / 20);
+          }}
+          minimumTrackTintColor={Colors.bgPrimary}
+          maximumTrackTintColor="rgba(255,255,255,0.2)"
+          thumbTintColor={Colors.textPrimary}
+        />
+        <Text style={styles.speedEmoji}>🐇</Text>
+        <Text style={styles.speedLabel}>
+          {playbackSpeed.toFixed(2)}x
+        </Text>
       </View>
 
       {displayNotes.length > 0 ? (
@@ -174,6 +254,7 @@ export function HarmoniumPlayer({ lesson, notes = [], onComplete, onProgress }: 
           <ScrollingNotation
             notes={displayNotes}
             activeNoteIndex={activeNoteIndex}
+            noteProgress={noteProgress}
           />
         </View>
       ) : (
@@ -190,36 +271,76 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
   },
-  video: {
+  videoContainer: {
     width: '100%',
     aspectRatio: 16 / 9,
     backgroundColor: '#000',
+    position: 'relative',
+  },
+  video: {
+    width: '100%',
+    height: '100%',
+  },
+  controlsOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  controlsGradient: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+  },
+  centerControl: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  videoProgress: {
+    position: 'absolute',
+    bottom: Spacing.md,
+    left: Spacing.lg,
+    right: Spacing.lg,
+  },
+  videoProgressTrack: {
+    height: 3,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    borderRadius: 999,
+    overflow: 'hidden' as const,
+    marginBottom: Spacing.xs,
+  },
+  videoProgressFill: {
+    height: '100%',
+    backgroundColor: Colors.textPrimary,
+    borderRadius: 999,
+  },
+  videoTime: {
+    fontFamily: Typography.regular,
+    fontSize: FontSize.xs,
+    color: 'rgba(255,255,255,0.8)',
+    textAlign: 'right',
   },
   speedRow: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    gap: Spacing.md,
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm,
   },
-  speedBtn: {
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radius.full,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-    backgroundColor: 'rgba(255,255,255,0.08)',
+  speedSlider: {
+    flex: 1,
+    marginHorizontal: Spacing.sm,
   },
-  speedBtnActive: {
-    backgroundColor: Colors.bgPrimary,
-    borderColor: Colors.textPrimary,
+  speedEmoji: {
+    fontSize: 18,
   },
-  speedText: {
+  speedLabel: {
     fontFamily: Typography.semiBold,
     fontSize: FontSize.sm,
-    color: Colors.textSecondary,
-  },
-  speedTextActive: {
     color: Colors.textPrimary,
+    width: 48,
+    textAlign: 'right',
   },
   notationPanelWrap: {
     flex: 1,
