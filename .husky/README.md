@@ -26,9 +26,15 @@ The pre-commit hook will:
 - ✅ Allow commit if all checks pass
 - ❌ Block commit if any checks fail
 
-## Bypassing Hooks (Not Recommended)
+## Commit Without Lint
 
-If you absolutely need to bypass the hooks:
+To commit without running the pre-commit hook (no TypeScript/ESLint checks):
+
+```bash
+npm run commit:no-verify -- -m "feat: your message"
+```
+
+Or using git directly:
 
 ```bash
 git commit --no-verify -m "feat: bypass hooks"

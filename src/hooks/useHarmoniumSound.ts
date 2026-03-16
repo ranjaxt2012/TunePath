@@ -1,21 +1,15 @@
 /**
  * useHarmoniumSound - play harmonium notes from sargam
- * Resolves sargam -> western note -> .wav sample, plays via expo-av
- * Uses lazy require to avoid crash when ExponentAV native module is unavailable (Expo Go / dev).
+ * Resolves sargam -> western note -> .wav sample, plays via expo-audio
  */
 
 import { useCallback } from 'react';
-import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { resolveSargamToSample } from '../services/soundResolver';
 
-function getExpoAudio(): typeof import('expo-av').Audio | null {
-  const canUseExpoAV =
-    Constants.executionEnvironment === ExecutionEnvironment.Standalone ||
-    Constants.executionEnvironment === ExecutionEnvironment.Bare;
-  if (!canUseExpoAV) return null;
+function getCreateAudioPlayer(): typeof import('expo-audio').createAudioPlayer | null {
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    return require('expo-av').Audio;
+    return require('expo-audio').createAudioPlayer as typeof import('expo-audio').createAudioPlayer;
   } catch {
     return null;
   }
@@ -51,23 +45,23 @@ export function parseSargamNotes(notation: string): string[] {
  * Hook for playing harmonium sounds
  */
 export function useHarmoniumSound() {
-  const playNote = useCallback(async (sargam: string, octave?: number) => {
-    const Audio = getExpoAudio();
-    if (!Audio) return;
+  const playNote = useCallback((sargam: string, octave?: number) => {
+    const createAudioPlayer = getCreateAudioPlayer();
+    if (!createAudioPlayer) return;
 
     const source = resolveSargamToSample(sargam, octave);
     if (source === null) return;
 
     try {
-      const { sound } = await Audio.Sound.createAsync(source);
-      await sound.playAsync();
-      // Unload after playback (approx 1.5s for a typical note)
+      const player = createAudioPlayer(source);
+      player.play();
+      // Release after playback (approx 1.5s for a typical note)
       setTimeout(() => {
-        sound.unloadAsync().catch(() => {});
+        try { player.remove(); } catch { /* ignore */ }
       }, 1500);
-    } catch (err) {
+    } catch (_err) {
       if (__DEV__) {
-        console.warn(`[HarmoniumSound] Failed to play "${sargam}":`, err);
+        // TODO: add proper logger for play failure
       }
     }
   }, []);
@@ -78,7 +72,7 @@ export function useHarmoniumSound() {
       if (note) {
         playNote(note);
       } else if (__DEV__) {
-        console.warn(`[HarmoniumSound] No sargam note found in: "${notation}"`);
+        // TODO: add proper logger for sargam parse
       }
     },
     [playNote]
@@ -92,7 +86,7 @@ export function useHarmoniumSound() {
     async (notation: string, delayMs: number = SEQUENCE_DELAY_MS) => {
       const notes = parseSargamNotes(notation);
       for (const note of notes) {
-        await playNote(note);
+        playNote(note);
         await new Promise((r) => setTimeout(r, delayMs));
       }
     },

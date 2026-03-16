@@ -1,7 +1,2 @@
-export { LessonPlayer } from './LessonPlayer';
-export { LessonVideoPlayer } from './LessonVideoPlayer';
-export { VideoPlayer } from './VideoPlayer';
-export { LessonHeader } from './LessonHeader';
-export { YouTubeLink } from './YouTubeLink';
-export { NotationSlot } from './NotationSlot';
-export { SargamDisplay } from './SargamDisplay';
+// Lesson components — slot filled by instrument plugin (NotationSlot pattern)
+// App lesson screen uses HarmoniumPlayer directly; future: use instrumentRegistry

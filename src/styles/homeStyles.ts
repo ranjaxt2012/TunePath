@@ -1,6 +1,6 @@
 import { StyleSheet } from 'react-native';
 import { sharedStyles } from './sharedStyles';
-import { DesignSystem } from './theme';
+import { DesignSystem } from '@/src/constants/theme';
 
 export const homeStyles = StyleSheet.create({
   container: {
@@ -31,14 +31,14 @@ export const homeStyles = StyleSheet.create({
   },
   welcomeTitle: {
     fontSize: DesignSystem.typography.fontSizes['4xl'],
-    fontWeight: DesignSystem.typography.fontWeights.medium,
+    fontFamily: DesignSystem.typography.fontFamilies.medium,
     color: DesignSystem.colors.white,
     textAlign: 'center',
     letterSpacing: DesignSystem.typography.letterSpacing.tight,
   },
   welcomeSubtitle: {
     fontSize: DesignSystem.typography.fontSizes.base,
-    fontWeight: DesignSystem.typography.fontWeights.regular,
+    fontFamily: DesignSystem.typography.fontFamilies.regular,
     color: DesignSystem.colors.white,
     textAlign: 'center',
   },
@@ -59,7 +59,7 @@ export const homeStyles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: 22,
-    fontWeight: '600',
+    fontFamily: DesignSystem.typography.fontFamilies.semibold,
     color: DesignSystem.colors.white,
     marginBottom: 4,
   },
@@ -83,7 +83,7 @@ export const homeStyles = StyleSheet.create({
   },
   primaryButtonText: {
     fontSize: 17,
-    fontWeight: '600',
+    fontFamily: DesignSystem.typography.fontFamilies.semibold,
     color: DesignSystem.colors.primary,
   },
   mediumCard: {
@@ -104,7 +104,7 @@ export const homeStyles = StyleSheet.create({
   },
   secondaryButtonText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: DesignSystem.typography.fontFamilies.semibold,
     color: DesignSystem.colors.white,
   },
   smallCard: {
@@ -113,7 +113,7 @@ export const homeStyles = StyleSheet.create({
   },
   smallCardTitle: {
     fontSize: 19,
-    fontWeight: '600',
+    fontFamily: DesignSystem.typography.fontFamilies.semibold,
     color: DesignSystem.colors.white,
     marginBottom: 2,
   },
@@ -127,7 +127,7 @@ export const homeStyles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: '600',
+    fontFamily: DesignSystem.typography.fontFamilies.semibold,
     color: DesignSystem.colors.white,
     marginBottom: DesignSystem.spacing.md,
     paddingHorizontal: DesignSystem.spacing.xl,

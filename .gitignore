@@ -42,3 +42,6 @@ yarn-error.*
 /android
 notes.txt
 *.MOV
+
+# Dev logs (make ios-log, make android-log)
+logs/

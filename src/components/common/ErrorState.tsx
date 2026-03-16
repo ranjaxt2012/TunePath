@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Colors, Typography, CommonStyles, Spacing } from '@/src/constants/theme';
+import { Colors, TextPresets, CommonStyles, Spacing } from '@/src/constants/theme';
 
 type Props = {
   message?: string;
@@ -32,7 +32,7 @@ const styles = StyleSheet.create({
   },
   icon: { fontSize: 40 },
   message: {
-    ...Typography.bodyLg,
+    ...TextPresets.bodyLg,
     color: Colors.textSecondary,
     textAlign: 'center',
   },

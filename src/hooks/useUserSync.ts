@@ -32,8 +32,8 @@ export function useUserSync() {
           roles: tunePathUser.roles as import('@/src/utils/roles').UserRole[],
           activeMode: 'learner',
         });
-      } catch (err) {
-        console.error('User sync failed', err);
+      } catch (_err) {
+        // TODO: add proper logger for user sync failure
       }
     }
 

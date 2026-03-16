@@ -1,7 +1,7 @@
 import type { InstrumentPlugin } from './types';
-import { HarmoniumPlugin } from '@/instruments/harmonium';
-import { GuitarPlugin } from '@/instruments/guitar';
-import { PianoPlugin } from '@/instruments/piano';
+import { HarmoniumPlugin } from '@/src/instruments/harmonium';
+import { GuitarPlugin } from '@/src/instruments/guitar';
+import { PianoPlugin } from '@/src/instruments/piano';
 
 export const InstrumentRegistry: Record<string, InstrumentPlugin> = {
   harmonium: HarmoniumPlugin,

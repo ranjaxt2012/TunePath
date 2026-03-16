@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, TextInput,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/src/store/authStore';
-import { Colors, Spacing, Radius, Typography, Layout, CommonStyles } from '@/src/constants/theme';
-import { INSTRUMENT_ICONS } from '@/src/constants/instrumentIcons';
+import { Colors, Spacing, Radius, TextPresets, Layout, CommonStyles } from '@/src/constants/theme';
+import { InstrumentIcon } from '@/src/components/common/InstrumentIcon';
 import {
   MOCK_IN_PROGRESS_LESSONS,
   MOCK_FEATURED_COURSE,
@@ -44,7 +45,6 @@ export default function HomeScreen() {
 
   const greeting = user ? 'Welcome back' : 'Welcome';
   const userName = user?.displayName?.split(' ')[0] ?? '';
-  const instrumentIcon = INSTRUMENT_ICONS[selectedInstrumentSlug ?? ''] ?? '🎵';
   const instrumentLabel = selectedInstrumentSlug
     ? selectedInstrumentSlug.charAt(0).toUpperCase() + selectedInstrumentSlug.slice(1)
     : null;
@@ -73,8 +73,9 @@ export default function HomeScreen() {
                 <TouchableOpacity
                   style={styles.searchIconBtn}
                   onPress={() => setSearchOpen(!searchOpen)}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
-                  <Text style={styles.searchIconTxt}>🔍</Text>
+                  <Ionicons name="search" size={24} color={Colors.textPrimary} />
                 </TouchableOpacity>
                 <ScrollView
                   horizontal
@@ -104,9 +105,16 @@ export default function HomeScreen() {
             </View>
 
             {/* Line 2: Instrument · Level */}
-            <Text style={styles.subheading}>
-              {instrumentIcon}{instrumentLabel ? ` ${instrumentLabel}${levelLabel ? ` · ${levelLabel}` : ''}` : ' Choose your instrument →'}
-            </Text>
+            <View style={styles.subheadingRow}>
+              {instrumentLabel ? (
+                <>
+                  <InstrumentIcon slug={selectedInstrumentSlug ?? ''} size={20} />
+                  <Text style={styles.subheading}>{instrumentLabel}{levelLabel ? ` · ${levelLabel}` : ''}</Text>
+                </>
+              ) : (
+                <Text style={styles.subheading}>Choose your instrument →</Text>
+              )}
+            </View>
 
           </View>
         </SafeAreaView>
@@ -207,9 +215,7 @@ export default function HomeScreen() {
                       activeOpacity={0.8}
                     >
                       <View style={styles.continueThumbnail}>
-                        <Text style={styles.continueThumbnailIcon}>
-                          {INSTRUMENT_ICONS[lesson.instrument_slug] ?? '🎵'}
-                        </Text>
+                        <InstrumentIcon slug={lesson.instrument_slug} size={32} />
                       </View>
                       <View style={styles.continueInfo}>
                         <Text style={styles.continueTitle} numberOfLines={2}>
@@ -248,7 +254,7 @@ export default function HomeScreen() {
                       activeOpacity={0.8}
                     >
                       <View style={styles.courseThumbnail}>
-                        <Text style={styles.courseThumbnailIcon}>🎵</Text>
+                        <InstrumentIcon slug={''} size={32} />
                         {course.progress > 0 && (
                           <View style={styles.courseProgressBarBg}>
                             <View
@@ -297,7 +303,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   greeting: {
-    ...Typography.displayMd,
+    ...TextPresets.displayMd,
     color: Colors.textPrimary,
   },
   headerRight: {
@@ -311,22 +317,24 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   searchIconBtn: {
-    width: 40,
-    height: 40,
+    minWidth: 44,
+    minHeight: 44,
     borderRadius: Radius.full,
     backgroundColor: 'rgba(255,255,255,0.15)',
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
   },
-  searchIconTxt: {
-    fontSize: 18,
-  },
-  subheading: {
-    ...Typography.bodyMd,
-    color: Colors.textSecondary,
+  subheadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
     paddingHorizontal: Spacing.lg,
     marginBottom: Spacing.md,
+  },
+  subheading: {
+    ...TextPresets.bodyMd,
+    color: Colors.textSecondary,
   },
   pillsRowContent: {
     gap: Spacing.sm,
@@ -344,7 +352,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.white,
   },
   pillText: {
-    ...Typography.labelMd,
+    ...TextPresets.labelMd,
     color: Colors.textPrimary,
   },
   pillTextActive: {
@@ -363,7 +371,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.30)',
     paddingHorizontal: Spacing.xl,
-    ...Typography.bodyMd,
+    ...TextPresets.bodyMd,
     color: Colors.textPrimary,
   },
 
@@ -377,16 +385,16 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   searchResultTitle: {
-    ...Typography.labelMd,
+    ...TextPresets.labelMd,
     color: Colors.textPrimary,
     marginBottom: 2,
   },
   searchResultSubtitle: {
-    ...Typography.caption,
+    ...TextPresets.caption,
     color: Colors.textSecondary,
   },
   noResults: {
-    ...Typography.bodyMd,
+    ...TextPresets.bodyMd,
     color: Colors.textSecondary,
     textAlign: 'center',
     marginTop: Spacing.xxl,
@@ -416,16 +424,16 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   featuredBadgeText: {
-    ...Typography.labelSm,
+    ...TextPresets.labelSm,
     color: Colors.bgPrimary,
   },
   featuredTitle: {
-    ...Typography.displaySm,
+    ...TextPresets.displaySm,
     color: Colors.textPrimary,
     marginBottom: Spacing.xs,
   },
   featuredSubtitle: {
-    ...Typography.bodyMd,
+    ...TextPresets.bodyMd,
     color: Colors.textSecondary,
     marginBottom: Spacing.lg,
   },
@@ -475,19 +483,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  continueThumbnailIcon: {
-    fontSize: 32,
-  },
   continueInfo: {
     padding: Spacing.sm,
   },
   continueTitle: {
-    ...Typography.labelMd,
+    ...TextPresets.labelMd,
     color: Colors.textPrimary,
     marginBottom: 2,
   },
   continueCourse: {
-    ...Typography.caption,
+    ...TextPresets.caption,
     color: Colors.textSecondary,
     marginBottom: Spacing.sm,
   },
@@ -517,9 +522,6 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
     overflow: 'hidden',
   },
-  courseThumbnailIcon: {
-    fontSize: 28,
-  },
   courseProgressBarBg: {
     position: 'absolute',
     bottom: 0,
@@ -533,12 +535,12 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.progressFill,
   },
   courseTitle: {
-    ...Typography.labelSm,
+    ...TextPresets.labelSm,
     color: Colors.textPrimary,
     marginBottom: 2,
   },
   courseSubtitle: {
-    ...Typography.caption,
+    ...TextPresets.caption,
     color: Colors.textSecondary,
   },
 

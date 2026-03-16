@@ -14,7 +14,10 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.TunePath"
+      "bundleIdentifier": "com.tunepath.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -34,11 +37,19 @@
     "plugins": [
       "expo-router",
       "expo-video",
+      "expo-audio",
       "expo-secure-store",
-      "expo-web-browser"
+      "expo-font",
+      "expo-asset"
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "d57ff825-61d9-4e0a-8887-263acf5076bd"
+      }
     }
   }
 }

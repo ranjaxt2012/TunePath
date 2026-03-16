@@ -1,4 +1,5 @@
 import { StyleSheet } from 'react-native';
+import { Typography } from '@/src/constants/theme';
 
 export const commonStyles = StyleSheet.create({
   // Modal styles
@@ -9,7 +10,7 @@ export const commonStyles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontFamily: Typography.bold,
   },
   modalSeparator: {
     marginVertical: 30,
@@ -26,7 +27,7 @@ export const commonStyles = StyleSheet.create({
   },
   notFoundTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontFamily: Typography.bold,
   },
   notFoundLink: {
     marginTop: 15,

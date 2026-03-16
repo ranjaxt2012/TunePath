@@ -2,13 +2,13 @@ import { FontAwesome5 } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ScreenGradient } from '@/src/components/common/ScreenGradient';
-import { DesignSystem } from '../../src/styles/theme';
+import { Colors, DesignSystem, Typography } from '@/src/constants/theme';
 
 export default function SignInScreen() {
   const router = useRouter();
   
   const handleSignIn = () => {
-    console.log('Sign In pressed!');
+    // TODO: add proper logging
     router.push('/select/instrument' as any);
   };
 
@@ -61,7 +61,7 @@ export default function SignInScreen() {
               {/* Apple */}
               <Pressable 
                 style={({ pressed }) => [styles.socialButton, { opacity: pressed ? 0.8 : 1 }]}
-                onPress={() => console.log('Apple Sign In pressed')}
+                onPress={() => { /* TODO: add Apple Sign In */ }}
               >
                 <FontAwesome5 name="apple" size={20} color="#1f2937" brand />
                 <Text style={styles.socialButtonText}>Continue with Apple</Text>
@@ -70,7 +70,7 @@ export default function SignInScreen() {
               {/* Google */}
               <Pressable 
                 style={({ pressed }) => [styles.socialButton, { opacity: pressed ? 0.8 : 1 }]}
-                onPress={() => console.log('Google Sign In pressed')}
+                onPress={() => { /* TODO: Google Sign In */ }}
               >
                 <FontAwesome5 name="google" size={20} color="#1f2937" brand />
                 <Text style={styles.socialButtonText}>Continue with Google</Text>
@@ -79,7 +79,7 @@ export default function SignInScreen() {
               {/* Facebook */}
               <Pressable 
                 style={({ pressed }) => [styles.socialButton, { opacity: pressed ? 0.8 : 1 }]}
-                onPress={() => console.log('Facebook Sign In pressed')}
+                onPress={() => { /* TODO: add Facebook Sign In */ }}
               >
                 <FontAwesome5 name="facebook" size={20} color="#1f2937" brand />
                 <Text style={styles.socialButtonText}>Continue with Facebook</Text>
@@ -88,7 +88,7 @@ export default function SignInScreen() {
               {/* Guest */}
               <Pressable 
                 style={({ pressed }) => [styles.socialButton, { opacity: pressed ? 0.8 : 1 }]}
-                onPress={() => console.log('Guest Sign In pressed')}
+                onPress={() => { /* TODO: Guest Sign In */ }}
               >
                 <FontAwesome5 name="user" size={20} color="#1f2937" />
                 <Text style={styles.socialButtonText}>Continue as Guest</Text>
@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
   titleContainer: { alignItems: 'center', marginBottom: 16 },
   title: {
     fontSize: 28,
-    fontWeight: '500',
+    fontFamily: Typography.medium,
     color: DesignSystem.colors.white,
     textAlign: 'center',
     lineHeight: 42,
@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
   subtitleContainer: { alignItems: 'center', marginBottom: 40 },
   subtitle: {
     fontSize: 15,
-    fontWeight: '400',
+    fontFamily: Typography.regular,
     color: DesignSystem.colors.whiteOverlay['70'],
     textAlign: 'center',
     lineHeight: 22.5,
@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
   },
   inputText: {
     fontSize: 14,
-    fontWeight: '400',
+    fontFamily: Typography.regular,
     color: DesignSystem.colors.whiteOverlay['60'],
     lineHeight: 17,
   },
@@ -166,7 +166,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     fontSize: 17,
-    fontWeight: '600',
+    fontFamily: Typography.semiBold,
     color: DesignSystem.colors.primary,
     textAlign: 'center',
     lineHeight: 25.5,
@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
   dividerText: {
     fontSize: 14,
     color: DesignSystem.colors.whiteOverlay['70'],
-    fontWeight: '400',
+    fontFamily: Typography.regular,
   },
   socialButtonsContainer: {
     flexDirection: 'column',
@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
   },
   socialButtonText: {
     fontSize: 16,
-    fontWeight: '500',
+    fontFamily: Typography.medium,
     color: '#1f2937',
   },
   footerContainer: {
@@ -217,14 +217,14 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 14,
-    fontWeight: '400',
+    fontFamily: Typography.regular,
     color: DesignSystem.colors.whiteOverlay['70'],
     textAlign: 'center',
     lineHeight: 21,
   },
   linkText: {
     fontSize: 16,
-    fontWeight: '500',
+    fontFamily: Typography.medium,
     color: DesignSystem.colors.white,
     textAlign: 'center',
     lineHeight: 24,

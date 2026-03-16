@@ -1,6 +1,35 @@
+/**
+ * Navigation Tree
+ * ───────────────
+ * / (root)
+ * ├── (tabs)/
+ * │   ├── index (welcome)
+ * │   ├── home
+ * │   ├── progress
+ * │   ├── practice
+ * │   └── profile
+ * ├── (auth)/
+ * │   ├── login
+ * │   ├── sign-in
+ * │   └── sign-up
+ * ├── select/
+ * │   ├── instrument
+ * │   └── level
+ * ├── course/[id]
+ * ├── lesson/[id]
+ * ├── tutor/upload
+ * ├── select-instrument (redirect → select/instrument)
+ * └── select-level (redirect → select/level)
+ */
+import {
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+} from '@expo-google-fonts/inter';
+import { useFonts } from '@expo-google-fonts/inter/useFonts';
 import { ClerkProvider, ClerkLoaded } from '@clerk/clerk-expo';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
@@ -29,6 +58,10 @@ if (!publishableKey) {
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
 
@@ -69,12 +102,19 @@ function RootLayoutNav() {
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-        <Stack.Screen name="lesson-player" options={{ headerShown: false }} />
-        <Stack.Screen name="lesson/[id]" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="lesson/[id]"
+          options={{
+            headerShown: false,
+            gestureEnabled: true,
+            gestureDirection: 'horizontal',
+            fullScreenGestureEnabled: true,
+          }}
+        />
         <Stack.Screen name="select-instrument" options={{ headerShown: false }} />
         <Stack.Screen name="select-level" options={{ headerShown: false }} />
-        <Stack.Screen name="select-course" options={{ headerShown: false }} />
         <Stack.Screen name="course/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="tutor/upload" options={{ headerShown: false }} />
       </Stack>
     </ThemeProvider>
   );
