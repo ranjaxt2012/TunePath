@@ -106,7 +106,6 @@ export function ScrollingNotation({ notes, activeNoteIndex, noteProgress }: Scro
             onDismiss={handleDismiss}
           />
       )}
-      {headerLine !== undefined && !dismissed.has(0) && <View style={styles.divider} />}
       <ScrollView
         ref={scrollRef}
         style={styles.scroll}
@@ -407,11 +406,6 @@ const styles = StyleSheet.create({
   },
   headerPast: {
     opacity: 0.35,
-  },
-  divider: {
-    height: 0.5,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    marginHorizontal: Spacing.lg,
   },
   cell: {
     flex: 1,
