@@ -33,6 +33,8 @@ export function ScrollingNotation({ notes, activeNoteIndex, noteProgress }: Scro
   const scrollRef = useRef<ScrollView>(null);
 
   const lines = React.useMemo(() => chunkNotes(notes, NOTES_PER_LINE), [notes]);
+  const headerLine = lines[0];
+  const scrollLines = lines.slice(1);
   const activeLine = activeNoteIndex < 0 ? -2 : Math.floor(activeNoteIndex / NOTES_PER_LINE);
   const activeNoteInLine = activeNoteIndex < 0 ? 0 : activeNoteIndex % NOTES_PER_LINE;
 
@@ -56,8 +58,8 @@ export function ScrollingNotation({ notes, activeNoteIndex, noteProgress }: Scro
       setDismissed(new Set());
       return;
     }
-    const activeLineIdx = Math.floor(activeNoteIndex / NOTES_PER_LINE);
-    const y = Math.max(0, activeLineIdx * LINE_HEIGHT - panelHeight * 0.3);
+    const scrollActiveLine = Math.max(0, activeLine - 1);
+    const y = Math.max(0, scrollActiveLine * LINE_HEIGHT - panelHeight * 0.3);
     scrollRef.current?.scrollTo({ y, animated: activeNoteIndex > -1 });
   }, [activeNoteIndex, panelHeight]);
 
@@ -86,6 +88,25 @@ export function ScrollingNotation({ notes, activeNoteIndex, noteProgress }: Scro
       onLayout={onPanelLayout}
       pointerEvents="box-none"
     >
+      {headerLine !== undefined && (
+        <View style={activeLine > 0 ? styles.headerPast : undefined}>
+          <NotationLine
+            key={0}
+            lineIndex={0}
+            line={headerLine}
+            activeNoteInLine={activeNoteInLine}
+            activeNoteOpacity={activeNoteOpacity}
+            nextNoteOpacity={nextNoteOpacity}
+            nextNoteScale={nextNoteScale}
+            isCompleted={false}
+            isActiveLine={activeLine === 0}
+            isNextLine={activeLine === 1}
+            isFuture={false}
+            onDismiss={handleDismiss}
+          />
+        </View>
+      )}
+      {headerLine !== undefined && <View style={styles.divider} />}
       <ScrollView
         ref={scrollRef}
         style={styles.scroll}
@@ -93,16 +114,17 @@ export function ScrollingNotation({ notes, activeNoteIndex, noteProgress }: Scro
         showsVerticalScrollIndicator={false}
         bounces={false}
       >
-        {lines.map((line, lineIdx) => {
-          if (dismissed.has(lineIdx)) return null;
-          const isCompleted = lineIdx < activeLine;
-          const isActiveLine = lineIdx === activeLine;
-          const isNextLine = lineIdx === activeLine + 1;
-          const isFuture = lineIdx > activeLine + 1;
+        {scrollLines.map((line, lineIdx) => {
+          const originalLineIdx = lineIdx + 1;
+          if (dismissed.has(originalLineIdx)) return null;
+          const isCompleted = originalLineIdx < activeLine;
+          const isActiveLine = originalLineIdx === activeLine;
+          const isNextLine = originalLineIdx === activeLine + 1;
+          const isFuture = originalLineIdx > activeLine + 1;
           return (
             <NotationLine
-              key={lineIdx}
-              lineIndex={lineIdx}
+              key={originalLineIdx}
+              lineIndex={originalLineIdx}
               line={line}
               activeNoteInLine={activeNoteInLine}
               activeNoteOpacity={activeNoteOpacity}
@@ -355,6 +377,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     height: 56,
     opacity: 0,
+  },
+  headerPast: {
+    opacity: 0.35,
+  },
+  divider: {
+    height: 0.5,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    marginHorizontal: Spacing.lg,
   },
   cell: {
     flex: 1,
