@@ -90,17 +90,22 @@ export class SargamPlayerEngine {
 
   /**
    * Sync notation index to video position (video is source of truth).
-   * Call every 100ms from HarmoniumPlayer. playbackSpeed scales note progress for sustain.
+   * Binary search for current note; playbackSpeed scales note progress for sustain.
    */
   syncToTime(positionSeconds: number, playbackSpeed: number = 1.0): void {
     if (this.notes.length === 0) return;
 
+    let lo = 0;
+    let hi = this.notes.length - 1;
     let newIndex = -1;
-    for (let i = 0; i < this.notes.length; i++) {
-      if (this.notes[i].time <= positionSeconds) {
-        newIndex = i;
+
+    while (lo <= hi) {
+      const mid = Math.floor((lo + hi) / 2);
+      if (this.notes[mid].time <= positionSeconds) {
+        newIndex = mid;
+        lo = mid + 1;
       } else {
-        break;
+        hi = mid - 1;
       }
     }
 
@@ -110,24 +115,26 @@ export class SargamPlayerEngine {
     const nextNote = this.notes[newIndex + 1];
 
     if (nextNote && playbackSpeed > 0) {
-      const noteDuration = (nextNote.time - currentNote.time) / playbackSpeed;
+      const noteDuration =
+        (nextNote.time - currentNote.time) / playbackSpeed;
       const timeInNote = positionSeconds - currentNote.time;
-      const progress = Math.min(1.0, Math.max(0.0, timeInNote / noteDuration));
+      const progress = Math.min(
+        1.0,
+        Math.max(0.0, timeInNote / noteDuration)
+      );
       this.onNoteProgress?.(progress);
     }
+
+    if (newIndex === this.currentIndex) return;
+    this.currentIndex = newIndex;
+    this.onIndexChange?.(newIndex);
 
     const lastNote = this.notes[this.notes.length - 1];
     if (positionSeconds >= lastNote.time + 1.0) {
       this.currentIndex = -1;
       this.onIndexChange?.(-1);
       this.onComplete?.();
-      return;
     }
-
-    if (newIndex === this.currentIndex) return;
-
-    this.currentIndex = newIndex;
-    this.onIndexChange?.(newIndex);
   }
 
   setBpm(bpm: number): void {

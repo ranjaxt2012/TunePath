@@ -139,15 +139,17 @@ export function HarmoniumPlayer({
     player.playbackRate = playbackSpeed;
   }, [playbackSpeed, player]);
 
+  const LOOKAHEAD_MS = 80;
   useEffect(() => {
     if (!videoStarted) return;
     const interval = setInterval(() => {
-      const position = player.currentTime ?? 0;
+      const rawPosition = player.currentTime ?? 0;
+      const position = rawPosition + LOOKAHEAD_MS / 1000;
       engineRef.current?.syncToTime(position, playbackSpeed);
       const duration = player.duration ?? 1;
-      const ratio = duration > 0 ? position / duration : 0;
+      const ratio = duration > 0 ? rawPosition / duration : 0;
       progressAnim.setValue(ratio);
-    }, 100);
+    }, 50);
     return () => clearInterval(interval);
   }, [videoStarted, player, progressAnim, playbackSpeed]);
 
