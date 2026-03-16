@@ -18,6 +18,7 @@ import { VideoView, useVideoPlayer } from 'expo-video';
 import { CompleteCheckbox } from '@/src/components/common/CompleteCheckbox';
 import { ScreenGradient } from '@/src/components/common/ScreenGradient';
 import type { NotationMode } from '@/src/types/models';
+import { useCourse } from '@/src/hooks/useCourse';
 import { useLesson } from '@/src/hooks/useLesson';
 import { useNotation } from '@/src/hooks/useNotation';
 import { getPlugin } from '@/src/registry/instrumentRegistry';
@@ -33,7 +34,16 @@ export default function LessonPlayerScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
   const { lesson, loading, error } = useLesson(id);
+  const { course } = useCourse(lesson?.course_id ?? undefined);
   const { isComplete, setComplete, setCompletionFromApi } = useProgressStore();
+
+  const lessonIds = lesson
+    ? (course?.lessons?.map((l) => l.id) ?? [lesson.id])
+    : undefined;
+  const currentLessonIndex =
+    lesson && course?.lessons
+      ? Math.max(0, course.lessons.findIndex((l) => l.id === lesson.id))
+      : 0;
 
   const videoRef = useRef<VideoView>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -189,6 +199,13 @@ export default function LessonPlayerScreen() {
       ? formatTime(durationMs)
       : '';
 
+  const plugin = getPlugin(lesson.instrument_slug ?? '');
+  const showTopVideo = !(
+    notationMode === 'sargam' &&
+    notes.length > 0 &&
+    plugin !== null
+  );
+
   return (
     <ScreenGradient style={lessonPlayerStyles.safeAreaContainer}>
       <SafeAreaView edges={['top']} style={{ flex: 1 }}>
@@ -218,45 +235,47 @@ export default function LessonPlayerScreen() {
             contentContainerStyle={lessonPlayerStyles.scrollContent}
             showsVerticalScrollIndicator={false}
           >
-            <View style={lessonPlayerStyles.videoCard}>
-              {lesson.video_url ? (
-                <VideoView
-                  ref={videoRef}
-                  player={videoPlayer}
-                  style={lessonPlayerStyles.video}
-                  contentFit="contain"
-                  nativeControls={false}
-                />
-              ) : (
-                <View style={lessonPlayerStyles.videoPlaceholder} />
-              )}
-
-              <TouchableOpacity
-                style={lessonPlayerStyles.playOverlay}
-                onPress={() => {
-                  if (isPlaying) {
-                    videoPlayer.pause();
-                  } else {
-                    videoPlayer.play();
-                  }
-                }}
-                activeOpacity={0.8}
-              >
-                <View style={lessonPlayerStyles.playCircle}>
-                  <Text style={lessonPlayerStyles.playIcon}>
-                    {isPlaying ? '⏸' : '▶'}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-
-              <View style={lessonPlayerStyles.videoInfo}>
-                {displayDuration !== '' && (
-                  <Text style={lessonPlayerStyles.videoDuration}>
-                    {displayDuration}
-                  </Text>
+            {showTopVideo && (
+              <View style={lessonPlayerStyles.videoCard}>
+                {lesson.video_url ? (
+                  <VideoView
+                    ref={videoRef}
+                    player={videoPlayer}
+                    style={lessonPlayerStyles.video}
+                    contentFit="contain"
+                    nativeControls={false}
+                  />
+                ) : (
+                  <View style={lessonPlayerStyles.videoPlaceholder} />
                 )}
+
+                <TouchableOpacity
+                  style={lessonPlayerStyles.playOverlay}
+                  onPress={() => {
+                    if (isPlaying) {
+                      videoPlayer.pause();
+                    } else {
+                      videoPlayer.play();
+                    }
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <View style={lessonPlayerStyles.playCircle}>
+                    <Text style={lessonPlayerStyles.playIcon}>
+                      {isPlaying ? '⏸' : '▶'}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+
+                <View style={lessonPlayerStyles.videoInfo}>
+                  {displayDuration !== '' && (
+                    <Text style={lessonPlayerStyles.videoDuration}>
+                      {displayDuration}
+                    </Text>
+                  )}
+                </View>
               </View>
-            </View>
+            )}
 
             {modes.length > 1 && (
               <View style={lessonPlayerStyles.toggleContainer}>
@@ -307,7 +326,6 @@ export default function LessonPlayerScreen() {
                   </Text>
                 </View>
               ) : (() => {
-                const plugin = getPlugin(lesson.instrument_slug ?? '');
                 if (!plugin) {
                   return (
                     <View style={lessonPlayerStyles.staffPlaceholder}>
@@ -324,6 +342,8 @@ export default function LessonPlayerScreen() {
                     notes={notes}
                     onComplete={() => {}}
                     onProgress={() => {}}
+                    lessonIds={lessonIds}
+                    currentLessonIndex={currentLessonIndex}
                   />
                 );
               })()

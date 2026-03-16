@@ -7,6 +7,10 @@ export interface LessonPlayerProps {
   notes?: Note[];
   onComplete: () => void;
   onProgress: (percent: number, positionSeconds: number) => void;
+  /** Ordered list of lesson IDs in the course (for prev/next nav). */
+  lessonIds?: string[];
+  /** Index of current lesson in lessonIds. */
+  currentLessonIndex?: number;
 }
 
 export interface NotationPanelProps {

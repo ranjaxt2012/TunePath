@@ -16,6 +16,7 @@ import {
 import Slider from '@react-native-community/slider';
 import { Ionicons } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
+import { useRouter } from 'expo-router';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { Colors, FontSize, Radius, Spacing, Typography } from '@/src/constants/theme';
 import { formatTime } from '@/src/utils/time';
@@ -54,7 +55,15 @@ function getMockNotes(): Note[] {
   ];
 }
 
-export function HarmoniumPlayer({ lesson, notes = [], onComplete, onProgress }: LessonPlayerProps) {
+export function HarmoniumPlayer({
+  lesson,
+  notes = [],
+  onComplete,
+  onProgress,
+  lessonIds,
+  currentLessonIndex,
+}: LessonPlayerProps) {
+  const router = useRouter();
   const engineRef = useRef<SargamPlayerEngine | null>(null);
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
@@ -64,8 +73,28 @@ export function HarmoniumPlayer({ lesson, notes = [], onComplete, onProgress }: 
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1.0);
   const [videoStarted, setVideoStarted] = useState(false);
+  const [showControls, setShowControls] = useState(false);
   const progressAnim = useRef(new Animated.Value(0)).current;
+  const controlsOpacity = useRef(new Animated.Value(0)).current;
+  const hideControlsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const displayNotesRef = useRef<Note[]>([]);
+
+  const hasPrev = (currentLessonIndex ?? 0) > 0;
+  const hasNext = lessonIds
+    ? (currentLessonIndex ?? 0) < lessonIds.length - 1
+    : false;
+
+  const goToPrev = useCallback(() => {
+    if (!hasPrev || !lessonIds) return;
+    const prevId = lessonIds[(currentLessonIndex ?? 0) - 1];
+    router.replace(`/lesson/${prevId}`);
+  }, [hasPrev, lessonIds, currentLessonIndex, router]);
+
+  const goToNext = useCallback(() => {
+    if (!hasNext || !lessonIds) return;
+    const nextId = lessonIds[(currentLessonIndex ?? 0) + 1];
+    router.replace(`/lesson/${nextId}`);
+  }, [hasNext, lessonIds, currentLessonIndex, router]);
 
   const videoSource = lesson.video_url ?? MOCK_VIDEO_URL;
   const player = useVideoPlayer(videoStarted ? videoSource : null, (p) => {
@@ -145,13 +174,41 @@ export function HarmoniumPlayer({ lesson, notes = [], onComplete, onProgress }: 
     }
   }, [videoStarted]);
 
+  const showVideoControls = useCallback(() => {
+    if (hideControlsTimer.current) {
+      clearTimeout(hideControlsTimer.current);
+      hideControlsTimer.current = null;
+    }
+    setShowControls(true);
+    Animated.timing(controlsOpacity, {
+      toValue: 1,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+    hideControlsTimer.current = setTimeout(() => {
+      Animated.timing(controlsOpacity, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }).start(() => setShowControls(false));
+      hideControlsTimer.current = null;
+    }, 3000);
+  }, [controlsOpacity]);
+
   const handleVideoTap = useCallback(() => {
+    showVideoControls();
     if (player.playing) {
       player.pause();
     } else {
       player.play();
     }
-  }, [player]);
+  }, [player, showVideoControls]);
+
+  useEffect(() => {
+    return () => {
+      if (hideControlsTimer.current) clearTimeout(hideControlsTimer.current);
+    };
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -193,34 +250,65 @@ export function HarmoniumPlayer({ lesson, notes = [], onComplete, onProgress }: 
             onPress={handleVideoTap}
             activeOpacity={1}
           />
-          <View style={styles.controlsOverlay} pointerEvents="none">
-            <View style={styles.controlsGradient} />
-            <View style={styles.centerControl}>
-              <Ionicons
-                name={isPlaying ? 'pause' : 'play'}
-                size={48}
-                color="rgba(255,255,255,0.95)"
-              />
-            </View>
-            <View style={styles.videoProgress}>
-              <View style={styles.videoProgressTrack}>
-                <Animated.View
-                  style={[
-                    styles.videoProgressFill,
-                    {
-                      width: progressAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: ['0%', '100%'],
-                      }),
-                    },
-                  ]}
-                />
+          {showControls && (
+            <Animated.View
+              style={[styles.controlsOverlay, { opacity: controlsOpacity }]}
+              pointerEvents="box-none"
+            >
+              <View style={styles.controlsGradient} />
+              <View style={styles.controlsRow}>
+                <TouchableOpacity
+                  onPress={goToPrev}
+                  disabled={!hasPrev}
+                  style={styles.navBtn}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                >
+                  <Ionicons
+                    name="play-skip-back"
+                    size={28}
+                    color={hasPrev ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.3)'}
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={handleVideoTap} style={styles.playPauseBtn}>
+                  <Ionicons
+                    name={isPlaying ? 'pause' : 'play'}
+                    size={48}
+                    color="rgba(255,255,255,0.95)"
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={goToNext}
+                  disabled={!hasNext}
+                  style={styles.navBtn}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                >
+                  <Ionicons
+                    name="play-skip-forward"
+                    size={28}
+                    color={hasNext ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.3)'}
+                  />
+                </TouchableOpacity>
               </View>
-              <Text style={styles.videoTime}>
-                {formatTime(player.currentTime ?? 0)} / {formatTime(player.duration ?? 0)}
-              </Text>
-            </View>
-          </View>
+              <View style={styles.videoProgress}>
+                <View style={styles.videoProgressTrack}>
+                  <Animated.View
+                    style={[
+                      styles.videoProgressFill,
+                      {
+                        width: progressAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: ['0%', '100%'],
+                        }),
+                      },
+                    ]}
+                  />
+                </View>
+                <Text style={styles.videoTime}>
+                  {formatTime(player.currentTime ?? 0)} / {formatTime(player.duration ?? 0)}
+                </Text>
+              </View>
+            </Animated.View>
+          )}
         </View>
       )}
 
@@ -313,7 +401,19 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.35)',
   },
-  centerControl: {
+  controlsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xxl,
+  },
+  navBtn: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  playPauseBtn: {
     width: 72,
     height: 72,
     borderRadius: 36,
