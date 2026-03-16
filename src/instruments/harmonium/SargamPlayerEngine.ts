@@ -86,6 +86,36 @@ export class SargamPlayerEngine {
     this.seekToIndex(index, shouldResume);
   }
 
+  /**
+   * Sync notation index to video position (video is source of truth).
+   * Call every 100ms from HarmoniumPlayer. Keeps existing play/pause/seek as fallback.
+   */
+  syncToTime(positionSeconds: number): void {
+    if (this.notes.length === 0) return;
+
+    const lastNoteTime = this.notes[this.notes.length - 1].time;
+    if (positionSeconds >= lastNoteTime + 1.0) {
+      this.currentIndex = -1;
+      this.onIndexChange?.(-1);
+      this.onComplete?.();
+      return;
+    }
+
+    let newIndex = -1;
+    for (let i = 0; i < this.notes.length; i++) {
+      if (this.notes[i].time <= positionSeconds) {
+        newIndex = i;
+      } else {
+        break;
+      }
+    }
+
+    if (newIndex === this.currentIndex) return;
+
+    this.currentIndex = newIndex;
+    this.onIndexChange?.(newIndex);
+  }
+
   setBpm(bpm: number): void {
     this.bpm = Math.max(20, Math.min(300, bpm));
   }
