@@ -106,8 +106,10 @@ export function HarmoniumPlayer({
 
   useEffect(() => {
     if (!videoStarted) return;
+    let paused = false;
     const sub = player.addListener('statusChange', ({ status }) => {
-      if (status === 'readyToPlay') {
+      if (status === 'readyToPlay' && !paused) {
+        paused = true;
         player.pause();
         sub.remove();
       }
@@ -180,9 +182,12 @@ export function HarmoniumPlayer({
       setActiveNoteIndex(-1);
       progressAnim.setValue(0);
       engineRef.current?.onComplete?.();
+      player.currentTime = 0;
+      player.pause();
+      setIsPlaying(false);
     });
     return () => sub.remove();
-  }, [player]);
+  }, [player, progressAnim]);
 
   const showVideoControls = useCallback(() => {
     if (hideControlsTimer.current) {
@@ -206,13 +211,14 @@ export function HarmoniumPlayer({
   }, [controlsOpacity]);
 
   const handleVideoTap = useCallback(() => {
+    console.log('tap fired, player.playing:', player.playing, 'videoMounted:', videoMounted);
     showVideoControls();
     if (player.playing) {
       player.pause();
     } else {
       player.play();
     }
-  }, [player, showVideoControls]);
+  }, [player, showVideoControls, videoMounted]);
 
   useEffect(() => {
     return () => {
