@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
 import { useRouter } from 'expo-router';
 import { useVideoPlayer, VideoView } from 'expo-video';
+import { useAuthStore } from '@/src/store/authStore';
 import { Colors, FontSize, Radius, Spacing, Typography } from '@/src/constants/theme';
 import { formatTime } from '@/src/utils/time';
 import { ScrollingNotation } from './ScrollingNotation';
@@ -38,21 +39,32 @@ const SAMPLE_MAP: Record<string, number> = {
   Ni:  require('../../../assets/instruments/harmonium/samples/Ni.mp3')  as number,
 };
 
+/**
+ * Mock notation for "Introduction to Sa re ga ma" / Basic Sargam when
+ * lesson has no notation_url or fetch returns empty. Matches
+ * content/harmonium/beginner/lesson-001-basics-sargam/lesson.json:
+ * Section 1 (0–12s) straight scale, Section 2 (13–24s) reverse, Section 3 (25–38s) double notes.
+ */
 function getMockNotes(): Note[] {
-  return [
-    { note: 'Sa',  time: 2.0  },
-    { note: 'Re',  time: 4.0  },
-    { note: 'Ga',  time: 6.0  },
-    { note: 'Ma',  time: 8.0  },
-    { note: 'Pa',  time: 10.0 },
-    { note: 'Dha', time: 12.0 },
-    { note: 'Ni',  time: 14.0 },
-    { note: 'Sa',  time: 16.0 },
-    { note: 'Ni',  time: 18.0 },
-    { note: 'Dha', time: 20.0 },
-    { note: 'Pa',  time: 22.0 },
-    { note: 'Ma',  time: 24.0 },
+  const sections: { notation: string; startSec: number; endSec: number }[] = [
+    { notation: 'Sa Re Ga Ma Pa Dha Ni Sa', startSec: 0, endSec: 12 },
+    { notation: 'Sa Ni Dha Pa Ma Ga Re Sa', startSec: 13, endSec: 24 },
+    {
+      notation: 'Sa Sa Re Re Ga Ga Ma Ma Pa Pa Dha Dha Ni Ni Sa',
+      startSec: 25,
+      endSec: 38,
+    },
   ];
+  const notes: Note[] = [];
+  for (const sec of sections) {
+    const tokens = sec.notation.split(/\s+/).map((s) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase());
+    if (tokens.length === 0) continue;
+    const step = (sec.endSec - sec.startSec) / tokens.length;
+    tokens.forEach((token, i) => {
+      notes.push({ note: token, time: sec.startSec + (i + 0.5) * step });
+    });
+  }
+  return notes;
 }
 
 export function HarmoniumPlayer({
@@ -64,6 +76,9 @@ export function HarmoniumPlayer({
   currentLessonIndex,
 }: LessonPlayerProps) {
   const router = useRouter();
+  const user = useAuthStore((s) => s.user);
+  // const isTutor = user?.roles?.includes('tutor') ?? true;
+  const isTutor = true; // TODO: remove after testing
   const engineRef = useRef<SargamPlayerEngine | null>(null);
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
@@ -75,10 +90,12 @@ export function HarmoniumPlayer({
   const [videoStarted, setVideoStarted] = useState(false);
   const [videoMounted, setVideoMounted] = useState(false);
   const [showControls, setShowControls] = useState(false);
+  const [localNotes, setLocalNotes] = useState<Note[]>([]);
   const progressAnim = useRef(new Animated.Value(0)).current;
   const controlsOpacity = useRef(new Animated.Value(0)).current;
   const hideControlsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const displayNotesRef = useRef<Note[]>([]);
+  const hasInitiallyPaused = useRef(false);
 
   const hasPrev = (currentLessonIndex ?? 0) > 0;
   const hasNext = lessonIds
@@ -99,6 +116,7 @@ export function HarmoniumPlayer({
 
   const videoSource = lesson.video_url ?? MOCK_VIDEO_URL;
   const player = useVideoPlayer(videoStarted ? videoSource : null, (p) => {
+    console.log('🎬 player created, source:', videoStarted ? 'real' : 'null');
     p.loop = false;
     p.playbackRate = playbackSpeed;
     p.timeUpdateEventInterval = 0.1;
@@ -106,10 +124,9 @@ export function HarmoniumPlayer({
 
   useEffect(() => {
     if (!videoStarted) return;
-    let paused = false;
     const sub = player.addListener('statusChange', ({ status }) => {
-      if (status === 'readyToPlay' && !paused) {
-        paused = true;
+      if (status === 'readyToPlay' && !hasInitiallyPaused.current) {
+        hasInitiallyPaused.current = true;
         player.pause();
         sub.remove();
       }
@@ -118,13 +135,18 @@ export function HarmoniumPlayer({
   }, [videoStarted, player]);
 
   useEffect(() => {
+    hasInitiallyPaused.current = false;
+  }, [videoStarted]);
+
+  useEffect(() => {
     if (!videoStarted) return;
     const t = setTimeout(() => setVideoMounted(true), 100);
     return () => clearTimeout(t);
   }, [videoStarted]);
 
   const displayNotes = notes.length > 0 ? notes : getMockNotes();
-  displayNotesRef.current = displayNotes;
+  const activeNotes = localNotes.length > 0 ? localNotes : displayNotes;
+  displayNotesRef.current = activeNotes;
 
   useEffect(() => {
     const engine = new SargamPlayerEngine();
@@ -151,10 +173,15 @@ export function HarmoniumPlayer({
   useEffect(() => {
     const engine = engineRef.current;
     if (!engine) return;
-    if (displayNotes.length === 0) return;
-    engine.load(displayNotes, SAMPLE_MAP);
+    if (activeNotes.length === 0) return;
+    engine.load(activeNotes, SAMPLE_MAP);
     setActiveNoteIndex(-1);
-  }, [displayNotes]);
+  }, [activeNotes]);
+
+  const handleNotesEdit = useCallback((updated: Note[]) => {
+    setLocalNotes(updated);
+    // TODO: PATCH /api/lessons/${lesson.id}/notation with updated notes
+  }, [lesson.id]);
 
   useEffect(() => {
     player.playbackRate = playbackSpeed;
@@ -163,6 +190,7 @@ export function HarmoniumPlayer({
   useEffect(() => {
     if (!videoStarted) return;
     const sub = player.addListener('timeUpdate', ({ currentTime }) => {
+      console.log('⏱ time:', currentTime.toFixed(2), 'speed:', playbackSpeed);
       engineRef.current?.syncToTime(currentTime, playbackSpeed);
       const duration = player.duration ?? 1;
       progressAnim.setValue(duration > 0 ? currentTime / duration : 0);
@@ -172,6 +200,7 @@ export function HarmoniumPlayer({
 
   useEffect(() => {
     const sub = player.addListener('playingChange', ({ isPlaying: playing }) => {
+      console.log('▶️ playing:', playing);
       setIsPlaying(playing);
     });
     return () => sub.remove();
@@ -179,6 +208,7 @@ export function HarmoniumPlayer({
 
   useEffect(() => {
     const sub = player.addListener('playToEnd', () => {
+      console.log('🏁 video ended');
       setActiveNoteIndex(-1);
       progressAnim.setValue(0);
       engineRef.current?.onComplete?.();
@@ -211,7 +241,7 @@ export function HarmoniumPlayer({
   }, [controlsOpacity]);
 
   const handleVideoTap = useCallback(() => {
-    console.log('tap fired, player.playing:', player.playing, 'videoMounted:', videoMounted);
+    console.log('👆 tap, playing:', player.playing, 'mounted:', videoMounted, 'started:', videoStarted);
     showVideoControls();
     if (player.playing) {
       player.pause();
@@ -351,12 +381,14 @@ export function HarmoniumPlayer({
         </Text>
       </View>
 
-      {displayNotes.length > 0 ? (
+      {activeNotes.length > 0 ? (
         <View style={styles.notationPanelWrap}>
           <ScrollingNotation
-            notes={displayNotes}
+            notes={activeNotes}
             activeNoteIndex={activeNoteIndex}
             noteProgress={noteProgress}
+            isTutor={isTutor}
+            onNotesEdit={handleNotesEdit}
           />
         </View>
       ) : (

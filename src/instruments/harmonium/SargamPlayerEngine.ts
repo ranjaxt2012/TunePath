@@ -109,6 +109,8 @@ export class SargamPlayerEngine {
       }
     }
 
+    console.log('🎵 sync:', positionSeconds.toFixed(2), 'index:', newIndex, 'current:', this.currentIndex);
+
     if (newIndex < 0) return;
 
     const currentNote = this.notes[newIndex];
