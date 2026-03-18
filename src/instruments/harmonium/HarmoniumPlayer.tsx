@@ -1,6 +1,6 @@
 /**
  * HarmoniumPlayer — video-driven notation. Video is source of truth;
- * notation syncs to video position every 100ms. Engine syncToTime() replaces ticker.
+ * notation syncs to video position via onPlaybackStatusUpdate. Engine syncToTime() replaces ticker.
  */
 
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
@@ -13,25 +13,23 @@ import {
   Animated,
   TouchableOpacity,
   useWindowDimensions,
-  ScrollView,
 } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { Ionicons } from '@expo/vector-icons';
 import { setAudioModeAsync } from 'expo-audio';
-import * as Sharing from 'expo-sharing';
 import { useRouter } from 'expo-router';
-import { useVideoPlayer, VideoView } from 'expo-video';
+import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 import { Colors, FontSize, Spacing, Typography } from '@/src/constants/theme';
 import { formatTime } from '@/src/utils/time';
 import { logger } from '@/src/utils/logger';
+import { useAuthStore } from '@/src/store/authStore';
 import { ScrollingNotation } from './ScrollingNotation';
 import { SargamPlayerEngine } from './SargamPlayerEngine';
 import { HARMONIUM_SAMPLE_MAP } from './sampleMap';
 import type { LessonPlayerProps } from '@/src/registry/types';
 import type { Note } from '@/src/utils/notation';
 
-const MOCK_VIDEO_URL =
-  'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
+const MOCK_VIDEO_URL = require('../../../assets/instruments/harmonium/test_lesson.mp4');
 
 /**
  * Mock notation for "Introduction to Sa re ga ma" / Basic Sargam when
@@ -70,28 +68,31 @@ export function HarmoniumPlayer({
   currentLessonIndex,
 }: LessonPlayerProps) {
   const router = useRouter();
-  const isTutor = true; // TODO: derive from useAuthStore when testing done
+  const user = useAuthStore((s) => s.user);
+  const isTutor = user?.roles?.includes('tutor') ?? false;
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
   const engineRef = useRef<SargamPlayerEngine | null>(null);
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
 
+  const videoRef = useRef<Video>(null);
+
   const [activeNoteIndex, setActiveNoteIndex] = useState(-1);
   const [noteProgress, setNoteProgress] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
   const [playbackSpeed, setPlaybackSpeed] = useState(1.0);
   const [videoStarted, setVideoStarted] = useState(false);
-  const [videoMounted, setVideoMounted] = useState(false);
   const [showControls, setShowControls] = useState(false);
   const [localNotes, setLocalNotes] = useState<Note[]>([]);
-  const [showDebug, setShowDebug] = useState(false);
-  const [debugLines, setDebugLines] = useState<string[]>([]);
   const progressAnim = useRef(new Animated.Value(0)).current;
   const controlsOpacity = useRef(new Animated.Value(0)).current;
   const hideControlsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const displayNotesRef = useRef<Note[]>([]);
-  const hasInitiallyPaused = useRef(false);
+  const lastLogTime = useRef(0);
 
   const hasPrev = (currentLessonIndex ?? 0) > 0;
   const hasNext = lessonIds
@@ -110,35 +111,9 @@ export function HarmoniumPlayer({
     router.replace(`/lesson/${nextId}`);
   }, [hasNext, lessonIds, currentLessonIndex, router]);
 
-  const videoSource = lesson.video_url ?? MOCK_VIDEO_URL;
-  const player = useVideoPlayer(videoStarted ? videoSource : null, (p) => {
-    p.loop = false;
-    p.playbackRate = playbackSpeed;
-    p.timeUpdateEventInterval = 0.1;
-  });
-
-  useEffect(() => {
-    if (!videoStarted) return;
-    const sub = player.addListener('statusChange', ({ status }) => {
-      logger.log('PLAYER', 'statusChange', { status });
-      if (status === 'readyToPlay' && !hasInitiallyPaused.current) {
-        hasInitiallyPaused.current = true;
-        player.pause();
-        sub.remove();
-      }
-    });
-    return () => sub.remove();
-  }, [videoStarted, player]);
-
-  useEffect(() => {
-    hasInitiallyPaused.current = false;
-  }, [videoStarted]);
-
-  useEffect(() => {
-    if (!videoStarted) return;
-    const t = setTimeout(() => setVideoMounted(true), 100);
-    return () => clearTimeout(t);
-  }, [videoStarted]);
+  const videoSource = lesson.video_url
+    ? { uri: lesson.video_url }
+    : MOCK_VIDEO_URL;
 
   const mockNotes = useMemo(() => getMockNotes(), []);
   const displayNotes = useMemo(
@@ -168,7 +143,7 @@ export function HarmoniumPlayer({
       progressAnim.setValue(0);
       onCompleteRef.current?.();
     };
-    engine.onError = (e) => { /* no-op or log */ };
+    engine.onError = (_e) => { /* no-op */ };
     engineRef.current = engine;
     void setAudioModeAsync({
       playsInSilentMode: true,
@@ -194,45 +169,55 @@ export function HarmoniumPlayer({
     // TODO: PATCH /api/lessons/${lesson.id}/notation with updated notes
   }, []);
 
-  useEffect(() => {
-    player.playbackRate = playbackSpeed;
-  }, [playbackSpeed, player]);
+  // Single status callback replaces all separate expo-video listeners
+  const handlePlaybackStatus = useCallback(
+    (status: AVPlaybackStatus) => {
+      if (!status.isLoaded) {
+        setIsLoading(true);
+        return;
+      }
+      setIsLoading(false);
 
-  useEffect(() => {
-    if (!videoStarted) return;
-    const sub = player.addListener('timeUpdate', ({ currentTime }) => {
-      const t0 = Date.now();
-      engineRef.current?.syncToTime(currentTime, playbackSpeed);
-      logger.perf('syncToTime', Date.now() - t0);
-      logger.log('PLAYER', 'timeUpdate', {
-        currentTime: currentTime.toFixed(2),
-        progressValue,
-      });
-      const duration = player.duration ?? 1;
-      progressAnim.setValue(duration > 0 ? currentTime / duration : 0);
-    });
-    return () => sub.remove();
-  }, [videoStarted, player, progressAnim, playbackSpeed, progressValue]);
+      // Sync notation to video position
+      if (status.isPlaying) {
+        const pos = status.positionMillis / 1000;
+        engineRef.current?.syncToTime(pos, playbackSpeed);
+        const dur = (status.durationMillis ?? 1) / 1000;
+        progressAnim.setValue(dur > 0 ? pos / dur : 0);
 
-  useEffect(() => {
-    const sub = player.addListener('playingChange', ({ isPlaying: playing }) => {
-      setIsPlaying(playing);
-      logger.log('PLAYER', 'playingChange', { playing });
-    });
-    return () => sub.remove();
-  }, [player]);
+        // Log position every 1 second to avoid 10×/sec noise
+        if (pos - lastLogTime.current >= 1) {
+          lastLogTime.current = pos;
+          logger.log('PLAYER', 'position', {
+            time: pos.toFixed(1),
+            speed: playbackSpeed,
+          });
+        }
+      }
 
+      // Update state for display and controls
+      setCurrentTime(status.positionMillis / 1000);
+      setDuration((status.durationMillis ?? 0) / 1000);
+      setIsPlaying(status.isPlaying);
+
+      // Video ended
+      if (status.didJustFinish) {
+        setActiveNoteIndex(-1);
+        progressAnim.setValue(0);
+        engineRef.current?.onComplete?.();
+        videoRef.current?.setPositionAsync(0);
+        videoRef.current?.pauseAsync();
+        setIsPlaying(false);
+        logger.log('PLAYER', 'video ended');
+      }
+    },
+    [playbackSpeed, progressAnim]
+  );
+
+  // Keep playback rate in sync with speed slider
   useEffect(() => {
-    const sub = player.addListener('playToEnd', () => {
-      setActiveNoteIndex(-1);
-      progressAnim.setValue(0);
-      engineRef.current?.onComplete?.();
-      player.currentTime = 0;
-      player.pause();
-      setIsPlaying(false);
-    });
-    return () => sub.remove();
-  }, [player, progressAnim]);
+    videoRef.current?.setRateAsync(playbackSpeed, true);
+  }, [playbackSpeed]);
 
   const showVideoControls = useCallback(() => {
     if (hideControlsTimer.current) {
@@ -257,36 +242,12 @@ export function HarmoniumPlayer({
 
   const handleVideoTap = useCallback(() => {
     showVideoControls();
-    if (player.playing) {
-      player.pause();
+    if (isPlaying) {
+      videoRef.current?.pauseAsync();
     } else {
-      player.play();
+      videoRef.current?.playAsync();
     }
-  }, [player, showVideoControls]);
-
-  useEffect(() => {
-    if (!__DEV__) return;
-    const interval = setInterval(() => {
-      const entries = logger
-        .getBuffer()
-        .slice(-8)
-        .map((e) => {
-          const t = (e.ts / 1000).toFixed(1);
-          return `[${t}s] ${e.message}`;
-        });
-      setDebugLines(entries);
-    }, 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const exportLogs = useCallback(async () => {
-    try {
-      const path = await logger.exportToFile();
-      await Sharing.shareAsync(path);
-    } catch {
-      // ignore export errors in dev
-    }
-  }, []);
+  }, [isPlaying, showVideoControls]);
 
   useEffect(() => {
     return () => {
@@ -296,16 +257,6 @@ export function HarmoniumPlayer({
 
   return (
     <View style={[styles.container, isLandscape && styles.containerLandscape]}>
-      {__DEV__ && (
-        <TouchableOpacity
-          onPress={() => setShowDebug((d) => !d)}
-          style={styles.debugToggle}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Text style={styles.debugToggleText}>🐛</Text>
-        </TouchableOpacity>
-      )}
-
       {/* Video section */}
       <View style={[styles.videoSection, isLandscape && styles.videoSectionLandscape]}>
         {!videoStarted ? (
@@ -334,14 +285,22 @@ export function HarmoniumPlayer({
           </TouchableOpacity>
         ) : (
           <View style={styles.videoContainer}>
-            {videoMounted && (
-              <VideoView
-                player={player}
-                style={styles.video}
-                allowsFullscreen
-                allowsPictureInPicture
-                nativeControls={false}
-              />
+            <Video
+              ref={videoRef}
+              source={videoSource}
+              style={styles.video}
+              resizeMode={ResizeMode.CONTAIN}
+              shouldPlay={false}
+              onPlaybackStatusUpdate={handlePlaybackStatus}
+              useNativeControls={false}
+            />
+            {isLoading && (
+              <View style={styles.loadingOverlay}>
+                <ActivityIndicator
+                  size="large"
+                  color={Colors.textPrimary}
+                />
+              </View>
             )}
             <TouchableOpacity
               style={StyleSheet.absoluteFill}
@@ -402,7 +361,7 @@ export function HarmoniumPlayer({
                     />
                   </View>
                   <Text style={styles.videoTime}>
-                    {formatTime(player.currentTime ?? 0)} / {formatTime(player.duration ?? 0)}
+                    {formatTime(currentTime)} / {formatTime(duration)}
                   </Text>
                 </View>
               </Animated.View>
@@ -457,30 +416,6 @@ export function HarmoniumPlayer({
           </View>
         )}
       </View>
-
-      {__DEV__ && showDebug && (
-        <View style={styles.debugPanel}>
-          <ScrollView showsVerticalScrollIndicator={false}>
-            {debugLines.map((line, i) => (
-              <Text key={i} style={styles.debugLine}>
-                {line}
-              </Text>
-            ))}
-          </ScrollView>
-          <TouchableOpacity style={styles.exportBtn} onPress={exportLogs}>
-            <Text style={styles.exportBtnText}>📤 Export Logs</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.clearBtn}
-            onPress={() => {
-              logger.clear();
-              setDebugLines([]);
-            }}
-          >
-            <Text style={styles.exportBtnText}>🗑 Clear</Text>
-          </TouchableOpacity>
-        </View>
-      )}
     </View>
   );
 }
@@ -554,6 +489,12 @@ const styles = StyleSheet.create({
   video: {
     width: '100%',
     height: '100%',
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   controlsOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -636,52 +577,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: Spacing.xxl,
-  },
-  debugToggle: {
-    position: 'absolute',
-    top: Spacing.sm,
-    right: Spacing.sm,
-    zIndex: 999,
-    width: 32,
-    height: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  debugToggleText: {
-    fontSize: 18,
-  },
-  debugPanel: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 200,
-    backgroundColor: 'rgba(0,0,0,0.9)',
-    padding: Spacing.sm,
-    zIndex: 998,
-  },
-  debugLine: {
-    color: '#00FF00',
-    fontSize: 10,
-    fontFamily: 'monospace',
-  },
-  exportBtn: {
-    backgroundColor: Colors.bgPrimary,
-    padding: Spacing.sm,
-    borderRadius: 8,
-    marginTop: Spacing.xs,
-    alignItems: 'center',
-  },
-  clearBtn: {
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    padding: Spacing.sm,
-    borderRadius: 8,
-    marginTop: Spacing.xs,
-    alignItems: 'center',
-  },
-  exportBtnText: {
-    color: Colors.textPrimary,
-    fontSize: FontSize.xs,
-    fontFamily: Typography.medium,
   },
 });
