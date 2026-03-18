@@ -45,7 +45,7 @@ health:
 
 # ─── Local development ─────────────────────────────────────
 
-.PHONY: start web ios android debug install lint lint-fix lint-ts clear tunnel ios-log android-log health build-testing build-production build-status sync-to-testing sync-to-main sync-and-build dev help
+.PHONY: start web ios android debug dev-debug install lint lint-fix lint-ts clear tunnel ios-log android-log health build-testing build-production build-status sync-to-testing sync-to-main sync-and-build dev help
 
 # Default: interactive dev server (press w/i/a for web/iOS/Android)
 dev:
@@ -69,6 +69,11 @@ android:
 # Debug: clear Metro cache and start
 debug:
 	npx expo start --clear
+
+# Watch only player/engine logs
+dev-debug:
+	@mkdir -p logs
+	npx expo start --clear 2>&1 | tee logs/player.log
 
 # Install dependencies
 install:
