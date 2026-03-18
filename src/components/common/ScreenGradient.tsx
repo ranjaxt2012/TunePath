@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Gradient } from '@/src/constants/theme';
+import { useTheme } from '@/src/contexts/ThemeContext';
 
 type Props = {
   children: React.ReactNode;
@@ -9,11 +9,13 @@ type Props = {
 };
 
 export function ScreenGradient({ children, style }: Props) {
+  const { theme } = useTheme();
+
   return (
     <LinearGradient
-      colors={[...Gradient.colors]}
-      start={Gradient.start}
-      end={Gradient.end}
+      colors={theme.gradient as [string, string, ...string[]]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 0, y: 1 }}
       style={[styles.gradient, style]}
     >
       {children}

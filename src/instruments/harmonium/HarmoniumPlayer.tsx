@@ -10,18 +10,14 @@ import {
   Image,
   StyleSheet,
   ActivityIndicator,
-  Animated,
   TouchableOpacity,
   useWindowDimensions,
 } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { Ionicons } from '@expo/vector-icons';
 import { setAudioModeAsync } from 'expo-audio';
-import { useRouter } from 'expo-router';
 import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 import { Colors, FontSize, Spacing, Typography } from '@/src/constants/theme';
-import { formatTime } from '@/src/utils/time';
-import { logger } from '@/src/utils/logger';
 import { useAuthStore } from '@/src/store/authStore';
 import { ScrollingNotation } from './ScrollingNotation';
 import { SargamPlayerEngine } from './SargamPlayerEngine';
@@ -63,11 +59,7 @@ export function HarmoniumPlayer({
   lesson,
   notes = [],
   onComplete,
-  onProgress,
-  lessonIds,
-  currentLessonIndex,
 }: LessonPlayerProps) {
-  const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const isTutor = user?.roles?.includes('tutor') ?? false;
   const { width, height } = useWindowDimensions();
@@ -80,36 +72,9 @@ export function HarmoniumPlayer({
 
   const [activeNoteIndex, setActiveNoteIndex] = useState(-1);
   const [noteProgress, setNoteProgress] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
   const [playbackSpeed, setPlaybackSpeed] = useState(1.0);
   const [videoStarted, setVideoStarted] = useState(false);
-  const [showControls, setShowControls] = useState(false);
   const [localNotes, setLocalNotes] = useState<Note[]>([]);
-  const progressAnim = useRef(new Animated.Value(0)).current;
-  const controlsOpacity = useRef(new Animated.Value(0)).current;
-  const hideControlsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const displayNotesRef = useRef<Note[]>([]);
-  const lastLogTime = useRef(0);
-
-  const hasPrev = (currentLessonIndex ?? 0) > 0;
-  const hasNext = lessonIds
-    ? (currentLessonIndex ?? 0) < lessonIds.length - 1
-    : false;
-
-  const goToPrev = useCallback(() => {
-    if (!hasPrev || !lessonIds) return;
-    const prevId = lessonIds[(currentLessonIndex ?? 0) - 1];
-    router.replace(`/lesson/${prevId}`);
-  }, [hasPrev, lessonIds, currentLessonIndex, router]);
-
-  const goToNext = useCallback(() => {
-    if (!hasNext || !lessonIds) return;
-    const nextId = lessonIds[(currentLessonIndex ?? 0) + 1];
-    router.replace(`/lesson/${nextId}`);
-  }, [hasNext, lessonIds, currentLessonIndex, router]);
 
   const videoSource = lesson.video_url
     ? { uri: lesson.video_url }
@@ -124,15 +89,6 @@ export function HarmoniumPlayer({
     () => (localNotes.length > 0 ? localNotes : displayNotes),
     [localNotes, displayNotes]
   );
-  displayNotesRef.current = activeNotes;
-
-  const progressValue = useMemo(
-    () =>
-      activeNoteIndex < 0
-        ? 0
-        : activeNoteIndex / Math.max(1, activeNotes.length - 1),
-    [activeNoteIndex, activeNotes.length]
-  );
 
   useEffect(() => {
     const engine = new SargamPlayerEngine();
@@ -140,7 +96,6 @@ export function HarmoniumPlayer({
     engine.onNoteProgress = (p) => setNoteProgress(p);
     engine.onComplete = () => {
       setActiveNoteIndex(-1);
-      progressAnim.setValue(0);
       onCompleteRef.current?.();
     };
     engine.onError = (_e) => { /* no-op */ };
@@ -169,91 +124,20 @@ export function HarmoniumPlayer({
     // TODO: PATCH /api/lessons/${lesson.id}/notation with updated notes
   }, []);
 
-  // Single status callback replaces all separate expo-video listeners
   const handlePlaybackStatus = useCallback(
     (status: AVPlaybackStatus) => {
-      if (!status.isLoaded) {
-        setIsLoading(true);
-        return;
-      }
-      setIsLoading(false);
+      if (!status.isLoaded || !status.isPlaying) return;
 
-      // Sync notation to video position
-      if (status.isPlaying) {
-        const pos = status.positionMillis / 1000;
-        engineRef.current?.syncToTime(pos, playbackSpeed);
-        const dur = (status.durationMillis ?? 1) / 1000;
-        progressAnim.setValue(dur > 0 ? pos / dur : 0);
-
-        // Log position every 1 second to avoid 10×/sec noise
-        if (pos - lastLogTime.current >= 1) {
-          lastLogTime.current = pos;
-          logger.log('PLAYER', 'position', {
-            time: pos.toFixed(1),
-            speed: playbackSpeed,
-          });
-        }
-      }
-
-      // Update state for display and controls
-      setCurrentTime(status.positionMillis / 1000);
-      setDuration((status.durationMillis ?? 0) / 1000);
-      setIsPlaying(status.isPlaying);
-
-      // Video ended
-      if (status.didJustFinish) {
-        setActiveNoteIndex(-1);
-        progressAnim.setValue(0);
-        engineRef.current?.onComplete?.();
-        videoRef.current?.setPositionAsync(0);
-        videoRef.current?.pauseAsync();
-        setIsPlaying(false);
-        logger.log('PLAYER', 'video ended');
-      }
+      const currentTime = status.positionMillis / 1000;
+      engineRef.current?.syncToTime(currentTime, playbackSpeed);
     },
-    [playbackSpeed, progressAnim]
+    [playbackSpeed]
   );
 
   // Keep playback rate in sync with speed slider
   useEffect(() => {
     videoRef.current?.setRateAsync(playbackSpeed, true);
   }, [playbackSpeed]);
-
-  const showVideoControls = useCallback(() => {
-    if (hideControlsTimer.current) {
-      clearTimeout(hideControlsTimer.current);
-      hideControlsTimer.current = null;
-    }
-    setShowControls(true);
-    Animated.timing(controlsOpacity, {
-      toValue: 1,
-      duration: 200,
-      useNativeDriver: true,
-    }).start();
-    hideControlsTimer.current = setTimeout(() => {
-      Animated.timing(controlsOpacity, {
-        toValue: 0,
-        duration: 300,
-        useNativeDriver: true,
-      }).start(() => setShowControls(false));
-      hideControlsTimer.current = null;
-    }, 3000);
-  }, [controlsOpacity]);
-
-  const handleVideoTap = useCallback(() => {
-    showVideoControls();
-    if (isPlaying) {
-      videoRef.current?.pauseAsync();
-    } else {
-      videoRef.current?.playAsync();
-    }
-  }, [isPlaying, showVideoControls]);
-
-  useEffect(() => {
-    return () => {
-      if (hideControlsTimer.current) clearTimeout(hideControlsTimer.current);
-    };
-  }, []);
 
   return (
     <View style={[styles.container, isLandscape && styles.containerLandscape]}>
@@ -290,94 +174,16 @@ export function HarmoniumPlayer({
               source={videoSource}
               style={styles.video}
               resizeMode={ResizeMode.CONTAIN}
-              shouldPlay={false}
+              shouldPlay
               onPlaybackStatusUpdate={handlePlaybackStatus}
-              useNativeControls={false}
+              useNativeControls
             />
-            {isLoading && (
-              <View style={styles.loadingOverlay}>
-                <ActivityIndicator
-                  size="large"
-                  color={Colors.textPrimary}
-                />
-              </View>
-            )}
-            <TouchableOpacity
-              style={StyleSheet.absoluteFill}
-              onPress={handleVideoTap}
-              activeOpacity={1}
-            />
-            {showControls && (
-              <Animated.View
-                style={[styles.controlsOverlay, { opacity: controlsOpacity }]}
-                pointerEvents="box-none"
-              >
-                <View style={styles.controlsGradient} />
-                <View style={styles.controlsRow}>
-                  <TouchableOpacity
-                    onPress={goToPrev}
-                    disabled={!hasPrev}
-                    style={styles.navBtn}
-                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                  >
-                    <Ionicons
-                      name="play-skip-back"
-                      size={28}
-                      color={hasPrev ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.3)'}
-                    />
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={handleVideoTap} style={styles.playPauseBtn}>
-                    <Ionicons
-                      name={isPlaying ? 'pause' : 'play'}
-                      size={48}
-                      color="rgba(255,255,255,0.95)"
-                    />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={goToNext}
-                    disabled={!hasNext}
-                    style={styles.navBtn}
-                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                  >
-                    <Ionicons
-                      name="play-skip-forward"
-                      size={28}
-                      color={hasNext ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.3)'}
-                    />
-                  </TouchableOpacity>
-                </View>
-                <View style={styles.videoProgress}>
-                  <View style={styles.videoProgressTrack}>
-                    <Animated.View
-                      style={[
-                        styles.videoProgressFill,
-                        {
-                          width: progressAnim.interpolate({
-                            inputRange: [0, 1],
-                            outputRange: ['0%', '100%'],
-                          }),
-                        },
-                      ]}
-                    />
-                  </View>
-                  <Text style={styles.videoTime}>
-                    {formatTime(currentTime)} / {formatTime(duration)}
-                  </Text>
-                </View>
-              </Animated.View>
-            )}
           </View>
         )}
       </View>
 
       {/* Right panel — portrait uses full-width flow below video */}
       <View style={[styles.rightPanel, isLandscape && styles.rightPanelLandscape]}>
-        {isLandscape && (
-          <Text style={styles.lessonTitleLandscape} numberOfLines={1}>
-            {lesson.title}
-          </Text>
-        )}
-
         <View style={styles.speedRow}>
           <Text style={styles.speedEmoji}>🐢</Text>
           <Slider

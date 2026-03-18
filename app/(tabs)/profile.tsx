@@ -2,34 +2,73 @@ import React from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { ComponentProps } from 'react';
+import { useAuth } from '@clerk/clerk-expo';
+import { useRouter } from 'expo-router';
 import { BottomTabBar } from '../../src/components/ui';
 import { ScreenGradient } from '@/src/components/common/ScreenGradient';
-import { Colors } from '@/src/constants/theme';
 import { profileStyles } from '../../src/styles/profileStyles';
+import { useTheme, THEMES, type ThemeId } from '@/src/contexts/ThemeContext';
+import { useAuthStore } from '@/src/store/authStore';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
 
-const SettingsItem = React.memo(function SettingsItem({ icon, label, value, onPress }: { icon: IconName; label: string; value?: string; onPress?: () => void }) {
+const SettingsItem = React.memo(function SettingsItem({
+  icon,
+  label,
+  value,
+  onPress,
+}: {
+  icon: IconName;
+  label: string;
+  value?: string;
+  onPress?: () => void;
+}) {
   return (
     <Pressable
-      style={({ pressed }) => [profileStyles.settingsItem, { opacity: pressed ? 0.8 : 1 }]}
+      style={({ pressed }) => [
+        profileStyles.settingsItem,
+        { opacity: pressed ? 0.8 : 1 },
+      ]}
       onPress={onPress}
     >
       <View style={profileStyles.settingsItemLeft}>
-        <Ionicons name={icon} size={20} color={Colors.textPrimary} style={profileStyles.settingsItemIcon} />
+        <Ionicons
+          name={icon}
+          size={20}
+          color="#FFFFFF"
+          style={profileStyles.settingsItemIcon}
+        />
         <Text style={profileStyles.settingsItemLabel}>{label}</Text>
       </View>
       <View style={profileStyles.settingsItemRight}>
-        {value && (
-          <Text style={profileStyles.settingsItemValue}>{value}</Text>
-        )}
-        <Ionicons name="chevron-forward" size={20} color={Colors.textSecondary} />
+        {value && <Text style={profileStyles.settingsItemValue}>{value}</Text>}
+        <Ionicons
+          name="chevron-forward"
+          size={20}
+          color="rgba(255,255,255,0.75)"
+        />
       </View>
     </Pressable>
   );
 });
 
 export default function ProfileScreen() {
+  const router = useRouter();
+  const { signOut } = useAuth();
+  const { theme, setTheme } = useTheme();
+  const user = useAuthStore((s) => s.user);
+  const selectedInstrument = useAuthStore((s) => s.selectedInstrumentSlug);
+  const selectedLevel = useAuthStore((s) => s.selectedLevelSlug);
+  const genres = useAuthStore((s) => s.selectedGenres);
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+    } catch (e) {
+      console.error('Sign out failed:', e);
+    }
+  };
+
   return (
     <ScreenGradient style={profileStyles.container}>
       {/* Header */}
@@ -38,69 +77,120 @@ export default function ProfileScreen() {
       </View>
 
       {/* Main Content */}
-      <ScrollView style={profileStyles.mainContent} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+      <ScrollView
+        style={profileStyles.mainContent}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 100 }}
+      >
         {/* User Info Card */}
         <View style={profileStyles.userInfoCard}>
           {/* Avatar */}
           <View style={profileStyles.avatar}>
-            <Ionicons name="person" size={48} color={Colors.textPrimary} />
+            <Ionicons name="person" size={48} color="#FFFFFF" />
           </View>
-          
+
           {/* User Details */}
-          <Text style={profileStyles.userName}>Sarah Johnson</Text>
-          <Text style={profileStyles.userInstrument}>Harmonium</Text>
-          <Text style={profileStyles.userLevel}>Beginner Level</Text>
+          <Text style={profileStyles.userName}>{user?.displayName || 'User'}</Text>
+          {user?.email && (
+            <Text style={profileStyles.userLevel}>{user.email}</Text>
+          )}
         </View>
 
-        {/* Settings Section */}
+        {/* Learning Section */}
         <View style={profileStyles.section}>
-          <Text style={profileStyles.sectionTitle}>Settings</Text>
+          <Text style={profileStyles.sectionTitle}>Learning</Text>
           <View style={profileStyles.sectionCard}>
             <SettingsItem
               icon="musical-notes"
-              label="Change Instrument"
-              value="Harmonium"
+              label="Instrument"
+              value={selectedInstrument || 'Select'}
+              onPress={() => router.push('/select/instrument')}
             />
             <View style={profileStyles.divider} />
             <SettingsItem
               icon="bar-chart"
-              label="Change Level"
-              value="Beginner"
-            />
-            <View style={profileStyles.divider} />
-            <SettingsItem
-              icon="notifications-outline"
-              label="Notification Settings"
-            />
-            <View style={profileStyles.divider} />
-            <SettingsItem
-              icon="settings-outline"
-              label="App Preferences"
+              label="Level"
+              value={selectedLevel || 'Select'}
+              onPress={() => router.push('/select/level')}
             />
           </View>
         </View>
 
-        {/* Account Section */}
+        {/* Theme Picker Section */}
         <View style={profileStyles.section}>
-          <Text style={profileStyles.sectionTitle}>Account</Text>
-          <View style={profileStyles.sectionCard}>
-            <SettingsItem
-              icon="card-outline"
-              label="Manage Subscription"
-            />
-            <View style={profileStyles.divider} />
-            <SettingsItem
-              icon="shield-checkmark-outline"
-              label="Privacy Policy"
-            />
-            <View style={profileStyles.divider} />
-            <SettingsItem
-              icon="log-out-outline"
-              label="Log Out"
-              onPress={() => { /* TODO: implement logout */ }}
-            />
+          <Text style={profileStyles.sectionTitle}>Theme</Text>
+          <View style={profileStyles.themesContainer}>
+            <View style={profileStyles.themesGrid}>
+              {Object.values(THEMES).map((t) => (
+                <Pressable
+                  key={t.id}
+                  onPress={() => setTheme(t.id as ThemeId)}
+                  style={{ alignItems: 'center' }}
+                >
+                  <View
+                    style={[
+                      profileStyles.themeSwatch,
+                      { backgroundColor: t.bgPrimary },
+                      theme.id === t.id && profileStyles.themeSwatchActive,
+                    ]}
+                  >
+                    {theme.id === t.id && (
+                      <Ionicons name="checkmark" size={24} color="#FFFFFF" />
+                    )}
+                  </View>
+                  <Text style={profileStyles.themeLabel}>{t.label}</Text>
+                </Pressable>
+              ))}
+            </View>
           </View>
         </View>
+
+        {/* Genres Section */}
+        {genres && genres.length > 0 && (
+          <View style={profileStyles.section}>
+            <Text style={profileStyles.sectionTitle}>Preferred Genres</Text>
+            <View style={profileStyles.genresContainer}>
+              {genres.map((genre) => (
+                <View key={genre} style={profileStyles.genresPill}>
+                  <Text style={profileStyles.genresPillText}>{genre}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* Tutor Portal */}
+        <View style={profileStyles.section}>
+          <Pressable
+            style={profileStyles.settingsItem}
+            onPress={() => router.push('/tutor/upload')}
+          >
+            <View style={profileStyles.settingsItemLeft}>
+              <Ionicons
+                name="cloud-upload-outline"
+                size={20}
+                color="#FFFFFF"
+              />
+              <Text style={profileStyles.settingsItemLabel}>Tutor Portal</Text>
+            </View>
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color="rgba(255,255,255,0.75)"
+            />
+          </Pressable>
+        </View>
+
+        {/* Sign Out Button */}
+        <Pressable
+          onPress={handleSignOut}
+          style={({ pressed }) => [
+            profileStyles.signOutButton,
+            { opacity: pressed ? 0.8 : 1 },
+          ]}
+        >
+          <Text style={profileStyles.signOutButtonText}>Sign Out</Text>
+        </Pressable>
       </ScrollView>
 
       <BottomTabBar activeTab="profile" />

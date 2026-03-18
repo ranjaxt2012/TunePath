@@ -105,6 +105,69 @@ export const profileStyles = StyleSheet.create({
     fontSize: 15,
     color: Colors.textTertiary,
   },
+  // Theme Picker
+  themesContainer: {
+    backgroundColor: Colors.cardBg,
+    borderRadius: Radius.lg,
+    padding: Spacing.lg,
+  },
+  themesGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: Spacing.md,
+    flexWrap: 'wrap',
+  },
+  themeSwatch: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  themeSwatchActive: {
+    borderWidth: 3,
+    borderColor: Colors.textPrimary,
+  },
+  themeLabel: {
+    fontSize: 12,
+    fontFamily: Typography.semiBold,
+    color: Colors.textSecondary,
+    marginTop: Spacing.sm,
+    textAlign: 'center',
+  },
+  // Genres Pills
+  genresPill: {
+    backgroundColor: Colors.cardBgHover,
+    borderRadius: Radius.full,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    marginRight: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
+  genresPillText: {
+    fontSize: 13,
+    fontFamily: Typography.medium,
+    color: Colors.textPrimary,
+  },
+  genresContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginVertical: Spacing.sm,
+  },
+  // Sign Out Button
+  signOutButton: {
+    backgroundColor: 'rgba(239,68,68,0.20)',
+    borderRadius: Radius.full,
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.xl,
+    alignItems: 'center',
+    marginVertical: Spacing.xl,
+  },
+  signOutButtonText: {
+    fontSize: 16,
+    fontFamily: Typography.semiBold,
+    color: '#EF4444',
+  },
 });
 
 export default profileStyles;

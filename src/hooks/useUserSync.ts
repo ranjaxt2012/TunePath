@@ -1,7 +1,7 @@
 import { useUser } from '@clerk/clerk-expo';
 import { useEffect } from 'react';
 import { useAuthStore } from '@/src/store/authStore';
-import { apiPost } from '@/src/services/apiClient';
+import { apiPost, getPreferences } from '@/src/services/apiClient';
 
 export function useUserSync() {
   const { user: clerkUser, isLoaded } = useUser();
@@ -32,6 +32,16 @@ export function useUserSync() {
           roles: tunePathUser.roles as import('@/src/utils/roles').UserRole[],
           activeMode: 'learner',
         });
+
+        // Load user preferences
+        try {
+          const prefs = await getPreferences();
+          const { setTheme, setGenres } = useAuthStore.getState();
+          if (prefs.preferred_theme) setTheme(prefs.preferred_theme);
+          if (prefs.preferred_genres) setGenres(prefs.preferred_genres);
+        } catch {
+          // Preferences load failed, user can set them later
+        }
       } catch {
         // TODO: add proper logger for user sync failure
       }

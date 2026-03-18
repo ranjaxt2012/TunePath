@@ -11,8 +11,10 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScreenGradient } from '@/src/components/common/ScreenGradient';
 import {
@@ -136,9 +138,10 @@ export default function SelectLevelScreen() {
     setGenres(genres);
     setTheme(theme);
     router.replace('/(tabs)/home' as Parameters<typeof router.replace>[0]);
-    patchPreferences({ preferred_genres: genres, preferred_theme: theme }).catch(
-      () => {}
-    );
+    patchPreferences({
+      preferred_genres: genres,
+      preferred_theme: theme,
+    }).catch(() => {});
   }, [selectedSlug, genres, theme, setSelectedLevel, setGenres, setTheme, router]);
 
   const onGenreLayout = useCallback((e: LayoutChangeEvent) => {
@@ -267,6 +270,18 @@ export default function SelectLevelScreen() {
         >
           <Text style={styles.continueText}>Continue →</Text>
         </Pressable>
+
+        <TouchableOpacity
+          style={styles.tutorBtn}
+          onPress={() => router.push('/tutor/upload')}
+        >
+          <Ionicons
+            name="cloud-upload-outline"
+            size={20}
+            color={Colors.textPrimary}
+          />
+          <Text style={styles.tutorBtnText}>Tutor Portal</Text>
+        </TouchableOpacity>
       </SafeAreaView>
     </ScreenGradient>
   );
@@ -564,5 +579,19 @@ const styles = StyleSheet.create({
     fontSize: FontSize.md,
     fontFamily: Typography.semiBold,
     color: Colors.bgPrimary,
+  },
+  tutorBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    opacity: 0.7,
+    marginBottom: Spacing.lg,
+  },
+  tutorBtnText: {
+    fontFamily: Typography.medium,
+    fontSize: FontSize.sm,
+    color: Colors.textPrimary,
   },
 });

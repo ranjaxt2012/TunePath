@@ -13,7 +13,6 @@
     },
     "ios": {
       "supportsTablet": true,
-      "requiresFullScreen": false,
       "bundleIdentifier": "com.tunepath.app",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
@@ -39,7 +38,8 @@
       "expo-secure-store",
       "expo-font",
       "expo-asset",
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-audio"
     ],
     "experiments": {
       "typedRoutes": true

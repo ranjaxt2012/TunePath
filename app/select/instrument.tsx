@@ -1,10 +1,11 @@
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { EmptyState, ErrorState, InstrumentIcon, LoadingState, ScreenGradient } from '@/src/components/common';
 import { Colors, CommonStyles, Layout, Radius, Spacing, TextPresets } from '@/src/constants/theme';
 import { useInstruments } from '@/src/hooks/useInstruments';
 import { useAuthStore } from '@/src/store/authStore';
+import { patchPreferences } from '@/src/services/apiClient';
 
 const CARD_SIZE = Layout.cardHalf;
 
@@ -14,11 +15,16 @@ export default function SelectInstrumentScreen() {
   const { instruments, loading, error, refetch } = useInstruments();
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
 
-  const handleInstrumentSelect = (slug: string) => {
+  const handleInstrumentSelect = useCallback((slug: string) => {
     setSelectedSlug(slug);
     setSelectedInstrument(slug);
+    // Save to backend
+    patchPreferences({
+      preferred_genres: useAuthStore.getState().selectedGenres || [],
+      preferred_theme: useAuthStore.getState().selectedTheme,
+    }).catch(() => {});
     router.push('/select/level' as any);
-  };
+  }, [setSelectedInstrument, router]);
 
   return (
     <ScreenGradient style={styles.container}>

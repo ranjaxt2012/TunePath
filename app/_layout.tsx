@@ -29,7 +29,7 @@ import {
 } from '@expo-google-fonts/inter';
 import { useFonts } from '@expo-google-fonts/inter/useFonts';
 import { ClerkProvider, ClerkLoaded } from '@clerk/clerk-expo';
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
@@ -40,6 +40,7 @@ import { TokenProvider } from '@/src/components/auth/TokenProvider';
 import { useAuthGuard } from '@/src/hooks/useAuthGuard';
 import { useUserSync } from '@/src/hooks/useUserSync';
 import { tokenCache } from '@/src/utils/tokenCache';
+import { ThemeProvider } from '@/src/contexts/ThemeContext';
 
 export {
   ErrorBoundary,
@@ -81,7 +82,9 @@ export default function RootLayout() {
     <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
       <ClerkLoaded>
         <TokenProvider>
-          <AuthGuardLayout />
+          <ThemeProvider>
+            <AuthGuardLayout />
+          </ThemeProvider>
         </TokenProvider>
       </ClerkLoaded>
     </ClerkProvider>
@@ -98,7 +101,7 @@ function RootLayoutNav() {
   const colorScheme = useColorScheme();
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <NavigationThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
@@ -116,6 +119,6 @@ function RootLayoutNav() {
         <Stack.Screen name="course/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="tutor/upload" options={{ headerShown: false }} />
       </Stack>
-    </ThemeProvider>
+    </NavigationThemeProvider>
   );
 }
