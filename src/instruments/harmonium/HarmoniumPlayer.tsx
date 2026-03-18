@@ -1,366 +1,687 @@
 /**
- * HarmoniumPlayer — thin UI shell over SargamPlayerEngine.
- * All playback logic lives in the engine. This file only renders
- * and forwards user input. No Audio, no fetch, no setTimeout here.
+ * HarmoniumPlayer — video-driven notation. Video is source of truth;
+ * notation syncs to video position every 100ms. Engine syncToTime() replaces ticker.
  */
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
+  Image,
   StyleSheet,
-  TouchableOpacity,
   ActivityIndicator,
   Animated,
-  PanResponder,
+  TouchableOpacity,
+  useWindowDimensions,
+  ScrollView,
 } from 'react-native';
-import { Audio } from 'expo-av';
-import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
-import { Colors, FontSize, Radius, Spacing, Typography } from '@/src/constants/theme';
+import { Ionicons } from '@expo/vector-icons';
+import { setAudioModeAsync } from 'expo-audio';
+import * as Sharing from 'expo-sharing';
+import { useRouter } from 'expo-router';
+import { useVideoPlayer, VideoView } from 'expo-video';
+import { Colors, FontSize, Spacing, Typography } from '@/src/constants/theme';
+import { formatTime } from '@/src/utils/time';
+import { logger } from '@/src/utils/logger';
 import { ScrollingNotation } from './ScrollingNotation';
 import { SargamPlayerEngine } from './SargamPlayerEngine';
+import { HARMONIUM_SAMPLE_MAP } from './sampleMap';
 import type { LessonPlayerProps } from '@/src/registry/types';
 import type { Note } from '@/src/utils/notation';
 
-// ── Sample map ──────────────────────────────────────────────────────────────
-// Keys must match normalized note names (first char upper, rest lower)
-// Paths are relative to src/instruments/harmonium/ → assets/ is 3 levels up
+const MOCK_VIDEO_URL =
+  'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
 
-const SAMPLE_MAP: Record<string, number> = {
-  Sa:  require('../../../assets/instruments/harmonium/samples/Sa.mp3')  as number,
-  Re:  require('../../../assets/instruments/harmonium/samples/Re.mp3')  as number,
-  Ga:  require('../../../assets/instruments/harmonium/samples/Ga.mp3')  as number,
-  Ma:  require('../../../assets/instruments/harmonium/samples/Ma.mp3')  as number,
-  Pa:  require('../../../assets/instruments/harmonium/samples/Pa.mp3')  as number,
-  Dha: require('../../../assets/instruments/harmonium/samples/Dha.mp3') as number,
-  Ni:  require('../../../assets/instruments/harmonium/samples/Ni.mp3')  as number,
-};
-
-// ── Helpers ─────────────────────────────────────────────────────────────────
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, value));
-}
-
+/**
+ * Mock notation for "Introduction to Sa re ga ma" / Basic Sargam when
+ * lesson has no notation_url or fetch returns empty. Matches
+ * content/harmonium/beginner/lesson-001-basics-sargam/lesson.json:
+ * Section 1 (0–12s) straight scale, Section 2 (13–24s) reverse, Section 3 (25–38s) double notes.
+ */
 function getMockNotes(): Note[] {
-  return [
-    { note: 'Sa',  time: 0 },
-    { note: 'Re',  time: 0.75 },
-    { note: 'Ga',  time: 1.5 },
-    { note: 'Ma',  time: 2.25 },
-    { note: 'Pa',  time: 3 },
-    { note: 'Dha', time: 3.75 },
-    { note: 'Ni',  time: 4.5 },
-    { note: 'Sa',  time: 5.25 },
-    { note: 'Re',  time: 6 },
-    { note: 'Ga',  time: 6.75 },
-    { note: 'Ga',  time: 7.5 },
-    { note: 'Ma',  time: 8.25 },
+  const sections: { notation: string; startSec: number; endSec: number }[] = [
+    { notation: 'Sa Re Ga Ma Pa Dha Ni Sa', startSec: 0, endSec: 12 },
+    { notation: 'Sa Ni Dha Pa Ma Ga Re Sa', startSec: 13, endSec: 24 },
+    {
+      notation: 'Sa Sa Re Re Ga Ga Ma Ma Pa Pa Dha Dha Ni Ni Sa',
+      startSec: 25,
+      endSec: 38,
+    },
   ];
+  const notes: Note[] = [];
+  for (const sec of sections) {
+    const tokens = sec.notation.split(/\s+/).map((s) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase());
+    if (tokens.length === 0) continue;
+    const step = (sec.endSec - sec.startSec) / tokens.length;
+    tokens.forEach((token, i) => {
+      notes.push({ note: token, time: sec.startSec + (i + 0.5) * step });
+    });
+  }
+  return notes;
 }
 
-// ── Component ────────────────────────────────────────────────────────────────
-
-export function HarmoniumPlayer({ notes = [], onComplete, onProgress }: LessonPlayerProps) {
+export function HarmoniumPlayer({
+  lesson,
+  notes = [],
+  onComplete,
+  onProgress,
+  lessonIds,
+  currentLessonIndex,
+}: LessonPlayerProps) {
+  const router = useRouter();
+  const isTutor = true; // TODO: derive from useAuthStore when testing done
+  const { width, height } = useWindowDimensions();
+  const isLandscape = width > height;
   const engineRef = useRef<SargamPlayerEngine | null>(null);
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
 
-  const [isPlaying, setIsPlaying]           = useState(false);
   const [activeNoteIndex, setActiveNoteIndex] = useState(-1);
-  const [bpm, setBpm]                       = useState(80);
-  const [trackWidth, setTrackWidth]         = useState(0);
-  const [isSeeking, setIsSeeking]           = useState(false);
+  const [noteProgress, setNoteProgress] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [playbackSpeed, setPlaybackSpeed] = useState(1.0);
+  const [videoStarted, setVideoStarted] = useState(false);
+  const [videoMounted, setVideoMounted] = useState(false);
+  const [showControls, setShowControls] = useState(false);
+  const [localNotes, setLocalNotes] = useState<Note[]>([]);
+  const [showDebug, setShowDebug] = useState(false);
+  const [debugLines, setDebugLines] = useState<string[]>([]);
+  const progressAnim = useRef(new Animated.Value(0)).current;
+  const controlsOpacity = useRef(new Animated.Value(0)).current;
+  const hideControlsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const displayNotesRef = useRef<Note[]>([]);
+  const hasInitiallyPaused = useRef(false);
 
-  const progressAnim          = useRef(new Animated.Value(0)).current;
-  const wasPlayingBeforeSeek  = useRef(false);
-  const seekRatioRef          = useRef(0);
-  const trackWidthRef         = useRef(0);
-  const displayNotesRef       = useRef<Note[]>([]);
+  const hasPrev = (currentLessonIndex ?? 0) > 0;
+  const hasNext = lessonIds
+    ? (currentLessonIndex ?? 0) < lessonIds.length - 1
+    : false;
 
-  // Stable reference so pan handlers never close over stale values
-  trackWidthRef.current = trackWidth;
+  const goToPrev = useCallback(() => {
+    if (!hasPrev || !lessonIds) return;
+    const prevId = lessonIds[(currentLessonIndex ?? 0) - 1];
+    router.replace(`/lesson/${prevId}`);
+  }, [hasPrev, lessonIds, currentLessonIndex, router]);
 
-  const displayNotes = notes.length > 0 ? notes : getMockNotes();
-  displayNotesRef.current = displayNotes;
+  const goToNext = useCallback(() => {
+    if (!hasNext || !lessonIds) return;
+    const nextId = lessonIds[(currentLessonIndex ?? 0) + 1];
+    router.replace(`/lesson/${nextId}`);
+  }, [hasNext, lessonIds, currentLessonIndex, router]);
 
-  // ── Effect 1: Create engine once on mount ──────────────────────────────────
+  const videoSource = lesson.video_url ?? MOCK_VIDEO_URL;
+  const player = useVideoPlayer(videoStarted ? videoSource : null, (p) => {
+    p.loop = false;
+    p.playbackRate = playbackSpeed;
+    p.timeUpdateEventInterval = 0.1;
+  });
+
+  useEffect(() => {
+    if (!videoStarted) return;
+    const sub = player.addListener('statusChange', ({ status }) => {
+      logger.log('PLAYER', 'statusChange', { status });
+      if (status === 'readyToPlay' && !hasInitiallyPaused.current) {
+        hasInitiallyPaused.current = true;
+        player.pause();
+        sub.remove();
+      }
+    });
+    return () => sub.remove();
+  }, [videoStarted, player]);
+
+  useEffect(() => {
+    hasInitiallyPaused.current = false;
+  }, [videoStarted]);
+
+  useEffect(() => {
+    if (!videoStarted) return;
+    const t = setTimeout(() => setVideoMounted(true), 100);
+    return () => clearTimeout(t);
+  }, [videoStarted]);
+
+  const mockNotes = useMemo(() => getMockNotes(), []);
+  const displayNotes = useMemo(
+    () => (notes.length > 0 ? notes : mockNotes),
+    [notes, mockNotes]
+  );
+  const activeNotes = useMemo(
+    () => (localNotes.length > 0 ? localNotes : displayNotes),
+    [localNotes, displayNotes]
+  );
+  displayNotesRef.current = activeNotes;
+
+  const progressValue = useMemo(
+    () =>
+      activeNoteIndex < 0
+        ? 0
+        : activeNoteIndex / Math.max(1, activeNotes.length - 1),
+    [activeNoteIndex, activeNotes.length]
+  );
+
   useEffect(() => {
     const engine = new SargamPlayerEngine();
-
-    engine.onIndexChange    = (i) => setActiveNoteIndex(i);
-    engine.onPlayStateChange = (p) => setIsPlaying(p);
-    engine.onComplete       = () => {
-      // Engine already reset index to -1; ensure UI + progress reset and notation scrolls to top
+    engine.onIndexChange = (i) => setActiveNoteIndex(i);
+    engine.onNoteProgress = (p) => setNoteProgress(p);
+    engine.onComplete = () => {
       setActiveNoteIndex(-1);
       progressAnim.setValue(0);
+      onCompleteRef.current?.();
     };
-    engine.onError          = (e) => { console.error('HarmoniumPlayer engine error:', e); };
-
+    engine.onError = (e) => { /* no-op or log */ };
     engineRef.current = engine;
-
-    // Configure audio session — allow playback in silent mode
-    void Audio.setAudioModeAsync({
-      playsInSilentModeIOS: true,
-      allowsRecordingIOS:   false,
-      staysActiveInBackground: false,
+    void setAudioModeAsync({
+      playsInSilentMode: true,
+      allowsRecording: false,
+      shouldPlayInBackground: false,
     });
-
     return () => {
       engine.destroy();
       engineRef.current = null;
     };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- engine init once on mount
+
+  useEffect(() => {
+    const engine = engineRef.current;
+    if (!engine) return;
+    if (activeNotes.length === 0) return;
+    engine.load(activeNotes, HARMONIUM_SAMPLE_MAP);
+    setActiveNoteIndex(-1);
+  }, [activeNotes]);
+
+  const handleNotesEdit = useCallback((updated: Note[]) => {
+    setLocalNotes(updated);
+    // TODO: PATCH /api/lessons/${lesson.id}/notation with updated notes
   }, []);
 
-  // ── Effect 2: (Re)load engine whenever notes change ────────────────────────
-  // Fixes the async-notes bug: if notes arrive after mount, engine reloads.
   useEffect(() => {
-    const engine = engineRef.current;
-    if (!engine) return;
-    if (displayNotes.length === 0) return;
-
-    engine.load(displayNotes, SAMPLE_MAP);
-    setActiveNoteIndex(-1);
-    setIsPlaying(false);
-  }, [displayNotes]);
-
-  // ── Effect 3: Propagate BPM changes ───────────────────────────────────────
-  useEffect(() => {
-    engineRef.current?.setBpm(bpm);
-  }, [bpm]);
-
-  // ── Effect 4: Animate progress bar ────────────────────────────────────────
-  const progress =
-    activeNoteIndex < 0
-      ? 0
-      : activeNoteIndex / Math.max(1, displayNotes.length - 1);
+    player.playbackRate = playbackSpeed;
+  }, [playbackSpeed, player]);
 
   useEffect(() => {
-    Animated.timing(progressAnim, {
-      toValue:         progress,
-      duration:        100,
-      useNativeDriver: false,
+    if (!videoStarted) return;
+    const sub = player.addListener('timeUpdate', ({ currentTime }) => {
+      const t0 = Date.now();
+      engineRef.current?.syncToTime(currentTime, playbackSpeed);
+      logger.perf('syncToTime', Date.now() - t0);
+      logger.log('PLAYER', 'timeUpdate', {
+        currentTime: currentTime.toFixed(2),
+        progressValue,
+      });
+      const duration = player.duration ?? 1;
+      progressAnim.setValue(duration > 0 ? currentTime / duration : 0);
+    });
+    return () => sub.remove();
+  }, [videoStarted, player, progressAnim, playbackSpeed, progressValue]);
+
+  useEffect(() => {
+    const sub = player.addListener('playingChange', ({ isPlaying: playing }) => {
+      setIsPlaying(playing);
+      logger.log('PLAYER', 'playingChange', { playing });
+    });
+    return () => sub.remove();
+  }, [player]);
+
+  useEffect(() => {
+    const sub = player.addListener('playToEnd', () => {
+      setActiveNoteIndex(-1);
+      progressAnim.setValue(0);
+      engineRef.current?.onComplete?.();
+      player.currentTime = 0;
+      player.pause();
+      setIsPlaying(false);
+    });
+    return () => sub.remove();
+  }, [player, progressAnim]);
+
+  const showVideoControls = useCallback(() => {
+    if (hideControlsTimer.current) {
+      clearTimeout(hideControlsTimer.current);
+      hideControlsTimer.current = null;
+    }
+    setShowControls(true);
+    Animated.timing(controlsOpacity, {
+      toValue: 1,
+      duration: 200,
+      useNativeDriver: true,
     }).start();
-  }, [progress, progressAnim]);
+    hideControlsTimer.current = setTimeout(() => {
+      Animated.timing(controlsOpacity, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }).start(() => setShowControls(false));
+      hideControlsTimer.current = null;
+    }, 3000);
+  }, [controlsOpacity]);
 
-  // ── Handlers ───────────────────────────────────────────────────────────────
-
-  const handlePlayPause = useCallback(() => {
-    const engine = engineRef.current;
-    if (!engine) return;
-    if (engine.isPlaying()) {
-      engine.pause();
+  const handleVideoTap = useCallback(() => {
+    showVideoControls();
+    if (player.playing) {
+      player.pause();
     } else {
-      void engine.play();
+      player.play();
+    }
+  }, [player, showVideoControls]);
+
+  useEffect(() => {
+    if (!__DEV__) return;
+    const interval = setInterval(() => {
+      const entries = logger
+        .getBuffer()
+        .slice(-8)
+        .map((e) => {
+          const t = (e.ts / 1000).toFixed(1);
+          return `[${t}s] ${e.message}`;
+        });
+      setDebugLines(entries);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const exportLogs = useCallback(async () => {
+    try {
+      const path = await logger.exportToFile();
+      await Sharing.shareAsync(path);
+    } catch {
+      // ignore export errors in dev
     }
   }, []);
 
-  // ── Seek bar (pan responder) ───────────────────────────────────────────────
-
-  const thumbX = progressAnim.interpolate({
-    inputRange:  [0, 1],
-    outputRange: [0, trackWidth],
-    extrapolate: 'clamp',
-  });
-
-  const seekPan = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder:  () => true,
-      onStartShouldSetPanResponderCapture: () => true,
-      onMoveShouldSetPanResponderCapture: () => true,
-
-      onPanResponderGrant: () => {
-        wasPlayingBeforeSeek.current = engineRef.current?.isPlaying() ?? false;
-        engineRef.current?.pause();
-        setIsSeeking(true);
-      },
-
-      onPanResponderMove: (evt) => {
-        const w = trackWidthRef.current;
-        if (w <= 0) return;
-
-        const raw     = evt.nativeEvent.locationX;
-        const clamped = clamp(raw, 0, w);
-        const ratio   = w > 0 ? clamped / w : 0;
-
-        // Smoothly update thumb position
-        progressAnim.setValue(ratio);
-
-        const total = displayNotesRef.current.length;
-        const index = total <= 1 ? 0 : Math.round(ratio * (total - 1));
-
-        seekRatioRef.current = ratio;
-        setActiveNoteIndex(index);
-      },
-
-      onPanResponderRelease: (evt) => {
-        const w = trackWidthRef.current;
-        const raw = evt.nativeEvent.locationX;
-        const clamped = clamp(raw, 0, w);
-        const ratio = w > 0 ? clamped / w : 0;
-
-        seekRatioRef.current = ratio;
-        setIsSeeking(false);
-        engineRef.current?.seekToRatio(
-          seekRatioRef.current,
-          wasPlayingBeforeSeek.current,
-        );
-      },
-    }),
-  ).current;
-
-  // ── Render ─────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    return () => {
+      if (hideControlsTimer.current) clearTimeout(hideControlsTimer.current);
+    };
+  }, []);
 
   return (
-    <View style={styles.container}>
-      {/* BPM slider */}
-      <View style={styles.bpmRow}>
-        <Text style={styles.bpmEmoji}>🐢</Text>
-        <View style={styles.sliderWrap}>
-          <View style={styles.sliderScale}>
-            <Slider
-              style={styles.slider}
-              minimumValue={40}
-              maximumValue={160}
-              step={5}
-              value={bpm}
-              onValueChange={(val) => setBpm(val)}
-              minimumTrackTintColor={Colors.bgPrimary}
-              maximumTrackTintColor="rgba(255,255,255,0.2)"
-              thumbTintColor={Colors.textPrimary}
+    <View style={[styles.container, isLandscape && styles.containerLandscape]}>
+      {__DEV__ && (
+        <TouchableOpacity
+          onPress={() => setShowDebug((d) => !d)}
+          style={styles.debugToggle}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Text style={styles.debugToggleText}>🐛</Text>
+        </TouchableOpacity>
+      )}
+
+      {/* Video section */}
+      <View style={[styles.videoSection, isLandscape && styles.videoSectionLandscape]}>
+        {!videoStarted ? (
+          <TouchableOpacity
+            style={styles.posterContainer}
+            onPress={() => setVideoStarted(true)}
+            activeOpacity={0.9}
+          >
+            {lesson.thumbnail_url ? (
+              <Image
+                source={{ uri: lesson.thumbnail_url }}
+                style={styles.poster}
+                resizeMode="cover"
+              />
+            ) : (
+              <View style={styles.posterPlaceholder} />
+            )}
+            <View style={styles.posterOverlay} />
+            <View style={styles.posterPlayBtn}>
+              <Ionicons
+                name="play"
+                size={48}
+                color="rgba(255,255,255,0.95)"
+              />
+            </View>
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.videoContainer}>
+            {videoMounted && (
+              <VideoView
+                player={player}
+                style={styles.video}
+                allowsFullscreen
+                allowsPictureInPicture
+                nativeControls={false}
+              />
+            )}
+            <TouchableOpacity
+              style={StyleSheet.absoluteFill}
+              onPress={handleVideoTap}
+              activeOpacity={1}
+            />
+            {showControls && (
+              <Animated.View
+                style={[styles.controlsOverlay, { opacity: controlsOpacity }]}
+                pointerEvents="box-none"
+              >
+                <View style={styles.controlsGradient} />
+                <View style={styles.controlsRow}>
+                  <TouchableOpacity
+                    onPress={goToPrev}
+                    disabled={!hasPrev}
+                    style={styles.navBtn}
+                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                  >
+                    <Ionicons
+                      name="play-skip-back"
+                      size={28}
+                      color={hasPrev ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.3)'}
+                    />
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={handleVideoTap} style={styles.playPauseBtn}>
+                    <Ionicons
+                      name={isPlaying ? 'pause' : 'play'}
+                      size={48}
+                      color="rgba(255,255,255,0.95)"
+                    />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={goToNext}
+                    disabled={!hasNext}
+                    style={styles.navBtn}
+                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                  >
+                    <Ionicons
+                      name="play-skip-forward"
+                      size={28}
+                      color={hasNext ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.3)'}
+                    />
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.videoProgress}>
+                  <View style={styles.videoProgressTrack}>
+                    <Animated.View
+                      style={[
+                        styles.videoProgressFill,
+                        {
+                          width: progressAnim.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: ['0%', '100%'],
+                          }),
+                        },
+                      ]}
+                    />
+                  </View>
+                  <Text style={styles.videoTime}>
+                    {formatTime(player.currentTime ?? 0)} / {formatTime(player.duration ?? 0)}
+                  </Text>
+                </View>
+              </Animated.View>
+            )}
+          </View>
+        )}
+      </View>
+
+      {/* Right panel — portrait uses full-width flow below video */}
+      <View style={[styles.rightPanel, isLandscape && styles.rightPanelLandscape]}>
+        {isLandscape && (
+          <Text style={styles.lessonTitleLandscape} numberOfLines={1}>
+            {lesson.title}
+          </Text>
+        )}
+
+        <View style={styles.speedRow}>
+          <Text style={styles.speedEmoji}>🐢</Text>
+          <Slider
+            style={styles.speedSlider}
+            minimumValue={0.25}
+            maximumValue={2.0}
+            step={0.05}
+            value={playbackSpeed}
+            onValueChange={(val) => {
+              setPlaybackSpeed(Math.round(val * 20) / 20);
+            }}
+            minimumTrackTintColor={Colors.bgPrimary}
+            maximumTrackTintColor="rgba(255,255,255,0.2)"
+            thumbTintColor={Colors.textPrimary}
+          />
+          <Text style={styles.speedEmoji}>🐇</Text>
+          <Text style={styles.speedLabel}>
+            {playbackSpeed.toFixed(2)}x
+          </Text>
+        </View>
+
+        {activeNotes.length > 0 ? (
+          <View style={styles.notationPanelWrap}>
+            <ScrollingNotation
+              notes={activeNotes}
+              activeNoteIndex={activeNoteIndex}
+              noteProgress={noteProgress}
+              isTutor={isTutor}
+              onNotesEdit={handleNotesEdit}
+              isLandscape={isLandscape}
             />
           </View>
-        </View>
-        <Text style={styles.bpmEmoji}>🐇</Text>
-        <Text style={styles.bpmLabel}>{Math.round(bpm)} BPM</Text>
+        ) : (
+          <View style={styles.loadingWrap}>
+            <ActivityIndicator size="small" color={Colors.textSecondary} />
+          </View>
+        )}
       </View>
 
-      {/* Seek / progress bar */}
-      <View style={styles.seekRow}>
-        <TouchableOpacity
-          onPress={handlePlayPause}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Ionicons
-            name={isPlaying ? 'pause' : 'play'}
-            size={20}
-            color={Colors.textPrimary}
-          />
-        </TouchableOpacity>
-
-        <View
-          {...seekPan.panHandlers}
-          onLayout={(e) => setTrackWidth(e.nativeEvent.layout.width)}
-          style={styles.track}
-        >
-          <Animated.View style={[styles.filled, { width: thumbX }]} />
-          <Animated.View style={[styles.thumb, { transform: [{ translateX: thumbX }] }]} />
-        </View>
-
-        <Text style={styles.noteCounter}>
-          {Math.max(0, activeNoteIndex + 1)} / {displayNotes.length}
-        </Text>
-      </View>
-
-      {/* Notation panel */}
-      {displayNotes.length > 0 ? (
-        <View style={styles.notationPanelWrap}>
-          <ScrollingNotation
-            notes={displayNotes}
-            activeNoteIndex={activeNoteIndex}
-          />
-        </View>
-      ) : (
-        <View style={styles.loadingWrap}>
-          <ActivityIndicator size="small" color={Colors.textSecondary} />
+      {__DEV__ && showDebug && (
+        <View style={styles.debugPanel}>
+          <ScrollView showsVerticalScrollIndicator={false}>
+            {debugLines.map((line, i) => (
+              <Text key={i} style={styles.debugLine}>
+                {line}
+              </Text>
+            ))}
+          </ScrollView>
+          <TouchableOpacity style={styles.exportBtn} onPress={exportLogs}>
+            <Text style={styles.exportBtnText}>📤 Export Logs</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.clearBtn}
+            onPress={() => {
+              logger.clear();
+              setDebugLines([]);
+            }}
+          >
+            <Text style={styles.exportBtnText}>🗑 Clear</Text>
+          </TouchableOpacity>
         </View>
       )}
     </View>
   );
 }
 
-// ── Styles ──────────────────────────────────────────────────────────────────
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     width: '100%',
   },
+  containerLandscape: {
+    flexDirection: 'row',
+  },
+  videoSection: {
+    width: '100%',
+    aspectRatio: 16 / 9,
+  },
+  videoSectionLandscape: {
+    flex: 1,
+    width: undefined,
+    aspectRatio: undefined,
+    height: '100%',
+  },
+  rightPanel: {
+    flex: 1,
+    flexDirection: 'column',
+  },
+  rightPanelLandscape: {
+    flex: 1,
+    paddingHorizontal: Spacing.md,
+  },
+  lessonTitleLandscape: {
+    fontFamily: Typography.regular,
+    fontSize: FontSize.sm,
+    color: Colors.textPrimary,
+    opacity: 0.75,
+    paddingVertical: Spacing.sm,
+  },
+  posterContainer: {
+    flex: 1,
+    width: '100%',
+    backgroundColor: '#000',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  poster: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  posterPlaceholder: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: Colors.cardBg,
+  },
+  posterOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+  },
+  posterPlayBtn: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1,
+  },
+  videoContainer: {
+    flex: 1,
+    width: '100%',
+    backgroundColor: '#000',
+    position: 'relative',
+  },
+  video: {
+    width: '100%',
+    height: '100%',
+  },
+  controlsOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  controlsGradient: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+  },
+  controlsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xxl,
+  },
+  navBtn: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  playPauseBtn: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  videoProgress: {
+    position: 'absolute',
+    bottom: Spacing.md,
+    left: Spacing.lg,
+    right: Spacing.lg,
+  },
+  videoProgressTrack: {
+    height: 3,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    borderRadius: 999,
+    overflow: 'hidden' as const,
+    marginBottom: Spacing.xs,
+  },
+  videoProgressFill: {
+    height: '100%',
+    backgroundColor: Colors.textPrimary,
+    borderRadius: 999,
+  },
+  videoTime: {
+    fontFamily: Typography.regular,
+    fontSize: FontSize.xs,
+    color: 'rgba(255,255,255,0.8)',
+    textAlign: 'right',
+  },
+  speedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+  },
+  speedSlider: {
+    flex: 1,
+    marginHorizontal: Spacing.sm,
+  },
+  speedEmoji: {
+    fontSize: 18,
+  },
+  speedLabel: {
+    fontFamily: Typography.semiBold,
+    fontSize: FontSize.sm,
+    color: Colors.textPrimary,
+    width: 48,
+    textAlign: 'right',
+  },
   notationPanelWrap: {
     flex: 1,
   },
-  bpmRow: {
-    flexDirection:   'row',
-    alignItems:      'center',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
-    marginBottom:    Spacing.lg,
-  },
-  sliderWrap: {
-    flex:            1,
-    marginHorizontal: Spacing.sm,
-    overflow:        'hidden',
-  },
-  sliderScale: {
-    width:      '200%',
-    marginLeft: '-50%',
-    transform:  [{ scale: 0.5 }],
-  },
-  slider: {
-    flex: 1,
-  },
-  bpmEmoji: {
-    fontSize: FontSize.lg,
-  },
-  bpmLabel: {
-    fontFamily: Typography.semiBold,
-    fontSize:   FontSize.sm,
-    color:      Colors.textPrimary,
-    width:      60,
-    textAlign:  'right',
-  },
-  seekRow: {
-    flexDirection:    'row',
-    alignItems:       'center',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical:  Spacing.sm,
-    marginBottom:     Spacing.md,
-  },
-  track: {
-    height:           3,
-    borderRadius:     Radius.full,
-    backgroundColor:  'rgba(255,255,255,0.15)',
-    flex:             1,
-    marginHorizontal: Spacing.md,
-    justifyContent:   'center',
-  },
-  filled: {
-    position:        'absolute',
-    left:            0,
-    height:          3,
-    borderRadius:    Radius.full,
-    backgroundColor: Colors.textPrimary,
-  },
-  thumb: {
-    width:           14,
-    height:          14,
-    borderRadius:    7,
-    backgroundColor: Colors.textPrimary,
-    position:        'absolute',
-    top:             -5.5,
-    marginLeft:      -7,
-  },
-  noteCounter: {
-    fontFamily: Typography.regular,
-    fontSize:   FontSize.xs,
-    color:      Colors.textSecondary,
-    width:      40,
-    textAlign:  'right',
-  },
   loadingWrap: {
-    flex:            1,
-    alignItems:      'center',
-    justifyContent:  'center',
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: Spacing.xxl,
+  },
+  debugToggle: {
+    position: 'absolute',
+    top: Spacing.sm,
+    right: Spacing.sm,
+    zIndex: 999,
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  debugToggleText: {
+    fontSize: 18,
+  },
+  debugPanel: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 200,
+    backgroundColor: 'rgba(0,0,0,0.9)',
+    padding: Spacing.sm,
+    zIndex: 998,
+  },
+  debugLine: {
+    color: '#00FF00',
+    fontSize: 10,
+    fontFamily: 'monospace',
+  },
+  exportBtn: {
+    backgroundColor: Colors.bgPrimary,
+    padding: Spacing.sm,
+    borderRadius: 8,
+    marginTop: Spacing.xs,
+    alignItems: 'center',
+  },
+  clearBtn: {
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    padding: Spacing.sm,
+    borderRadius: 8,
+    marginTop: Spacing.xs,
+    alignItems: 'center',
+  },
+  exportBtnText: {
+    color: Colors.textPrimary,
+    fontSize: FontSize.xs,
+    fontFamily: Typography.medium,
   },
 });

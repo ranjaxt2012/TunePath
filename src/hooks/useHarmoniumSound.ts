@@ -1,22 +1,15 @@
 /**
- * useHarmoniumSound - play harmonium notes from sargam
- * Resolves sargam -> western note -> .wav sample, plays via expo-audio
+ * useHarmoniumSound — play harmonium sargam notes via expo-audio.
+ * Uses shared HARMONIUM_SAMPLE_MAP for built-in samples.
  */
 
 import { useCallback } from 'react';
-import { resolveSargamToSample } from '../services/soundResolver';
-
-function getCreateAudioPlayer(): typeof import('expo-audio').createAudioPlayer | null {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    return require('expo-audio').createAudioPlayer as typeof import('expo-audio').createAudioPlayer;
-  } catch {
-    return null;
-  }
-}
+import { createAudioPlayer } from 'expo-audio';
+import { HARMONIUM_SAMPLE_MAP } from '@/src/instruments/harmonium/sampleMap';
 
 const SARGAM_REGEX = /\b(Sa|Re|Ga|Ma|Pa|Dha|Ni)\b/gi;
 const SEQUENCE_DELAY_MS = 400;
+const NOTE_RELEASE_MS = 1500;
 
 function normalizeSargam(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
@@ -25,7 +18,6 @@ function normalizeSargam(s: string): string {
 /**
  * Parse notation string and extract first sargam note
  * "Sa Re Ga Ma" -> "Sa"
- * "Re Ga Re" -> "Re"
  */
 export function getFirstSargamNote(notation: string): string | null {
   const match = notation.trim().match(SARGAM_REGEX);
@@ -42,46 +34,47 @@ export function parseSargamNotes(notation: string): string[] {
 }
 
 /**
- * Hook for playing harmonium sounds
+ * Hook for playing harmonium sounds (expo-audio).
  */
 export function useHarmoniumSound() {
-  const playNote = useCallback((sargam: string, octave?: number) => {
-    const createAudioPlayer = getCreateAudioPlayer();
-    if (!createAudioPlayer) return;
+  const playNote = useCallback((sargam: string, _octave?: number) => {
+    const normalized = normalizeSargam(sargam);
+    const source = HARMONIUM_SAMPLE_MAP[normalized];
+    if (source === undefined) return;
 
-    const source = resolveSargamToSample(sargam, octave);
-    if (source === null) return;
-
-    try {
-      const player = createAudioPlayer(source);
-      player.play();
-      // Release after playback (approx 1.5s for a typical note)
-      setTimeout(() => {
-        try { player.remove(); } catch { /* ignore */ }
-      }, 1500);
-    } catch (_err) {
-      if (__DEV__) {
-        // TODO: add proper logger for play failure
+    void (async () => {
+      try {
+        const player = createAudioPlayer(source, { downloadFirst: true });
+        player.seekTo(0);
+        player.play();
+        setTimeout(() => {
+          try {
+            player.pause();
+          } catch {
+            /* ignore cleanup errors */
+          }
+          try {
+            player.remove();
+          } catch {
+            /* ignore cleanup errors */
+          }
+        }, NOTE_RELEASE_MS);
+      } catch {
+        if (__DEV__) {
+          // TODO: add proper logger for play failure
+        }
       }
-    }
+    })();
   }, []);
 
   const playFirstNote = useCallback(
     (notation: string) => {
       const note = getFirstSargamNote(notation);
-      if (note) {
-        playNote(note);
-      } else if (__DEV__) {
-        // TODO: add proper logger for sargam parse
-      }
+      if (note) playNote(note);
     },
     [playNote]
   );
 
-  /**
-   * Parse notation string and play notes one by one with delay
-   * Optional, isolated helper - e.g. playNotationSequence("Sa Re Ga Ma")
-   */
   const playNotationSequence = useCallback(
     async (notation: string, delayMs: number = SEQUENCE_DELAY_MS) => {
       const notes = parseSargamNotes(notation);

@@ -3,7 +3,6 @@
     "name": "TunePath",
     "slug": "TunePath",
     "version": "1.0.0",
-    "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "tunepath",
     "userInterfaceStyle": "automatic",
@@ -14,6 +13,7 @@
     },
     "ios": {
       "supportsTablet": true,
+      "requiresFullScreen": false,
       "bundleIdentifier": "com.tunepath.app",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
@@ -36,11 +36,10 @@
     },
     "plugins": [
       "expo-router",
-      "expo-video",
-      "expo-audio",
       "expo-secure-store",
       "expo-font",
-      "expo-asset"
+      "expo-asset",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true

@@ -2,7 +2,7 @@ import { FontAwesome5 } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ScreenGradient } from '@/src/components/common/ScreenGradient';
-import { Colors, DesignSystem, Typography } from '@/src/constants/theme';
+import { DesignSystem, Typography } from '@/src/constants/theme';
 
 export default function SignInScreen() {
   const router = useRouter();

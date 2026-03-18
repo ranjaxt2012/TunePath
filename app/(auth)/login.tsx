@@ -19,7 +19,7 @@ export default function LoginScreen() {
           await setActive({ session: createdSessionId });
           router.replace('/(tabs)/home' as any);
         }
-      } catch (err) {
+      } catch {
         // TODO: add proper logger for SSO error
       }
     },

@@ -15,7 +15,7 @@
 
 export const MOCK_IN_PROGRESS_LESSONS = [
   {
-    id: '50b6b4f9-d502-4ea2-ac33-5db6ed037243',
+    id: '6550bd22-2683-4428-8f2b-64a2f677a7ff',
     title: 'Introduction to Sa Re Ga Ma',
     course_title: 'Basic Sargam',
     instrument_slug: 'harmonium',
@@ -25,7 +25,7 @@ export const MOCK_IN_PROGRESS_LESSONS = [
     thumbnail_url: null,
   },
   {
-    id: 'dee7a277-0e4d-45e7-a0ad-3d4041ae8f84',
+    id: 'b29c5fd5-7e21-4049-9c13-6923dc20d51b',
     title: 'Pa Dha Ni Sa — Upper Octave',
     course_title: 'Basic Sargam',
     instrument_slug: 'harmonium',

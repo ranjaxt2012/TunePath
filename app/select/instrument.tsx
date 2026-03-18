@@ -2,7 +2,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { EmptyState, ErrorState, InstrumentIcon, LoadingState, ScreenGradient } from '@/src/components/common';
-import { Colors, CommonStyles, Layout, Radius, Spacing, TextPresets, Typography } from '@/src/constants/theme';
+import { Colors, CommonStyles, Layout, Radius, Spacing, TextPresets } from '@/src/constants/theme';
 import { useInstruments } from '@/src/hooks/useInstruments';
 import { useAuthStore } from '@/src/store/authStore';
 
