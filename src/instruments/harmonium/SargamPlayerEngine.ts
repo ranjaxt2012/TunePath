@@ -8,6 +8,7 @@
 import { createAudioPlayer } from 'expo-audio';
 import type { AudioPlayer } from 'expo-audio';
 import type { Note } from '@/src/utils/notation';
+import { logger } from '@/src/utils/logger';
 
 export class SargamPlayerEngine {
   // ── Private state ──────────────────────────────────────────────────────────
@@ -94,6 +95,7 @@ export class SargamPlayerEngine {
    * Binary search for current note; playbackSpeed scales note progress for sustain.
    */
   syncToTime(positionSeconds: number, playbackSpeed: number = 1.0): void {
+    const t0 = Date.now();
     if (this.notes.length === 0) return;
 
     let lo = 0;
@@ -136,6 +138,8 @@ export class SargamPlayerEngine {
       this.onIndexChange?.(-1);
       this.onComplete?.();
     }
+
+    logger.perf('engine.syncToTime', Date.now() - t0);
   }
 
   setBpm(bpm: number): void {
@@ -153,7 +157,7 @@ export class SargamPlayerEngine {
   destroy(): void {
     this.destroyed = true;
     this._clearTicker();
-    this._stopSound();
+    this._stopPlayer();
     this.onIndexChange = undefined;
     this.onPlayStateChange = undefined;
     this.onComplete = undefined;

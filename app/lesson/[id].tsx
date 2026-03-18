@@ -12,9 +12,9 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import * as ScreenOrientation from 'expo-screen-orientation';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
-import { VideoView, useVideoPlayer } from 'expo-video';
 import { CompleteCheckbox } from '@/src/components/common/CompleteCheckbox';
 import { ScreenGradient } from '@/src/components/common/ScreenGradient';
 import type { NotationMode } from '@/src/types/models';
@@ -36,6 +36,16 @@ export default function LessonPlayerScreen() {
   const { course } = useCourse(lesson?.course_id ?? undefined);
   const { isComplete, setComplete, setCompletionFromApi } = useProgressStore();
 
+  // Allow landscape only on the lesson screen.
+  useEffect(() => {
+    void ScreenOrientation.unlockAsync();
+    return () => {
+      void ScreenOrientation.lockAsync(
+        ScreenOrientation.OrientationLock.PORTRAIT_UP
+      );
+    };
+  }, []);
+
   const lessonIds = lesson
     ? (course?.lessons?.map((l) => l.id) ?? [lesson.id])
     : undefined;
@@ -44,10 +54,8 @@ export default function LessonPlayerScreen() {
       ? Math.max(0, course.lessons.findIndex((l) => l.id === lesson.id))
       : 0;
 
-  const videoRef = useRef<VideoView>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [positionMs, setPositionMs] = useState(0);
-  const [durationMs, setDurationMs] = useState(0);
+  const [positionMs] = useState(0);
+  const [durationMs] = useState(0);
   const [completeLoading, setCompleteLoading] = useState(false);
   const modes = useMemo(
     () => (lesson?.instrument_notation_modes ?? ['sargam']) as NotationMode[],
@@ -57,27 +65,6 @@ export default function LessonPlayerScreen() {
   const [notationMode, setNotationMode] = useState<NotationMode>(defaultMode);
 
   const lessonComplete = lesson ? isComplete(lesson.id) : false;
-
-  // Create video player — updates when lesson.video_url changes
-  const videoPlayer = useVideoPlayer(lesson?.video_url ?? null, (player) => {
-    player.loop = false;
-    player.timeUpdateEventInterval = 1; // emit timeUpdate every 1 second
-  });
-
-  // Subscribe to player events
-  useEffect(() => {
-    const sub1 = videoPlayer.addListener('playingChange', (e) => {
-      setIsPlaying(e.isPlaying);
-    });
-    const sub2 = videoPlayer.addListener('timeUpdate', (e) => {
-      setPositionMs(Math.round(e.currentTime * 1000));
-      setDurationMs(Math.round(videoPlayer.duration * 1000));
-    });
-    return () => {
-      sub1.remove();
-      sub2.remove();
-    };
-  }, [videoPlayer]);
 
   // Load completion state from API when lesson loads
   useEffect(() => {
@@ -112,13 +99,6 @@ export default function LessonPlayerScreen() {
       });
     }
   }, [user, lesson, lessonComplete, positionMs, durationMs, setComplete]);
-
-  function formatTime(ms: number) {
-    const totalSec = Math.floor(ms / 1000);
-    const m = Math.floor(totalSec / 60);
-    const s = totalSec % 60;
-    return `${m}:${s.toString().padStart(2, '0')}`;
-  }
 
   const handleSaveProgress = useCallback(async (completed = false) => {
     if (!user || !lesson) return;
@@ -195,18 +175,7 @@ export default function LessonPlayerScreen() {
     );
   }
 
-  const displayDuration = lesson.duration_seconds
-    ? formatTime(lesson.duration_seconds * 1000)
-    : durationMs > 0
-      ? formatTime(durationMs)
-      : '';
-
   const plugin = getPlugin(lesson.instrument_slug ?? '');
-  const showTopVideo = !(
-    notationMode === 'sargam' &&
-    notes.length > 0 &&
-    plugin !== null
-  );
 
   return (
     <ScreenGradient style={lessonPlayerStyles.safeAreaContainer}>
@@ -237,48 +206,6 @@ export default function LessonPlayerScreen() {
             contentContainerStyle={lessonPlayerStyles.scrollContent}
             showsVerticalScrollIndicator={false}
           >
-            {showTopVideo && (
-              <View style={lessonPlayerStyles.videoCard}>
-                {lesson.video_url ? (
-                  <VideoView
-                    ref={videoRef}
-                    player={videoPlayer}
-                    style={lessonPlayerStyles.video}
-                    contentFit="contain"
-                    nativeControls={false}
-                  />
-                ) : (
-                  <View style={lessonPlayerStyles.videoPlaceholder} />
-                )}
-
-                <TouchableOpacity
-                  style={lessonPlayerStyles.playOverlay}
-                  onPress={() => {
-                    if (isPlaying) {
-                      videoPlayer.pause();
-                    } else {
-                      videoPlayer.play();
-                    }
-                  }}
-                  activeOpacity={0.8}
-                >
-                  <View style={lessonPlayerStyles.playCircle}>
-                    <Text style={lessonPlayerStyles.playIcon}>
-                      {isPlaying ? '⏸' : '▶'}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-
-                <View style={lessonPlayerStyles.videoInfo}>
-                  {displayDuration !== '' && (
-                    <Text style={lessonPlayerStyles.videoDuration}>
-                      {displayDuration}
-                    </Text>
-                  )}
-                </View>
-              </View>
-            )}
-
             {modes.length > 1 && (
               <View style={lessonPlayerStyles.toggleContainer}>
                 {modes.map((mode) => (

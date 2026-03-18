@@ -3,7 +3,7 @@
  * notation syncs to video position every 100ms. Engine syncToTime() replaces ticker.
  */
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -12,14 +12,18 @@ import {
   ActivityIndicator,
   Animated,
   TouchableOpacity,
+  useWindowDimensions,
+  ScrollView,
 } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { Ionicons } from '@expo/vector-icons';
 import { setAudioModeAsync } from 'expo-audio';
+import * as Sharing from 'expo-sharing';
 import { useRouter } from 'expo-router';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { Colors, FontSize, Spacing, Typography } from '@/src/constants/theme';
 import { formatTime } from '@/src/utils/time';
+import { logger } from '@/src/utils/logger';
 import { ScrollingNotation } from './ScrollingNotation';
 import { SargamPlayerEngine } from './SargamPlayerEngine';
 import { HARMONIUM_SAMPLE_MAP } from './sampleMap';
@@ -67,6 +71,8 @@ export function HarmoniumPlayer({
 }: LessonPlayerProps) {
   const router = useRouter();
   const isTutor = true; // TODO: derive from useAuthStore when testing done
+  const { width, height } = useWindowDimensions();
+  const isLandscape = width > height;
   const engineRef = useRef<SargamPlayerEngine | null>(null);
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
@@ -79,6 +85,8 @@ export function HarmoniumPlayer({
   const [videoMounted, setVideoMounted] = useState(false);
   const [showControls, setShowControls] = useState(false);
   const [localNotes, setLocalNotes] = useState<Note[]>([]);
+  const [showDebug, setShowDebug] = useState(false);
+  const [debugLines, setDebugLines] = useState<string[]>([]);
   const progressAnim = useRef(new Animated.Value(0)).current;
   const controlsOpacity = useRef(new Animated.Value(0)).current;
   const hideControlsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -112,6 +120,7 @@ export function HarmoniumPlayer({
   useEffect(() => {
     if (!videoStarted) return;
     const sub = player.addListener('statusChange', ({ status }) => {
+      logger.log('PLAYER', 'statusChange', { status });
       if (status === 'readyToPlay' && !hasInitiallyPaused.current) {
         hasInitiallyPaused.current = true;
         player.pause();
@@ -131,9 +140,24 @@ export function HarmoniumPlayer({
     return () => clearTimeout(t);
   }, [videoStarted]);
 
-  const displayNotes = notes.length > 0 ? notes : getMockNotes();
-  const activeNotes = localNotes.length > 0 ? localNotes : displayNotes;
+  const mockNotes = useMemo(() => getMockNotes(), []);
+  const displayNotes = useMemo(
+    () => (notes.length > 0 ? notes : mockNotes),
+    [notes, mockNotes]
+  );
+  const activeNotes = useMemo(
+    () => (localNotes.length > 0 ? localNotes : displayNotes),
+    [localNotes, displayNotes]
+  );
   displayNotesRef.current = activeNotes;
+
+  const progressValue = useMemo(
+    () =>
+      activeNoteIndex < 0
+        ? 0
+        : activeNoteIndex / Math.max(1, activeNotes.length - 1),
+    [activeNoteIndex, activeNotes.length]
+  );
 
   useEffect(() => {
     const engine = new SargamPlayerEngine();
@@ -177,16 +201,23 @@ export function HarmoniumPlayer({
   useEffect(() => {
     if (!videoStarted) return;
     const sub = player.addListener('timeUpdate', ({ currentTime }) => {
+      const t0 = Date.now();
       engineRef.current?.syncToTime(currentTime, playbackSpeed);
+      logger.perf('syncToTime', Date.now() - t0);
+      logger.log('PLAYER', 'timeUpdate', {
+        currentTime: currentTime.toFixed(2),
+        progressValue,
+      });
       const duration = player.duration ?? 1;
       progressAnim.setValue(duration > 0 ? currentTime / duration : 0);
     });
     return () => sub.remove();
-  }, [videoStarted, player, progressAnim, playbackSpeed]);
+  }, [videoStarted, player, progressAnim, playbackSpeed, progressValue]);
 
   useEffect(() => {
     const sub = player.addListener('playingChange', ({ isPlaying: playing }) => {
       setIsPlaying(playing);
+      logger.log('PLAYER', 'playingChange', { playing });
     });
     return () => sub.remove();
   }, [player]);
@@ -234,149 +265,220 @@ export function HarmoniumPlayer({
   }, [player, showVideoControls]);
 
   useEffect(() => {
+    if (!__DEV__) return;
+    const interval = setInterval(() => {
+      const entries = logger
+        .getBuffer()
+        .slice(-8)
+        .map((e) => {
+          const t = (e.ts / 1000).toFixed(1);
+          return `[${t}s] ${e.message}`;
+        });
+      setDebugLines(entries);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const exportLogs = useCallback(async () => {
+    try {
+      const path = await logger.exportToFile();
+      await Sharing.shareAsync(path);
+    } catch {
+      // ignore export errors in dev
+    }
+  }, []);
+
+  useEffect(() => {
     return () => {
       if (hideControlsTimer.current) clearTimeout(hideControlsTimer.current);
     };
   }, []);
 
   return (
-    <View style={styles.container}>
-      {!videoStarted ? (
+    <View style={[styles.container, isLandscape && styles.containerLandscape]}>
+      {__DEV__ && (
         <TouchableOpacity
-          style={styles.posterContainer}
-          onPress={() => setVideoStarted(true)}
-          activeOpacity={0.9}
+          onPress={() => setShowDebug((d) => !d)}
+          style={styles.debugToggle}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          {lesson.thumbnail_url ? (
-            <Image
-              source={{ uri: lesson.thumbnail_url }}
-              style={styles.poster}
-              resizeMode="cover"
-            />
-          ) : (
-            <View style={styles.posterPlaceholder} />
-          )}
-          <View style={styles.posterOverlay} />
-          <View style={styles.posterPlayBtn}>
-            <Ionicons
-              name="play"
-              size={48}
-              color="rgba(255,255,255,0.95)"
-            />
-          </View>
+          <Text style={styles.debugToggleText}>🐛</Text>
         </TouchableOpacity>
-      ) : (
-        <View style={styles.videoContainer}>
-          {videoMounted && (
-            <VideoView
-              player={player}
-              style={styles.video}
-              allowsFullscreen
-              allowsPictureInPicture
-              nativeControls={false}
-            />
-          )}
-          <TouchableOpacity
-            style={StyleSheet.absoluteFill}
-            onPress={handleVideoTap}
-            activeOpacity={1}
-          />
-          {showControls && (
-            <Animated.View
-              style={[styles.controlsOverlay, { opacity: controlsOpacity }]}
-              pointerEvents="box-none"
-            >
-              <View style={styles.controlsGradient} />
-              <View style={styles.controlsRow}>
-                <TouchableOpacity
-                  onPress={goToPrev}
-                  disabled={!hasPrev}
-                  style={styles.navBtn}
-                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                >
-                  <Ionicons
-                    name="play-skip-back"
-                    size={28}
-                    color={hasPrev ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.3)'}
-                  />
-                </TouchableOpacity>
-                <TouchableOpacity onPress={handleVideoTap} style={styles.playPauseBtn}>
-                  <Ionicons
-                    name={isPlaying ? 'pause' : 'play'}
-                    size={48}
-                    color="rgba(255,255,255,0.95)"
-                  />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={goToNext}
-                  disabled={!hasNext}
-                  style={styles.navBtn}
-                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                >
-                  <Ionicons
-                    name="play-skip-forward"
-                    size={28}
-                    color={hasNext ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.3)'}
-                  />
-                </TouchableOpacity>
-              </View>
-              <View style={styles.videoProgress}>
-                <View style={styles.videoProgressTrack}>
-                  <Animated.View
-                    style={[
-                      styles.videoProgressFill,
-                      {
-                        width: progressAnim.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: ['0%', '100%'],
-                        }),
-                      },
-                    ]}
-                  />
-                </View>
-                <Text style={styles.videoTime}>
-                  {formatTime(player.currentTime ?? 0)} / {formatTime(player.duration ?? 0)}
-                </Text>
-              </View>
-            </Animated.View>
-          )}
-        </View>
       )}
 
-      <View style={styles.speedRow}>
-        <Text style={styles.speedEmoji}>🐢</Text>
-        <Slider
-          style={styles.speedSlider}
-          minimumValue={0.25}
-          maximumValue={2.0}
-          step={0.05}
-          value={playbackSpeed}
-          onValueChange={(val) => {
-            setPlaybackSpeed(Math.round(val * 20) / 20);
-          }}
-          minimumTrackTintColor={Colors.bgPrimary}
-          maximumTrackTintColor="rgba(255,255,255,0.2)"
-          thumbTintColor={Colors.textPrimary}
-        />
-        <Text style={styles.speedEmoji}>🐇</Text>
-        <Text style={styles.speedLabel}>
-          {playbackSpeed.toFixed(2)}x
-        </Text>
+      {/* Video section */}
+      <View style={[styles.videoSection, isLandscape && styles.videoSectionLandscape]}>
+        {!videoStarted ? (
+          <TouchableOpacity
+            style={styles.posterContainer}
+            onPress={() => setVideoStarted(true)}
+            activeOpacity={0.9}
+          >
+            {lesson.thumbnail_url ? (
+              <Image
+                source={{ uri: lesson.thumbnail_url }}
+                style={styles.poster}
+                resizeMode="cover"
+              />
+            ) : (
+              <View style={styles.posterPlaceholder} />
+            )}
+            <View style={styles.posterOverlay} />
+            <View style={styles.posterPlayBtn}>
+              <Ionicons
+                name="play"
+                size={48}
+                color="rgba(255,255,255,0.95)"
+              />
+            </View>
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.videoContainer}>
+            {videoMounted && (
+              <VideoView
+                player={player}
+                style={styles.video}
+                allowsFullscreen
+                allowsPictureInPicture
+                nativeControls={false}
+              />
+            )}
+            <TouchableOpacity
+              style={StyleSheet.absoluteFill}
+              onPress={handleVideoTap}
+              activeOpacity={1}
+            />
+            {showControls && (
+              <Animated.View
+                style={[styles.controlsOverlay, { opacity: controlsOpacity }]}
+                pointerEvents="box-none"
+              >
+                <View style={styles.controlsGradient} />
+                <View style={styles.controlsRow}>
+                  <TouchableOpacity
+                    onPress={goToPrev}
+                    disabled={!hasPrev}
+                    style={styles.navBtn}
+                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                  >
+                    <Ionicons
+                      name="play-skip-back"
+                      size={28}
+                      color={hasPrev ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.3)'}
+                    />
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={handleVideoTap} style={styles.playPauseBtn}>
+                    <Ionicons
+                      name={isPlaying ? 'pause' : 'play'}
+                      size={48}
+                      color="rgba(255,255,255,0.95)"
+                    />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={goToNext}
+                    disabled={!hasNext}
+                    style={styles.navBtn}
+                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                  >
+                    <Ionicons
+                      name="play-skip-forward"
+                      size={28}
+                      color={hasNext ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.3)'}
+                    />
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.videoProgress}>
+                  <View style={styles.videoProgressTrack}>
+                    <Animated.View
+                      style={[
+                        styles.videoProgressFill,
+                        {
+                          width: progressAnim.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: ['0%', '100%'],
+                          }),
+                        },
+                      ]}
+                    />
+                  </View>
+                  <Text style={styles.videoTime}>
+                    {formatTime(player.currentTime ?? 0)} / {formatTime(player.duration ?? 0)}
+                  </Text>
+                </View>
+              </Animated.View>
+            )}
+          </View>
+        )}
       </View>
 
-      {activeNotes.length > 0 ? (
-        <View style={styles.notationPanelWrap}>
-          <ScrollingNotation
-            notes={activeNotes}
-            activeNoteIndex={activeNoteIndex}
-            noteProgress={noteProgress}
-            isTutor={isTutor}
-            onNotesEdit={handleNotesEdit}
+      {/* Right panel — portrait uses full-width flow below video */}
+      <View style={[styles.rightPanel, isLandscape && styles.rightPanelLandscape]}>
+        {isLandscape && (
+          <Text style={styles.lessonTitleLandscape} numberOfLines={1}>
+            {lesson.title}
+          </Text>
+        )}
+
+        <View style={styles.speedRow}>
+          <Text style={styles.speedEmoji}>🐢</Text>
+          <Slider
+            style={styles.speedSlider}
+            minimumValue={0.25}
+            maximumValue={2.0}
+            step={0.05}
+            value={playbackSpeed}
+            onValueChange={(val) => {
+              setPlaybackSpeed(Math.round(val * 20) / 20);
+            }}
+            minimumTrackTintColor={Colors.bgPrimary}
+            maximumTrackTintColor="rgba(255,255,255,0.2)"
+            thumbTintColor={Colors.textPrimary}
           />
+          <Text style={styles.speedEmoji}>🐇</Text>
+          <Text style={styles.speedLabel}>
+            {playbackSpeed.toFixed(2)}x
+          </Text>
         </View>
-      ) : (
-        <View style={styles.loadingWrap}>
-          <ActivityIndicator size="small" color={Colors.textSecondary} />
+
+        {activeNotes.length > 0 ? (
+          <View style={styles.notationPanelWrap}>
+            <ScrollingNotation
+              notes={activeNotes}
+              activeNoteIndex={activeNoteIndex}
+              noteProgress={noteProgress}
+              isTutor={isTutor}
+              onNotesEdit={handleNotesEdit}
+              isLandscape={isLandscape}
+            />
+          </View>
+        ) : (
+          <View style={styles.loadingWrap}>
+            <ActivityIndicator size="small" color={Colors.textSecondary} />
+          </View>
+        )}
+      </View>
+
+      {__DEV__ && showDebug && (
+        <View style={styles.debugPanel}>
+          <ScrollView showsVerticalScrollIndicator={false}>
+            {debugLines.map((line, i) => (
+              <Text key={i} style={styles.debugLine}>
+                {line}
+              </Text>
+            ))}
+          </ScrollView>
+          <TouchableOpacity style={styles.exportBtn} onPress={exportLogs}>
+            <Text style={styles.exportBtnText}>📤 Export Logs</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.clearBtn}
+            onPress={() => {
+              logger.clear();
+              setDebugLines([]);
+            }}
+          >
+            <Text style={styles.exportBtnText}>🗑 Clear</Text>
+          </TouchableOpacity>
         </View>
       )}
     </View>
@@ -388,9 +490,37 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
   },
-  posterContainer: {
+  containerLandscape: {
+    flexDirection: 'row',
+  },
+  videoSection: {
     width: '100%',
     aspectRatio: 16 / 9,
+  },
+  videoSectionLandscape: {
+    flex: 1,
+    width: undefined,
+    aspectRatio: undefined,
+    height: '100%',
+  },
+  rightPanel: {
+    flex: 1,
+    flexDirection: 'column',
+  },
+  rightPanelLandscape: {
+    flex: 1,
+    paddingHorizontal: Spacing.md,
+  },
+  lessonTitleLandscape: {
+    fontFamily: Typography.regular,
+    fontSize: FontSize.sm,
+    color: Colors.textPrimary,
+    opacity: 0.75,
+    paddingVertical: Spacing.sm,
+  },
+  posterContainer: {
+    flex: 1,
+    width: '100%',
     backgroundColor: '#000',
     justifyContent: 'center',
     alignItems: 'center',
@@ -416,8 +546,8 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   videoContainer: {
+    flex: 1,
     width: '100%',
-    aspectRatio: 16 / 9,
     backgroundColor: '#000',
     position: 'relative',
   },
@@ -506,5 +636,52 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: Spacing.xxl,
+  },
+  debugToggle: {
+    position: 'absolute',
+    top: Spacing.sm,
+    right: Spacing.sm,
+    zIndex: 999,
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  debugToggleText: {
+    fontSize: 18,
+  },
+  debugPanel: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 200,
+    backgroundColor: 'rgba(0,0,0,0.9)',
+    padding: Spacing.sm,
+    zIndex: 998,
+  },
+  debugLine: {
+    color: '#00FF00',
+    fontSize: 10,
+    fontFamily: 'monospace',
+  },
+  exportBtn: {
+    backgroundColor: Colors.bgPrimary,
+    padding: Spacing.sm,
+    borderRadius: 8,
+    marginTop: Spacing.xs,
+    alignItems: 'center',
+  },
+  clearBtn: {
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    padding: Spacing.sm,
+    borderRadius: 8,
+    marginTop: Spacing.xs,
+    alignItems: 'center',
+  },
+  exportBtnText: {
+    color: Colors.textPrimary,
+    fontSize: FontSize.xs,
+    fontFamily: Typography.medium,
   },
 });

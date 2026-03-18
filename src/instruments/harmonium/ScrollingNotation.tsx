@@ -22,7 +22,8 @@ import { Colors, FontSize, Radius, Spacing, Typography } from '@/src/constants/t
 import { chunkNotes } from '@/src/utils/notation';
 import type { Note } from '@/src/utils/notation';
 
-const LINE_HEIGHT = 56;
+const LINE_HEIGHT_PORTRAIT = 56;
+const LINE_HEIGHT_LANDSCAPE = 44;
 const NOTES_PER_LINE = 4;
 
 const SARGAM_NOTES = ['Sa', 'Re', 'Ga', 'Ma', 'Pa', 'Dha', 'Ni'];
@@ -33,6 +34,7 @@ type ScrollingNotationProps = {
   noteProgress: number; // 0.0 → 1.0 through current note
   isTutor?: boolean;
   onNotesEdit?: (notes: Note[]) => void;
+  isLandscape?: boolean;
 };
 
 export function ScrollingNotation({
@@ -41,12 +43,14 @@ export function ScrollingNotation({
   noteProgress,
   isTutor = false,
   onNotesEdit,
+  isLandscape = false,
 }: ScrollingNotationProps) {
   const [panelHeight, setPanelHeight] = useState(300);
   const [dismissed, setDismissed] = useState<Set<number>>(() => new Set());
   const [editingLine, setEditingLine] = useState<number | null>(null);
   const [editingNotes, setEditingNotes] = useState<Note[]>([]);
   const scrollRef = useRef<ScrollView>(null);
+  const lineHeight = isLandscape ? LINE_HEIGHT_LANDSCAPE : LINE_HEIGHT_PORTRAIT;
 
   const lines = React.useMemo(() => chunkNotes(notes, NOTES_PER_LINE), [notes]);
   const headerLine = lines[0];
@@ -75,9 +79,9 @@ export function ScrollingNotation({
       return;
     }
     const scrollActiveLine = Math.max(0, activeLine - 1);
-    const y = Math.max(0, scrollActiveLine * LINE_HEIGHT - panelHeight * 0.3);
+    const y = Math.max(0, scrollActiveLine * lineHeight - panelHeight * 0.3);
     scrollRef.current?.scrollTo({ y, animated: activeNoteIndex > -1 });
-  }, [activeNoteIndex, activeLine, panelHeight]);
+  }, [activeNoteIndex, activeLine, panelHeight, lineHeight]);
 
   const prevActiveIndexRef = useRef(activeNoteIndex);
   useEffect(() => {
@@ -141,6 +145,8 @@ export function ScrollingNotation({
             onDismiss={handleDismiss}
             isTutor={isTutor}
             onEditLine={handleEditLine}
+            isLandscape={isLandscape}
+            lineHeight={lineHeight}
           />
       )}
       <ScrollView
@@ -181,6 +187,8 @@ export function ScrollingNotation({
               onDismiss={handleDismiss}
               isTutor={isTutor}
               onEditLine={handleEditLine}
+              isLandscape={isLandscape}
+              lineHeight={lineHeight}
             />
           );
         })}
@@ -284,9 +292,11 @@ type NotationLineProps = {
   onDismiss: (lineIndex: number) => void;
   isTutor?: boolean;
   onEditLine?: (lineIndex: number) => void;
+  isLandscape: boolean;
+  lineHeight: number;
 };
 
-function NotationLine({
+const NotationLine = React.memo(function NotationLine({
   lineIndex,
   line,
   activeNoteInLine,
@@ -302,6 +312,8 @@ function NotationLine({
   onDismiss,
   isTutor = false,
   onEditLine,
+  isLandscape,
+  lineHeight,
 }: NotationLineProps) {
   const flatStart = lineIndex * NOTES_PER_LINE;
   const translateY = useRef(new Animated.Value(0)).current;
@@ -356,6 +368,7 @@ function NotationLine({
       <Animated.View
         style={[
           styles.lineBase,
+          { height: lineHeight },
           {
             opacity,
             transform: [{ translateY }],
@@ -375,7 +388,7 @@ function NotationLine({
   if (isPreviousLine) {
     const previousOpacity = 0.5 - noteProgress * 0.5;
     return wrapRow(
-      <View style={[styles.lineBase, { opacity: previousOpacity }]}>
+      <View style={[styles.lineBase, { height: lineHeight, opacity: previousOpacity }]}>
         {line.map((n, cellIdx) => (
           <View key={flatStart + cellIdx} style={styles.cell}>
             <Text style={styles.cellTextNext}>{n.note}</Text>
@@ -390,6 +403,7 @@ function NotationLine({
     <View
       style={[
         styles.lineBase,
+        { height: lineHeight },
         isActiveLine && styles.lineActive,
         isNextLine && styles.lineNext,
         isFuture && styles.lineFuture,
@@ -415,12 +429,35 @@ function NotationLine({
             isFutureInLine={isFutureInLine}
             isNextLine={isNextLine}
             isFuture={isFuture}
+            isLandscape={isLandscape}
           />
         );
       })}
     </View>,
   );
-}
+}, (prev, next) => {
+  // Always re-render active and previous lines (they animate / depend on noteProgress).
+  if (prev.isActiveLine || next.isActiveLine) return false;
+  if (prev.isPreviousLine || next.isPreviousLine) return false;
+
+  // If completion state changes, we need to animate out.
+  if (prev.isCompleted !== next.isCompleted) return false;
+
+  // If this line changes from/to next/future window, re-render.
+  if (prev.isNextLine !== next.isNextLine) return false;
+  if (prev.isFuture !== next.isFuture) return false;
+
+  // If tutor/edit toggles, re-render to show/hide pencil.
+  if (prev.isTutor !== next.isTutor) return false;
+  if (prev.onEditLine !== next.onEditLine) return false;
+
+  // Landscape changes affect font sizes.
+  if (prev.isLandscape !== next.isLandscape) return false;
+  if (prev.lineHeight !== next.lineHeight) return false;
+
+  // Otherwise skip.
+  return true;
+});
 
 type NoteCellProps = {
   note: string;
@@ -434,9 +471,10 @@ type NoteCellProps = {
   isFutureInLine: boolean;
   isNextLine: boolean;
   isFuture: boolean;
+  isLandscape: boolean;
 };
 
-function NoteCell({
+const NoteCell = React.memo(function NoteCell({
   note,
   lyric,
   isActive,
@@ -448,6 +486,7 @@ function NoteCell({
   isFutureInLine,
   isNextLine,
   isFuture,
+  isLandscape,
 }: NoteCellProps) {
   const scaleAnim = useRef(new Animated.Value(isActive ? 1.15 : 1)).current;
 
@@ -460,9 +499,13 @@ function NoteCell({
     }).start();
   }, [isActive, scaleAnim]);
 
+  const mainFontSize = isLandscape
+    ? (isActive ? FontSize.md : FontSize.sm)
+    : (isActive ? FontSize.lg : FontSize.md);
+
   const renderContent = (mainStyle: object, lyricStyle: object = styles.cellLyric) => (
     <>
-      <Text style={mainStyle}>{note}</Text>
+      <Text style={[mainStyle, { fontSize: mainFontSize }]}>{note}</Text>
       {lyric ? <Text style={lyricStyle}>{lyric}</Text> : null}
     </>
   );
@@ -513,7 +556,25 @@ function NoteCell({
       {renderContent(styles.cellTextFuture)}
     </View>
   );
-}
+}, (prev, next) => {
+  // Only re-render if the cell's state meaningfully changes.
+  if (prev.isActive !== next.isActive) return false;
+  if (prev.isNextNote !== next.isNextNote) return false;
+  if (prev.isPastInLine !== next.isPastInLine) return false;
+  if (prev.isFutureInLine !== next.isFutureInLine) return false;
+  if (prev.isNextLine !== next.isNextLine) return false;
+  if (prev.isFuture !== next.isFuture) return false;
+  if (prev.isLandscape !== next.isLandscape) return false;
+  if (prev.note !== next.note) return false;
+  if (prev.lyric !== next.lyric) return false;
+
+  // For active/next cells, allow small noteProgress jitter without rerendering.
+  // Values outside this threshold will rerender to keep karaoke feel.
+  if (next.isActive && Math.abs(prev.activeNoteOpacity - next.activeNoteOpacity) > 0.05) return false;
+  if (next.isNextNote && (Math.abs(prev.nextNoteOpacity - next.nextNoteOpacity) > 0.05 || Math.abs(prev.nextNoteScale - next.nextNoteScale) > 0.02)) return false;
+
+  return true;
+});
 
 const styles = StyleSheet.create({
   panel: {
