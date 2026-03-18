@@ -32,7 +32,7 @@ export function useUserSync() {
           roles: tunePathUser.roles as import('@/src/utils/roles').UserRole[],
           activeMode: 'learner',
         });
-      } catch (_err) {
+      } catch {
         // TODO: add proper logger for user sync failure
       }
     }

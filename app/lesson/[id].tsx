@@ -3,7 +3,7 @@
  * Uses expo-video for video playback (SDK 55+).
  */
 
-import React, { useRef, useState, useEffect, useCallback } from 'react';
+import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { CompleteCheckbox } from '@/src/components/common/CompleteCheckbox';
 import { ScreenGradient } from '@/src/components/common/ScreenGradient';
@@ -31,7 +31,6 @@ import { lessonPlayerStyles } from '@/src/styles/lessonPlayerStyles';
 
 export default function LessonPlayerScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const router = useRouter();
   const { user } = useAuthStore();
   const { lesson, loading, error } = useLesson(id);
   const { course } = useCourse(lesson?.course_id ?? undefined);
@@ -50,7 +49,10 @@ export default function LessonPlayerScreen() {
   const [positionMs, setPositionMs] = useState(0);
   const [durationMs, setDurationMs] = useState(0);
   const [completeLoading, setCompleteLoading] = useState(false);
-  const modes = (lesson?.instrument_notation_modes ?? ['sargam']) as NotationMode[];
+  const modes = useMemo(
+    () => (lesson?.instrument_notation_modes ?? ['sargam']) as NotationMode[],
+    [lesson?.instrument_notation_modes]
+  );
   const defaultMode = modes[0] ?? 'sargam';
   const [notationMode, setNotationMode] = useState<NotationMode>(defaultMode);
 
@@ -90,7 +92,7 @@ export default function LessonPlayerScreen() {
     if (lesson && modes.length > 0 && !modes.includes(notationMode)) {
       setNotationMode(defaultMode);
     }
-  }, [lesson?.id, defaultMode, modes, notationMode]);
+  }, [lesson, defaultMode, modes, notationMode]);
 
   const progressRef = useRef({ positionMs: 0, durationMs: 0 });
   progressRef.current = { positionMs, durationMs };

@@ -64,7 +64,7 @@ export default function TutorUploadScreen() {
 
   // Direct upload
   const [selectedVideoUri, setSelectedVideoUri] = useState<string | null>(null);
-  const [selectedVideoDuration, setSelectedVideoDuration] = useState<number | null>(null);
+  const [, setSelectedVideoDuration] = useState<number | null>(null);
 
   // Lesson details
   const [title, setTitle] = useState('');
@@ -80,7 +80,7 @@ export default function TutorUploadScreen() {
 
   // Processing
   const [lessonId, setLessonId] = useState<string | null>(null);
-  const [jobId, setJobId] = useState<string | null>(null);
+  const [, setJobId] = useState<string | null>(null);
   const [sourceType, setSourceType] = useState<'direct_upload' | 'youtube'>('direct_upload');
   const [status, setStatus] = useState<LessonStatusResponse | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);

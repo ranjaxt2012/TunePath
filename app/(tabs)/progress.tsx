@@ -3,7 +3,7 @@ import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScreenGradient } from '@/src/components/common/ScreenGradient';
 import { BottomTabBar } from '@/src/components/ui';
-import { Colors, Spacing, Radius, TextPresets, Typography, CommonStyles } from '@/src/constants/theme';
+import { Colors, Spacing, Radius, TextPresets, CommonStyles } from '@/src/constants/theme';
 import {
   MOCK_PROGRESS_STATS,
   MOCK_WEEKLY_PROGRESS,

@@ -77,7 +77,7 @@ export function ScrollingNotation({
     const scrollActiveLine = Math.max(0, activeLine - 1);
     const y = Math.max(0, scrollActiveLine * LINE_HEIGHT - panelHeight * 0.3);
     scrollRef.current?.scrollTo({ y, animated: activeNoteIndex > -1 });
-  }, [activeNoteIndex, panelHeight]);
+  }, [activeNoteIndex, activeLine, panelHeight]);
 
   const prevActiveIndexRef = useRef(activeNoteIndex);
   useEffect(() => {

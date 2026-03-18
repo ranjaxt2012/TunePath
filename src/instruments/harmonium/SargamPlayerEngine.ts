@@ -2,7 +2,7 @@
  * SargamPlayerEngine — plain TypeScript playback engine for sargam notation.
  * No React. No JSX. UI subscribes via callbacks only.
  *
- * Uses expo-av Audio.Sound for reliable audio on SDK 55.
+ * Uses expo-av Audio.Sound for reliable audio (SDK 54+).
  */
 
 import { Audio } from 'expo-av';
@@ -108,8 +108,6 @@ export class SargamPlayerEngine {
         hi = mid - 1;
       }
     }
-
-    console.log('🎵 sync:', positionSeconds.toFixed(2), 'index:', newIndex, 'current:', this.currentIndex);
 
     if (newIndex < 0) return;
 

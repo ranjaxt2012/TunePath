@@ -9,7 +9,6 @@ import {
   Animated,
   LayoutChangeEvent,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -71,7 +70,7 @@ export default function SelectLevelScreen() {
     setSelectedSlugState(selectedLevelSlug);
     setGenresState(selectedGenres);
     setThemeState(selectedTheme);
-  }, []);
+  }, [selectedLevelSlug, selectedGenres, selectedTheme]);
 
   // Fetch preferences from API on mount when authenticated
   useEffect(() => {
@@ -81,7 +80,7 @@ export default function SelectLevelScreen() {
       setGenres(p.preferred_genres);
       setTheme(p.preferred_theme);
     }).catch(() => {});
-  }, []);
+  }, [setGenres, setTheme]);
 
   const handleLevelSelect = useCallback((slug: string) => {
     setSelectedSlugState(slug);
