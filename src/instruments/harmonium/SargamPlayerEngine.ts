@@ -2,10 +2,11 @@
  * SargamPlayerEngine — plain TypeScript playback engine for sargam notation.
  * No React. No JSX. UI subscribes via callbacks only.
  *
- * Uses expo-av Audio.Sound for reliable audio (SDK 54+).
+ * Uses expo-audio createAudioPlayer for note playback.
  */
 
-import { Audio } from 'expo-av';
+import { createAudioPlayer } from 'expo-audio';
+import type { AudioPlayer } from 'expo-audio';
 import type { Note } from '@/src/utils/notation';
 
 export class SargamPlayerEngine {
@@ -17,7 +18,7 @@ export class SargamPlayerEngine {
   private _playing: boolean = false;
   private _seeking: boolean = false;
   private tickerHandle: ReturnType<typeof setTimeout> | null = null;
-  private sound: Audio.Sound | null = null;
+  private player: AudioPlayer | null = null;
   private destroyed: boolean = false;
 
   // ── Callbacks ──────────────────────────────────────────────────────────────
@@ -50,7 +51,7 @@ export class SargamPlayerEngine {
     if (!this._playing) return;
     this._playing = false;
     this._clearTicker();
-    this._stopSound();
+    this._stopPlayer();
     this.onPlayStateChange?.(false);
   }
 
@@ -66,7 +67,7 @@ export class SargamPlayerEngine {
     const clamped = Math.max(0, Math.min(index, this.notes.length - 1));
 
     this._clearTicker();
-    this._stopSound();
+    this._stopPlayer();
 
     const wasPlaying = this._playing;
     this._playing = false;
@@ -174,7 +175,7 @@ export class SargamPlayerEngine {
       this._playing = false;
       this.currentIndex = -1;
       this._clearTicker();
-      this._stopSound();
+      this._stopPlayer();
       this.onIndexChange?.(-1);
       this.onPlayStateChange?.(false);
       this.onComplete?.();
@@ -211,24 +212,20 @@ export class SargamPlayerEngine {
     // Fully await stop of previous sound BEFORE creating the new one.
     // This prevents the race condition (old sound outliving new sound)
     // that caused single-note playback.
-    await this._stopSoundAsync();
+    await this._stopPlayerAsync();
 
     if (this.destroyed) return;
 
     try {
-      const { sound } = await Audio.Sound.createAsync(
-        source,
-        { shouldPlay: true, volume: 1.0, positionMillis: 0 },
-        null,
-        true // downloadFirst — load fully before playing for reliability
-      );
-
+      const player = createAudioPlayer(source, { downloadFirst: true });
+      // Ensure fresh start and play immediately
+      player.seekTo(0);
+      player.play();
       if (this.destroyed) {
-        await sound.unloadAsync();
+        player.remove();
         return;
       }
-
-      this.sound = sound;
+      this.player = player;
     } catch (e) {
       console.error('SargamEngine audio error for note:', normalized, e);
       this.onError?.(e as Error);
@@ -236,27 +233,33 @@ export class SargamPlayerEngine {
   }
 
   /** Fire-and-forget stop. Safe to call any time. */
-  private _stopSound(): void {
-    if (!this.sound) return;
-    const s = this.sound;
-    this.sound = null;
-    s.setVolumeAsync(0)
-      .then(() => s.stopAsync())
-      .then(() => s.unloadAsync())
-      .catch(() => {});
+  private _stopPlayer(): void {
+    if (!this.player) return;
+    const p = this.player;
+    this.player = null;
+    try {
+      p.pause();
+    } finally {
+      // remove() frees resources
+      p.remove();
+    }
   }
 
   /** Fully awaited stop. Call this before creating a new sound. */
-  private async _stopSoundAsync(): Promise<void> {
-    if (!this.sound) return;
-    const s = this.sound;
-    this.sound = null;
+  private async _stopPlayerAsync(): Promise<void> {
+    if (!this.player) return;
+    const p = this.player;
+    this.player = null;
     try {
-      await s.setVolumeAsync(0);
-      await s.stopAsync();
-      await s.unloadAsync();
+      p.pause();
     } catch {
       // Ignore cleanup errors — sound may already be unloaded
+    } finally {
+      try {
+        p.remove();
+      } catch {
+        // ignore
+      }
     }
   }
 

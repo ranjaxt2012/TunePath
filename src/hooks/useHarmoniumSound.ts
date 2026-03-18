@@ -1,10 +1,10 @@
 /**
- * useHarmoniumSound — play harmonium sargam notes via expo-av.
+ * useHarmoniumSound — play harmonium sargam notes via expo-audio.
  * Uses shared HARMONIUM_SAMPLE_MAP for built-in samples.
  */
 
 import { useCallback } from 'react';
-import { Audio } from 'expo-av';
+import { createAudioPlayer } from 'expo-audio';
 import { HARMONIUM_SAMPLE_MAP } from '@/src/instruments/harmonium/sampleMap';
 
 const SARGAM_REGEX = /\b(Sa|Re|Ga|Ma|Pa|Dha|Ni)\b/gi;
@@ -34,7 +34,7 @@ export function parseSargamNotes(notation: string): string[] {
 }
 
 /**
- * Hook for playing harmonium sounds (expo-av).
+ * Hook for playing harmonium sounds (expo-audio).
  */
 export function useHarmoniumSound() {
   const playNote = useCallback((sargam: string, _octave?: number) => {
@@ -44,14 +44,20 @@ export function useHarmoniumSound() {
 
     void (async () => {
       try {
-        const { sound } = await Audio.Sound.createAsync(
-          source,
-          { shouldPlay: true, volume: 1.0 },
-          null,
-          true
-        );
+        const player = createAudioPlayer(source, { downloadFirst: true });
+        player.seekTo(0);
+        player.play();
         setTimeout(() => {
-          sound.unloadAsync().catch(() => {});
+          try {
+            player.pause();
+          } catch {
+            /* ignore cleanup errors */
+          }
+          try {
+            player.remove();
+          } catch {
+            /* ignore cleanup errors */
+          }
         }, NOTE_RELEASE_MS);
       } catch {
         if (__DEV__) {

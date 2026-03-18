@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { Ionicons } from '@expo/vector-icons';
-import { Audio } from 'expo-av';
+import { setAudioModeAsync } from 'expo-audio';
 import { useRouter } from 'expo-router';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { Colors, FontSize, Spacing, Typography } from '@/src/constants/theme';
@@ -146,10 +146,10 @@ export function HarmoniumPlayer({
     };
     engine.onError = (e) => { /* no-op or log */ };
     engineRef.current = engine;
-    void Audio.setAudioModeAsync({
-      playsInSilentModeIOS: true,
-      allowsRecordingIOS: false,
-      staysActiveInBackground: false,
+    void setAudioModeAsync({
+      playsInSilentMode: true,
+      allowsRecording: false,
+      shouldPlayInBackground: false,
     });
     return () => {
       engine.destroy();
