@@ -28,11 +28,10 @@ export default function ProgressScreen() {
   // Generate weekly data (7 days)
   const generateWeeklyData = () => {
     const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    const today = new Date();
-    return days.map((day, i) => {
-      const dayIndex = (today.getDay() - 6 + i) % 7;
-      return { day, minutes: Math.floor(Math.random() * 60) };
-    });
+    return days.map((day) => ({
+      day,
+      minutes: Math.floor(Math.random() * 60),
+    }));
   };
 
   const weeklyData = generateWeeklyData();
