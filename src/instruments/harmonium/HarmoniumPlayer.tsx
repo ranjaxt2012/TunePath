@@ -230,6 +230,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     width: '100%',
+    overflow: 'hidden',
   },
   containerLandscape: {
     flexDirection: 'row',
@@ -237,12 +238,16 @@ const styles = StyleSheet.create({
   videoSection: {
     width: '100%',
     aspectRatio: 16 / 9,
+    backgroundColor: '#000',
+    overflow: 'hidden',
   },
   videoSectionLandscape: {
     flex: 1,
     width: undefined,
     aspectRatio: undefined,
-    height: '100%',
+    alignSelf: 'stretch',
+    backgroundColor: '#000',
+    overflow: 'hidden',
   },
   rightPanel: {
     flex: 1,
@@ -260,8 +265,9 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
   },
   posterContainer: {
-    flex: 1,
     width: '100%',
+    height: '100%',
+    flex: 1,
     backgroundColor: '#000',
     justifyContent: 'center',
     alignItems: 'center',
@@ -295,6 +301,7 @@ const styles = StyleSheet.create({
   video: {
     width: '100%',
     height: '100%',
+    flex: 1,
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
