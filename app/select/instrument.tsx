@@ -5,6 +5,7 @@ import { EmptyState, ErrorState, InstrumentIcon, LoadingState, ScreenGradient } 
 import { Colors, CommonStyles, Layout, Radius, Spacing, TextPresets } from '@/src/constants/theme';
 import { useInstruments } from '@/src/hooks/useInstruments';
 import { useAuthStore } from '@/src/store/authStore';
+import { useOrientation } from '@/src/hooks/useOrientation';
 import { patchPreferences } from '@/src/services/apiClient';
 
 const CARD_SIZE = Layout.cardHalf;
@@ -14,6 +15,8 @@ export default function SelectInstrumentScreen() {
   const { setSelectedInstrument } = useAuthStore();
   const { instruments, loading, error, refetch } = useInstruments();
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
+  const { isLandscape } = useOrientation();
+  const numColumns = isLandscape ? 3 : 2;
 
   const handleInstrumentSelect = useCallback((slug: string) => {
     setSelectedSlug(slug);
@@ -41,7 +44,7 @@ export default function SelectInstrumentScreen() {
         <FlatList
           data={instruments}
           keyExtractor={(item) => item.slug}
-          numColumns={2}
+          numColumns={numColumns}
           contentContainerStyle={styles.grid}
           columnWrapperStyle={styles.row}
           renderItem={({ item }) => {
