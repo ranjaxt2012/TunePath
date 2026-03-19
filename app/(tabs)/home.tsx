@@ -12,6 +12,7 @@ import { LoadingState } from '@/src/components/common/LoadingState';
 import { ErrorState } from '@/src/components/common/ErrorState';
 import { useCourses } from '@/src/hooks/useCourses';
 import { useInProgressLessons } from '@/src/hooks/useInProgressLessons';
+import { useOrientation } from '@/src/hooks/useOrientation';
 import { ScreenGradient } from '@/src/components/common/ScreenGradient';
 import { BottomTabBar } from '@/src/components/ui';
 
@@ -20,6 +21,7 @@ const CATEGORIES = ['All', 'Courses', 'Lessons', 'Beginner', 'Free'];
 export default function HomeScreen() {
   const router = useRouter();
   const { user, selectedInstrumentSlug, selectedLevelSlug } = useAuthStore();
+  const { isLandscape } = useOrientation();
 
   const { courses, loading: coursesLoading, error: coursesError } = useCourses(
     selectedInstrumentSlug || undefined,
@@ -60,13 +62,157 @@ export default function HomeScreen() {
     : null;
 
   return (
-    <ScreenGradient style={styles.container}>
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
+    <ScreenGradient style={isLandscape ? styles.containerLandscapeFull : styles.container}>
+      {isLandscape ? (
+        <View style={styles.landscapeContainer}>
+          {/* Left panel — course rows */}
+          <ScrollView style={styles.leftPanel} showsVerticalScrollIndicator={false}>
+            {/* ── HEADER ── */}
+            <SafeAreaView edges={['top']}>
+              <View style={styles.headerWrap}>
+                <View style={styles.headerTopRow}>
+                  <Text style={styles.greeting}>
+                    {greeting}{userName ? `, ${userName}` : ''} 👋
+                  </Text>
+                </View>
+                <View style={styles.subheadingRow}>
+                  {instrumentLabel ? (
+                    <>
+                      <InstrumentIcon slug={selectedInstrumentSlug ?? ''} size={20} />
+                      <Text style={styles.subheading}>{instrumentLabel}{levelLabel ? ` · ${levelLabel}` : ''}</Text>
+                    </>
+                  ) : (
+                    <Text style={styles.subheading}>Choose your instrument →</Text>
+                  )}
+                </View>
+              </View>
+            </SafeAreaView>
+
+            {/* Course rows in landscape */}
+            {showCourseRows && courses.length > 0 && (
+              <View style={styles.section}>
+                <View style={CommonStyles.sectionHeader}>
+                  <Text style={CommonStyles.sectionTitle}>Explore Courses</Text>
+                </View>
+                {courses.map((course) => (
+                  <TouchableOpacity
+                    key={course.id}
+                    style={styles.courseRowItem}
+                    onPress={() => router.push(`/course/${course.id}` as any)}
+                    activeOpacity={0.8}
+                  >
+                    <View style={styles.courseRowIcon}>
+                      <InstrumentIcon slug={course.instrument_slug} size={24} />
+                    </View>
+                    <View style={styles.courseRowText}>
+                      <Text style={styles.courseRowTitle}>{course.title}</Text>
+                      <Text style={styles.courseRowSubtitle}>{course.level_slug || 'Course'}</Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </ScrollView>
+
+          {/* Right panel — featured + continue learning */}
+          <ScrollView style={styles.rightPanel} showsVerticalScrollIndicator={false}>
+            {/* Search bar */}
+            <View style={styles.landscapeSearchBar}>
+              <TouchableOpacity
+                style={styles.searchIconBtn}
+                onPress={() => setSearchOpen(!searchOpen)}
+              >
+                <Ionicons name="search" size={20} color={Colors.textPrimary} />
+              </TouchableOpacity>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.pillsScroll}
+                contentContainerStyle={styles.pillsRowContent}
+              >
+                {CATEGORIES.map((cat) => (
+                  <TouchableOpacity
+                    key={cat}
+                    style={[
+                      styles.pill,
+                      activeCategory === cat && styles.pillActive,
+                    ]}
+                    onPress={() => setActiveCategory(cat)}
+                  >
+                    <Text style={[
+                      styles.pillText,
+                      activeCategory === cat && styles.pillTextActive,
+                    ]}>
+                      {cat}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+
+            {/* Featured banner */}
+            {showFeatured && featuredCourse && (
+              <View style={styles.featuredBanner}>
+                <View style={styles.featuredInner}>
+                  <View style={styles.featuredBadge}>
+                    <Text style={styles.featuredBadgeText}>FEATURED</Text>
+                  </View>
+                  <Text style={styles.featuredTitle}>{featuredCourse.title}</Text>
+                  <Text style={styles.featuredSubtitle} numberOfLines={2}>
+                    {featuredCourse.description || 'Explore this course'}
+                  </Text>
+                  <View style={styles.featuredButtons}>
+                    <TouchableOpacity
+                      style={styles.playButton}
+                      onPress={() => router.push(`/course/${featuredCourse.id}` as any)}
+                    >
+                      <Text style={styles.playButtonText}>▶  Start Learning</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            )}
+
+            {/* Continue learning */}
+            {showContinueLearning && (
+              <View style={styles.section}>
+                <View style={CommonStyles.sectionHeader}>
+                  <Text style={CommonStyles.sectionTitle}>Continue Learning</Text>
+                </View>
+                {inProgressLessons.map((lesson) => (
+                  <TouchableOpacity
+                    key={lesson.id}
+                    style={styles.continueRowItem}
+                    onPress={() => router.push(`/lesson/${lesson.id}` as any)}
+                    activeOpacity={0.8}
+                  >
+                    <View style={styles.continueRowIcon}>
+                      <InstrumentIcon slug={lesson.instrument_slug} size={24} />
+                    </View>
+                    <View style={styles.continueRowText}>
+                      <Text style={styles.continueRowTitle} numberOfLines={1}>
+                        {lesson.title}
+                      </Text>
+                      <Text style={styles.continueRowCourse}>{lesson.course_title}</Text>
+                      <View style={styles.progressBarBg}>
+                        <View
+                          style={[styles.progressBarFill, { width: `${lesson.watch_percent}%` as any }]}
+                        />
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </ScrollView>
+        </View>
+      ) : (
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
         {/* ── HEADER ── */}
         <SafeAreaView edges={['top']}>
           <View style={styles.headerWrap}>
@@ -283,7 +429,8 @@ export default function HomeScreen() {
 
           </>
         )}
-      </ScrollView>
+        </ScrollView>
+      )}
 
       <BottomTabBar activeTab="home" />
     </ScreenGradient>
@@ -552,6 +699,95 @@ const styles = StyleSheet.create({
   courseSubtitle: {
     ...TextPresets.caption,
     color: Colors.textSecondary,
+  },
+
+  // ── Landscape Layout ─────────────────────────────────────
+  containerLandscape: {
+    flexDirection: 'row',
+  },
+  containerLandscapeFull: {
+    ...CommonStyles.screen,
+    flexDirection: 'row',
+  },
+  landscapeContainer: {
+    flex: 1,
+    flexDirection: 'row',
+  },
+  leftPanel: {
+    flex: 1,
+    borderRightWidth: 0.5,
+    borderRightColor: 'rgba(255,255,255,0.1)',
+    paddingHorizontal: Spacing.lg,
+  },
+  rightPanel: {
+    flex: 1,
+    paddingHorizontal: Spacing.lg,
+  },
+  landscapeSearchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+    marginTop: Spacing.lg,
+  },
+  courseRowItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.cardBg,
+    borderRadius: Radius.lg,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
+  },
+  courseRowIcon: {
+    width: 48,
+    height: 48,
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    borderRadius: Radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Spacing.md,
+  },
+  courseRowText: {
+    flex: 1,
+  },
+  courseRowTitle: {
+    ...TextPresets.labelMd,
+    color: Colors.textPrimary,
+    marginBottom: 2,
+  },
+  courseRowSubtitle: {
+    ...TextPresets.caption,
+    color: Colors.textSecondary,
+  },
+  continueRowItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.cardBg,
+    borderRadius: Radius.lg,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
+  },
+  continueRowIcon: {
+    width: 48,
+    height: 48,
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    borderRadius: Radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Spacing.md,
+  },
+  continueRowText: {
+    flex: 1,
+  },
+  continueRowTitle: {
+    ...TextPresets.labelMd,
+    color: Colors.textPrimary,
+    marginBottom: 2,
+  },
+  continueRowCourse: {
+    ...TextPresets.caption,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.xs,
   },
 
 });
