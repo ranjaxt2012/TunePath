@@ -3,6 +3,7 @@ import { useCallback, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { EmptyState, ErrorState, InstrumentIcon, LoadingState, ScreenGradient } from '@/src/components/common';
 import { Colors, CommonStyles, Layout, Radius, Spacing, TextPresets } from '@/src/constants/theme';
+import { useTheme } from '@/src/contexts/ThemeContext';
 import { useInstruments } from '@/src/hooks/useInstruments';
 import { useAuthStore } from '@/src/store/authStore';
 import { useOrientation } from '@/src/hooks/useOrientation';
@@ -12,6 +13,7 @@ const CARD_SIZE = Layout.cardHalf;
 
 export default function SelectInstrumentScreen() {
   const router = useRouter();
+  const { theme } = useTheme();
   const { setSelectedInstrument } = useAuthStore();
   const { instruments, loading, error, refetch } = useInstruments();
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
@@ -31,8 +33,8 @@ export default function SelectInstrumentScreen() {
 
   return (
     <ScreenGradient style={styles.container}>
-      <Text style={styles.title}>Choose Your Instrument</Text>
-      <Text style={styles.subtitle}>Select your instrument to get started.</Text>
+      <Text style={[styles.title, { color: theme.textPrimary }]}>Choose Your Instrument</Text>
+      <Text style={[styles.subtitle, { color: theme.textSecondary }]}>Select your instrument to get started.</Text>
 
       {loading ? (
         <LoadingState message="Loading instruments..." />
@@ -51,13 +53,17 @@ export default function SelectInstrumentScreen() {
             const isSelected = selectedSlug === item.slug;
             return (
               <Pressable
-                style={[styles.card, isSelected && styles.cardSelected]}
+                style={[
+                  styles.card,
+                  { backgroundColor: theme.cardBg },
+                  isSelected && { backgroundColor: theme.bgPrimary, borderColor: theme.textPrimary },
+                ]}
                 onPress={() => handleInstrumentSelect(item.slug)}
               >
                 <View style={styles.icon}>
                   <InstrumentIcon slug={item.slug} size={36} />
                 </View>
-                <Text style={styles.name}>{item.name}</Text>
+                <Text style={[styles.name, { color: theme.textPrimary }]}>{item.name}</Text>
               </Pressable>
             );
           }}
@@ -74,14 +80,12 @@ const styles = StyleSheet.create({
   },
   title: {
     ...TextPresets.displayMd,
-    color: Colors.textPrimary,
     textAlign: 'center',
     marginBottom: Spacing.sm,
     paddingHorizontal: Spacing.lg,
   },
   subtitle: {
     ...TextPresets.bodyMd,
-    color: Colors.textSecondary,
     textAlign: 'center',
     marginBottom: Spacing.xxl,
     paddingHorizontal: Spacing.lg,
@@ -98,13 +102,12 @@ const styles = StyleSheet.create({
   card: {
     width: CARD_SIZE,
     height: CARD_SIZE,
-    backgroundColor: Colors.cardBg,
     borderRadius: Radius.lg,
     padding: Spacing.lg,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: Colors.transparent,
+    borderColor: 'transparent',
   },
   cardSelected: {
     ...CommonStyles.cardSelected,
@@ -114,7 +117,6 @@ const styles = StyleSheet.create({
   },
   name: {
     ...TextPresets.labelMd,
-    color: Colors.textPrimary,
     textAlign: 'center',
   },
 });

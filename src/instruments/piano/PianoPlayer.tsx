@@ -2,8 +2,9 @@
  * PianoPlayer - placeholder.
  */
 
+import { useTheme } from '@/src/contexts/ThemeContext';
 import { StyleSheet, Text, View } from 'react-native';
-import { Colors, Typography } from '@/src/constants/theme';
+import { Typography } from '@/src/constants/theme';
 import type { LessonPlayerProps } from '@/src/registry/types';
 
 export function PianoPlayer({ lesson }: LessonPlayerProps) {
@@ -25,7 +26,7 @@ const styles = StyleSheet.create({
   text: {
     fontSize: 18,
     fontFamily: Typography.semiBold,
-    color: Colors.textPrimary,
+    color: '#FFFFFF',
   },
   subtext: {
     fontSize: 14,

@@ -25,13 +25,14 @@ import { getPlugin } from '@/src/registry/instrumentRegistry';
 import { getLessonProgress, saveProgress } from '@/src/services/apiClient';
 import { useAuthStore } from '@/src/store/authStore';
 import { useProgressStore } from '@/src/store/progressStore';
-import { Colors } from '@/src/constants/theme';
+import { useTheme } from '@/src/contexts/ThemeContext';
 import { lessonPlayerStyles } from '@/src/styles/lessonPlayerStyles';
 
 
 export default function LessonPlayerScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user } = useAuthStore();
+  const { theme } = useTheme();
   const { lesson, loading, error } = useLesson(id);
   const { course } = useCourse(lesson?.course_id ?? undefined);
   const { isComplete, setComplete, setCompletionFromApi } = useProgressStore();
@@ -234,7 +235,7 @@ export default function LessonPlayerScreen() {
             {notationMode === 'sargam' && (
               notationLoading ? (
                 <View style={lessonPlayerStyles.staffPlaceholder}>
-                  <ActivityIndicator size="small" color={Colors.textSecondary} />
+                  <ActivityIndicator size="small" color={theme.textSecondary} />
                 </View>
               ) : notationError ? (
                 <View style={lessonPlayerStyles.staffPlaceholder}>

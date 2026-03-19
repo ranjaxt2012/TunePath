@@ -3,6 +3,7 @@
  * notation syncs to video position via onPlaybackStatusUpdate. Engine syncToTime() replaces ticker.
  */
 
+import { useTheme } from '@/src/contexts/ThemeContext';
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
@@ -17,7 +18,7 @@ import Slider from '@react-native-community/slider';
 import { Ionicons } from '@expo/vector-icons';
 import { setAudioModeAsync } from 'expo-audio';
 import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
-import { Colors, FontSize, Spacing, Typography } from '@/src/constants/theme';
+import { FontSize, Spacing, Typography } from '@/src/constants/theme';
 import { useAuthStore } from '@/src/store/authStore';
 import { ScrollingNotation } from './ScrollingNotation';
 import { SargamPlayerEngine } from './SargamPlayerEngine';
@@ -195,9 +196,9 @@ export function HarmoniumPlayer({
             onValueChange={(val) => {
               setPlaybackSpeed(Math.round(val * 20) / 20);
             }}
-            minimumTrackTintColor={Colors.bgPrimary}
+            minimumTrackTintColor={'#7C3AED'}
             maximumTrackTintColor="rgba(255,255,255,0.2)"
-            thumbTintColor={Colors.textPrimary}
+            thumbTintColor={'#FFFFFF'}
           />
           <Text style={styles.speedEmoji}>🐇</Text>
           <Text style={styles.speedLabel}>
@@ -218,7 +219,7 @@ export function HarmoniumPlayer({
           </View>
         ) : (
           <View style={styles.loadingWrap}>
-            <ActivityIndicator size="small" color={Colors.textSecondary} />
+            <ActivityIndicator size="small" color={'rgba(255,255,255,0.75)'} />
           </View>
         )}
       </View>
@@ -260,7 +261,7 @@ const styles = StyleSheet.create({
   lessonTitleLandscape: {
     fontFamily: Typography.regular,
     fontSize: FontSize.sm,
-    color: Colors.textPrimary,
+    color: '#FFFFFF',
     opacity: 0.75,
     paddingVertical: Spacing.sm,
   },
@@ -277,7 +278,7 @@ const styles = StyleSheet.create({
   },
   posterPlaceholder: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: Colors.cardBg,
+    backgroundColor: 'rgba(255,255,255,0.12)',
   },
   posterOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -353,7 +354,7 @@ const styles = StyleSheet.create({
   },
   videoProgressFill: {
     height: '100%',
-    backgroundColor: Colors.textPrimary,
+    backgroundColor: '#FFFFFF',
     borderRadius: 999,
   },
   videoTime: {
@@ -378,7 +379,7 @@ const styles = StyleSheet.create({
   speedLabel: {
     fontFamily: Typography.semiBold,
     fontSize: FontSize.sm,
-    color: Colors.textPrimary,
+    color: '#FFFFFF',
     width: 48,
     textAlign: 'right',
   },

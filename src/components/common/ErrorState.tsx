@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Colors, TextPresets, CommonStyles, Spacing } from '@/src/constants/theme';
+import { TextPresets, CommonStyles, Spacing } from '@/src/constants/theme';
+import { useTheme } from '@/src/contexts/ThemeContext';
 
 type Props = {
   message?: string;
@@ -8,13 +9,14 @@ type Props = {
 };
 
 export function ErrorState({ message = 'Something went wrong.', onRetry }: Props) {
+  const { theme } = useTheme();
   return (
     <View style={styles.container}>
       <Text style={styles.icon}>⚠️</Text>
-      <Text style={styles.message}>{message}</Text>
+      <Text style={[styles.message, { color: theme.textSecondary }]}>{message}</Text>
       {onRetry && (
         <TouchableOpacity style={styles.retryBtn} onPress={onRetry}>
-          <Text style={styles.retryText}>Try Again</Text>
+          <Text style={[styles.retryText, { color: theme.textPrimary }]}>Try Again</Text>
         </TouchableOpacity>
       )}
     </View>
@@ -33,7 +35,6 @@ const styles = StyleSheet.create({
   icon: { fontSize: 40 },
   message: {
     ...TextPresets.bodyLg,
-    color: Colors.textSecondary,
     textAlign: 'center',
   },
   retryBtn: {

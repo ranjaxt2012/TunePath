@@ -6,7 +6,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/src/store/authStore';
-import { Colors, Spacing, Radius, TextPresets, Layout, CommonStyles } from '@/src/constants/theme';
+import { Spacing, Radius, TextPresets, Layout, CommonStyles } from '@/src/constants/theme';
+import { useTheme } from '@/src/contexts/ThemeContext';
 import { InstrumentIcon } from '@/src/components/common/InstrumentIcon';
 import { LoadingState } from '@/src/components/common/LoadingState';
 import { ErrorState } from '@/src/components/common/ErrorState';
@@ -21,6 +22,7 @@ const CATEGORIES = ['All', 'Courses', 'Lessons', 'Beginner', 'Free'];
 export default function HomeScreen() {
   const router = useRouter();
   const { user, selectedInstrumentSlug, selectedLevelSlug } = useAuthStore();
+  const { theme } = useTheme();
   const { isLandscape } = useOrientation();
 
   const { courses, loading: coursesLoading, error: coursesError } = useCourses(
@@ -71,7 +73,7 @@ export default function HomeScreen() {
             <SafeAreaView edges={['top']}>
               <View style={styles.headerWrap}>
                 <View style={styles.headerTopRow}>
-                  <Text style={styles.greeting}>
+                  <Text style={[styles.greeting, { color: theme.textPrimary }]}>
                     {greeting}{userName ? `, ${userName}` : ''} 👋
                   </Text>
                 </View>
@@ -97,7 +99,7 @@ export default function HomeScreen() {
                 {courses.map((course) => (
                   <TouchableOpacity
                     key={course.id}
-                    style={styles.courseRowItem}
+                    style={[styles.courseRowItem, { backgroundColor: theme.cardBg }]}
                     onPress={() => router.push(`/course/${course.id}` as any)}
                     activeOpacity={0.8}
                   >
@@ -105,8 +107,8 @@ export default function HomeScreen() {
                       <InstrumentIcon slug={course.instrument_slug} size={24} />
                     </View>
                     <View style={styles.courseRowText}>
-                      <Text style={styles.courseRowTitle}>{course.title}</Text>
-                      <Text style={styles.courseRowSubtitle}>{course.level_slug || 'Course'}</Text>
+                      <Text style={[styles.courseRowTitle, { color: theme.textPrimary }]}>{course.title}</Text>
+                      <Text style={[styles.courseRowSubtitle, { color: theme.textSecondary }]}>{course.level_slug || 'Course'}</Text>
                     </View>
                   </TouchableOpacity>
                 ))}
@@ -122,7 +124,7 @@ export default function HomeScreen() {
                 style={styles.searchIconBtn}
                 onPress={() => setSearchOpen(!searchOpen)}
               >
-                <Ionicons name="search" size={20} color={Colors.textPrimary} />
+                <Ionicons name="search" size={20} color={theme.textPrimary} />
               </TouchableOpacity>
               <ScrollView
                 horizontal
@@ -141,7 +143,7 @@ export default function HomeScreen() {
                   >
                     <Text style={[
                       styles.pillText,
-                      activeCategory === cat && styles.pillTextActive,
+                      { color: activeCategory === cat ? '#7C3AED' : theme.textPrimary },
                     ]}>
                       {cat}
                     </Text>
@@ -152,13 +154,13 @@ export default function HomeScreen() {
 
             {/* Featured banner */}
             {showFeatured && featuredCourse && (
-              <View style={styles.featuredBanner}>
+              <View style={[styles.featuredBanner, { backgroundColor: theme.cardBg }]}>
                 <View style={styles.featuredInner}>
                   <View style={styles.featuredBadge}>
-                    <Text style={styles.featuredBadgeText}>FEATURED</Text>
+                    <Text style={[styles.featuredBadgeText, { color: theme.bgPrimary }]}>FEATURED</Text>
                   </View>
-                  <Text style={styles.featuredTitle}>{featuredCourse.title}</Text>
-                  <Text style={styles.featuredSubtitle} numberOfLines={2}>
+                  <Text style={[styles.featuredTitle, { color: theme.textPrimary }]}>{featuredCourse.title}</Text>
+                  <Text style={[styles.featuredSubtitle, { color: theme.textSecondary }]} numberOfLines={2}>
                     {featuredCourse.description || 'Explore this course'}
                   </Text>
                   <View style={styles.featuredButtons}>
@@ -166,7 +168,7 @@ export default function HomeScreen() {
                       style={styles.playButton}
                       onPress={() => router.push(`/course/${featuredCourse.id}` as any)}
                     >
-                      <Text style={styles.playButtonText}>▶  Start Learning</Text>
+                      <Text style={[styles.playButtonText, { color: theme.bgPrimary }]}>▶  Start Learning</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -182,7 +184,7 @@ export default function HomeScreen() {
                 {inProgressLessons.map((lesson) => (
                   <TouchableOpacity
                     key={lesson.id}
-                    style={styles.continueRowItem}
+                    style={[styles.continueRowItem, { backgroundColor: theme.cardBg }]}
                     onPress={() => router.push(`/lesson/${lesson.id}` as any)}
                     activeOpacity={0.8}
                   >
@@ -190,10 +192,10 @@ export default function HomeScreen() {
                       <InstrumentIcon slug={lesson.instrument_slug} size={24} />
                     </View>
                     <View style={styles.continueRowText}>
-                      <Text style={styles.continueRowTitle} numberOfLines={1}>
+                      <Text style={[styles.continueRowTitle, { color: theme.textPrimary }]} numberOfLines={1}>
                         {lesson.title}
                       </Text>
-                      <Text style={styles.continueRowCourse}>{lesson.course_title}</Text>
+                      <Text style={[styles.continueRowCourse, { color: theme.textSecondary }]}>{lesson.course_title}</Text>
                       <View style={styles.progressBarBg}>
                         <View
                           style={[styles.progressBarFill, { width: `${lesson.watch_percent}%` as any }]}
@@ -219,7 +221,7 @@ export default function HomeScreen() {
 
             {/* Line 1: Welcome (left) + Search icon + Category pills (right) */}
             <View style={styles.headerTopRow}>
-              <Text style={styles.greeting}>
+              <Text style={[styles.greeting, { color: theme.textPrimary }]}>
                 {greeting}{userName ? `, ${userName}` : ''} 👋
               </Text>
               <View style={styles.headerRight}>
@@ -228,7 +230,7 @@ export default function HomeScreen() {
                   onPress={() => setSearchOpen(!searchOpen)}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
-                  <Ionicons name="search" size={24} color={Colors.textPrimary} />
+                  <Ionicons name="search" size={24} color={theme.textPrimary} />
                 </TouchableOpacity>
                 <ScrollView
                   horizontal
@@ -247,7 +249,7 @@ export default function HomeScreen() {
                     >
                       <Text style={[
                         styles.pillText,
-                        activeCategory === cat && styles.pillTextActive,
+                        { color: activeCategory === cat ? '#7C3AED' : theme.textPrimary },
                       ]}>
                         {cat}
                       </Text>
@@ -262,10 +264,10 @@ export default function HomeScreen() {
               {instrumentLabel ? (
                 <>
                   <InstrumentIcon slug={selectedInstrumentSlug ?? ''} size={20} />
-                  <Text style={styles.subheading}>{instrumentLabel}{levelLabel ? ` · ${levelLabel}` : ''}</Text>
+                  <Text style={[styles.subheading, { color: theme.textSecondary }]}>{instrumentLabel}{levelLabel ? ` · ${levelLabel}` : ''}</Text>
                 </>
               ) : (
-                <Text style={styles.subheading}>Choose your instrument →</Text>
+                <Text style={[styles.subheading, { color: theme.textSecondary }]}>Choose your instrument →</Text>
               )}
             </View>
 
@@ -276,11 +278,11 @@ export default function HomeScreen() {
         {searchOpen && (
           <View style={styles.searchInputContainer}>
             <TextInput
-              style={styles.searchInput}
+              style={[styles.searchInput, { color: theme.textPrimary }]}
               value={searchText}
               onChangeText={setSearchText}
               placeholder="Search courses and lessons..."
-              placeholderTextColor={Colors.textTertiary}
+              placeholderTextColor={theme.textDisabled}
               returnKeyType="search"
               autoCorrect={false}
               autoFocus
@@ -308,23 +310,23 @@ export default function HomeScreen() {
                 {filteredCourses.map((course) => (
                   <TouchableOpacity
                     key={course.id}
-                    style={styles.searchResultCard}
+                    style={[styles.searchResultCard, { backgroundColor: theme.cardBg }]}
                     onPress={() => router.push(`/course/${course.id}` as any)}
                     activeOpacity={0.8}
                   >
-                    <Text style={styles.searchResultTitle}>{course.title}</Text>
-                    <Text style={styles.searchResultSubtitle}>{course.level_slug || 'Course'}</Text>
+                    <Text style={[styles.searchResultTitle, { color: theme.textPrimary }]}>{course.title}</Text>
+                    <Text style={[styles.searchResultSubtitle, { color: theme.textSecondary }]}>{course.level_slug || 'Course'}</Text>
                   </TouchableOpacity>
                 ))}
                 {filteredLessons.map((lesson) => (
                   <TouchableOpacity
                     key={lesson.id}
-                    style={styles.searchResultCard}
+                    style={[styles.searchResultCard, { backgroundColor: theme.cardBg }]}
                     onPress={() => router.push(`/lesson/${lesson.id}` as any)}
                     activeOpacity={0.8}
                   >
-                    <Text style={styles.searchResultTitle}>{lesson.title}</Text>
-                    <Text style={styles.searchResultSubtitle}>{lesson.course_title}</Text>
+                    <Text style={[styles.searchResultTitle, { color: theme.textPrimary }]}>{lesson.title}</Text>
+                    <Text style={[styles.searchResultSubtitle, { color: theme.textSecondary }]}>{lesson.course_title}</Text>
                   </TouchableOpacity>
                 ))}
               </>
@@ -334,13 +336,13 @@ export default function HomeScreen() {
           <>
             {/* ── Featured Banner ──────────────────────────── */}
             {showFeatured && featuredCourse && (
-              <View style={styles.featuredBanner}>
+              <View style={[styles.featuredBanner, { backgroundColor: theme.cardBg }]}>
                 <View style={styles.featuredInner}>
                   <View style={styles.featuredBadge}>
-                    <Text style={styles.featuredBadgeText}>FEATURED</Text>
+                    <Text style={[styles.featuredBadgeText, { color: theme.bgPrimary }]}>FEATURED</Text>
                   </View>
-                  <Text style={styles.featuredTitle}>{featuredCourse.title}</Text>
-                  <Text style={styles.featuredSubtitle} numberOfLines={2}>
+                  <Text style={[styles.featuredTitle, { color: theme.textPrimary }]}>{featuredCourse.title}</Text>
+                  <Text style={[styles.featuredSubtitle, { color: theme.textSecondary }]} numberOfLines={2}>
                     {featuredCourse.description || 'Explore this course'}
                   </Text>
                   <View style={styles.featuredButtons}>
@@ -348,10 +350,10 @@ export default function HomeScreen() {
                       style={styles.playButton}
                       onPress={() => router.push(`/course/${featuredCourse.id}` as any)}
                     >
-                      <Text style={styles.playButtonText}>▶  Start Learning</Text>
+                      <Text style={[styles.playButtonText, { color: theme.bgPrimary }]}>▶  Start Learning</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.infoButton}>
-                      <Text style={styles.infoButtonText}>More Info</Text>
+                      <Text style={[styles.infoButtonText, { color: theme.textPrimary }]}>More Info</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -373,7 +375,7 @@ export default function HomeScreen() {
                   {inProgressLessons.map((lesson) => (
                     <TouchableOpacity
                       key={lesson.id}
-                      style={styles.continueCard}
+                      style={[styles.continueCard, { backgroundColor: theme.cardBg }]}
                       onPress={() => router.push(`/lesson/${lesson.id}` as any)}
                       activeOpacity={0.8}
                     >
@@ -381,10 +383,10 @@ export default function HomeScreen() {
                         <InstrumentIcon slug={lesson.instrument_slug} size={32} />
                       </View>
                       <View style={styles.continueInfo}>
-                        <Text style={styles.continueTitle} numberOfLines={2}>
+                        <Text style={[styles.continueTitle, { color: theme.textPrimary }]} numberOfLines={2}>
                           {lesson.title}
                         </Text>
-                        <Text style={styles.continueCourse}>{lesson.course_title}</Text>
+                        <Text style={[styles.continueCourse, { color: theme.textSecondary }]}>{lesson.course_title}</Text>
                         <View style={styles.progressBarBg}>
                           <View
                             style={[styles.progressBarFill, { width: `${lesson.watch_percent}%` as any }]}
@@ -416,11 +418,11 @@ export default function HomeScreen() {
                       onPress={() => router.push(`/course/${course.id}` as any)}
                       activeOpacity={0.8}
                     >
-                      <View style={styles.courseThumbnail}>
+                      <View style={[styles.courseThumbnail, { backgroundColor: theme.cardBg }]}>
                         <InstrumentIcon slug={course.instrument_slug} size={32} />
                       </View>
-                      <Text style={styles.courseTitle} numberOfLines={2}>{course.title}</Text>
-                      <Text style={styles.courseSubtitle}>{course.level_slug || 'Course'}</Text>
+                      <Text style={[styles.courseTitle, { color: theme.textPrimary }]} numberOfLines={2}>{course.title}</Text>
+                      <Text style={[styles.courseSubtitle, { color: theme.textSecondary }]}>{course.level_slug || 'Course'}</Text>
                     </TouchableOpacity>
                   ))}
                 </ScrollView>
@@ -461,7 +463,6 @@ const styles = StyleSheet.create({
   },
   greeting: {
     ...TextPresets.displayMd,
-    color: Colors.textPrimary,
   },
   headerRight: {
     flex: 1,
@@ -491,7 +492,6 @@ const styles = StyleSheet.create({
   },
   subheading: {
     ...TextPresets.bodyMd,
-    color: Colors.textSecondary,
   },
   pillsRowContent: {
     gap: Spacing.sm,
@@ -505,15 +505,13 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.40)',
   },
   pillActive: {
-    backgroundColor: Colors.white,
-    borderColor: Colors.white,
+    backgroundColor: '#FFFFFF',
+    borderColor: '#FFFFFF',
   },
   pillText: {
     ...TextPresets.labelMd,
-    color: Colors.textPrimary,
   },
   pillTextActive: {
-    color: Colors.bgPrimary,
   },
 
   // Search input (expandable)
@@ -529,7 +527,6 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.30)',
     paddingHorizontal: Spacing.xl,
     ...TextPresets.bodyMd,
-    color: Colors.textPrimary,
   },
 
   // Search results
@@ -543,16 +540,13 @@ const styles = StyleSheet.create({
   },
   searchResultTitle: {
     ...TextPresets.labelMd,
-    color: Colors.textPrimary,
     marginBottom: 2,
   },
   searchResultSubtitle: {
     ...TextPresets.caption,
-    color: Colors.textSecondary,
   },
   noResults: {
     ...TextPresets.bodyMd,
-    color: Colors.textSecondary,
     textAlign: 'center',
     marginTop: Spacing.xxl,
   },
@@ -562,7 +556,6 @@ const styles = StyleSheet.create({
     marginHorizontal: Spacing.lg,
     height: Layout.featuredHeight,
     borderRadius: Radius.xl,
-    backgroundColor: Colors.cardBg,
     overflow: 'hidden',
     marginBottom: Spacing.xl,
   },
@@ -573,7 +566,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.25)',
   },
   featuredBadge: {
-    backgroundColor: Colors.accentLight,
+    backgroundColor: '#DDD6FE',
     borderRadius: Radius.full,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
@@ -582,16 +575,13 @@ const styles = StyleSheet.create({
   },
   featuredBadgeText: {
     ...TextPresets.labelSm,
-    color: Colors.bgPrimary,
   },
   featuredTitle: {
     ...TextPresets.displaySm,
-    color: Colors.textPrimary,
     marginBottom: Spacing.xs,
   },
   featuredSubtitle: {
     ...TextPresets.bodyMd,
-    color: Colors.textSecondary,
     marginBottom: Spacing.lg,
   },
   featuredButtons: {
@@ -629,7 +619,6 @@ const styles = StyleSheet.create({
   // Continue Learning cards
   continueCard: {
     width: Layout.continueCardWidth,
-    backgroundColor: Colors.cardBg,
     borderRadius: Radius.lg,
     overflow: 'hidden',
   },
@@ -645,23 +634,21 @@ const styles = StyleSheet.create({
   },
   continueTitle: {
     ...TextPresets.labelMd,
-    color: Colors.textPrimary,
     marginBottom: 2,
   },
   continueCourse: {
     ...TextPresets.caption,
-    color: Colors.textSecondary,
     marginBottom: Spacing.sm,
   },
   progressBarBg: {
     height: 3,
-    backgroundColor: Colors.progressBg,
+    backgroundColor: 'rgba(255,255,255,0.20)',
     borderRadius: Radius.full,
     overflow: 'hidden',
   },
   progressBarFill: {
     height: '100%',
-    backgroundColor: Colors.progressFill,
+    backgroundColor: '#FFFFFF',
     borderRadius: Radius.full,
   },
 
@@ -672,7 +659,6 @@ const styles = StyleSheet.create({
   courseThumbnail: {
     width: Layout.rowCardWidth,
     height: Layout.rowCardHeight,
-    backgroundColor: Colors.cardBg,
     borderRadius: Radius.md,
     alignItems: 'center',
     justifyContent: 'center',
@@ -685,20 +671,18 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 3,
-    backgroundColor: Colors.progressBg,
+    backgroundColor: 'rgba(255,255,255,0.20)',
   },
   courseProgressBarFill: {
     height: '100%',
-    backgroundColor: Colors.progressFill,
+    backgroundColor: '#FFFFFF',
   },
   courseTitle: {
     ...TextPresets.labelSm,
-    color: Colors.textPrimary,
     marginBottom: 2,
   },
   courseSubtitle: {
     ...TextPresets.caption,
-    color: Colors.textSecondary,
   },
 
   // ── Landscape Layout ─────────────────────────────────────
@@ -733,7 +717,6 @@ const styles = StyleSheet.create({
   courseRowItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.cardBg,
     borderRadius: Radius.lg,
     padding: Spacing.md,
     marginBottom: Spacing.sm,
@@ -752,17 +735,14 @@ const styles = StyleSheet.create({
   },
   courseRowTitle: {
     ...TextPresets.labelMd,
-    color: Colors.textPrimary,
     marginBottom: 2,
   },
   courseRowSubtitle: {
     ...TextPresets.caption,
-    color: Colors.textSecondary,
   },
   continueRowItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.cardBg,
     borderRadius: Radius.lg,
     padding: Spacing.md,
     marginBottom: Spacing.sm,
@@ -781,12 +761,10 @@ const styles = StyleSheet.create({
   },
   continueRowTitle: {
     ...TextPresets.labelMd,
-    color: Colors.textPrimary,
     marginBottom: 2,
   },
   continueRowCourse: {
     ...TextPresets.caption,
-    color: Colors.textSecondary,
     marginBottom: Spacing.xs,
   },
 

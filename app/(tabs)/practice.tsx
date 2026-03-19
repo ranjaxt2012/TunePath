@@ -4,16 +4,18 @@ import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScreenGradient } from '@/src/components/common/ScreenGradient';
 import { BottomTabBar } from '@/src/components/ui';
-import { Colors, TextPresets, CommonStyles } from '@/src/constants/theme';
+import { TextPresets, CommonStyles } from '@/src/constants/theme';
+import { useTheme } from '@/src/contexts/ThemeContext';
 
 export default function LearnScreen() {
+  const { theme } = useTheme();
   return (
     <ScreenGradient style={{ flex: 1 }}>
       <SafeAreaView style={styles.container}>
         <View style={styles.center}>
-          <Ionicons name="musical-notes" size={64} color={Colors.textPrimary} style={styles.icon} />
-          <Text style={styles.title}>Learn</Text>
-          <Text style={styles.subtitle}>
+          <Ionicons name="musical-notes" size={64} color={theme.textPrimary} style={styles.icon} />
+          <Text style={[styles.title, { color: theme.textPrimary }]}>Learn</Text>
+          <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
             {'Coming soon — structured lessons,\nguided practice, and more.'}
           </Text>
         </View>
@@ -39,13 +41,11 @@ const styles = StyleSheet.create({
   },
   title: {
     ...TextPresets.displayMd,
-    color: Colors.textPrimary,
     textAlign: 'center',
     marginBottom: 12,
   },
   subtitle: {
     ...TextPresets.bodyLg,
-    color: Colors.textSecondary,
     textAlign: 'center',
     lineHeight: 24,
   },

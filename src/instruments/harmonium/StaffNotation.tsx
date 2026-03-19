@@ -1,4 +1,5 @@
 import { Colors } from '@/src/constants/theme';
+import { useTheme } from '@/src/contexts/ThemeContext';
 import { StyleSheet, Text, View } from 'react-native';
 
 export function StaffNotation() {
@@ -11,5 +12,5 @@ export function StaffNotation() {
 
 const styles = StyleSheet.create({
   container: { padding: 16 },
-  text: { fontSize: 14, color: Colors.textPrimary },
+  text: { fontSize: 14, color: '#FFFFFF' },
 });

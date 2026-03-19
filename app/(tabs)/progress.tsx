@@ -5,7 +5,8 @@ import { ScreenGradient } from '@/src/components/common/ScreenGradient';
 import { BottomTabBar } from '@/src/components/ui';
 import { LoadingState } from '@/src/components/common/LoadingState';
 import { ErrorState } from '@/src/components/common/ErrorState';
-import { Colors, Spacing, Radius, TextPresets, CommonStyles } from '@/src/constants/theme';
+import { Spacing, Radius, TextPresets, CommonStyles } from '@/src/constants/theme';
+import { useTheme } from '@/src/contexts/ThemeContext';
 import { useProgressSummary } from '@/src/hooks/useProgressSummary';
 import { useOrientation } from '@/src/hooks/useOrientation';
 
@@ -20,6 +21,7 @@ function formatDuration(seconds: number): string {
 export default function ProgressScreen() {
   const [period, setPeriod] = useState<'week' | 'overall'>('overall');
   const { summary, loading, error } = useProgressSummary();
+  const { theme } = useTheme();
   const { isLandscape } = useOrientation();
 
   const totalMinutes = summary ? Math.floor(summary.total_practice_seconds / 60) : 0;
@@ -43,13 +45,13 @@ export default function ProgressScreen() {
     <ScreenGradient style={styles.container}>
       <SafeAreaView edges={['top']}>
         <View style={styles.header}>
-          <Text style={styles.title}>Your Progress</Text>
+          <Text style={[styles.title, { color: theme.textPrimary }]}>Your Progress</Text>
           <View style={styles.toggleRow}>
             <TouchableOpacity
               style={[styles.togglePill, period === 'week' && styles.togglePillActive]}
               onPress={() => setPeriod('week')}
             >
-              <Text style={[styles.toggleText, period === 'week' && styles.toggleTextActive]}>
+              <Text style={[styles.toggleText, { color: period === 'week' ? '#7C3AED' : theme.textSecondary }]}>
                 This Week
               </Text>
             </TouchableOpacity>
@@ -57,7 +59,7 @@ export default function ProgressScreen() {
               style={[styles.togglePill, period === 'overall' && styles.togglePillActive]}
               onPress={() => setPeriod('overall')}
             >
-              <Text style={[styles.toggleText, period === 'overall' && styles.toggleTextActive]}>
+              <Text style={[styles.toggleText, { color: period === 'overall' ? '#7C3AED' : theme.textSecondary }]}>
                 Overall
               </Text>
             </TouchableOpacity>
@@ -72,25 +74,25 @@ export default function ProgressScreen() {
             {!loading && (
               <>
                 {/* Stats Cards */}
-                <View style={styles.statCardLandscape}>
+                <View style={[styles.statCardLandscape, { backgroundColor: theme.cardBg }]}>
                   <Text style={styles.statIcon}>⏰</Text>
-                  <Text style={styles.statValue}>{totalMinutes}m</Text>
-                  <Text style={styles.statLabel}>Practice Time</Text>
+                  <Text style={[styles.statValue, { color: theme.textPrimary }]}>{totalMinutes}m</Text>
+                  <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Practice Time</Text>
                 </View>
-                <View style={styles.statCardLandscape}>
+                <View style={[styles.statCardLandscape, { backgroundColor: theme.cardBg }]}>
                   <Text style={styles.statIcon}>✅</Text>
-                  <Text style={styles.statValue}>{completedLessons}</Text>
-                  <Text style={styles.statLabel}>Completed</Text>
+                  <Text style={[styles.statValue, { color: theme.textPrimary }]}>{completedLessons}</Text>
+                  <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Completed</Text>
                 </View>
-                <View style={styles.statCardLandscape}>
+                <View style={[styles.statCardLandscape, { backgroundColor: theme.cardBg }]}>
                   <Text style={styles.statIcon}>🔥</Text>
-                  <Text style={styles.statValue}>0</Text>
-                  <Text style={styles.statLabel}>Day Streak</Text>
+                  <Text style={[styles.statValue, { color: theme.textPrimary }]}>0</Text>
+                  <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Day Streak</Text>
                 </View>
-                <View style={styles.statCardLandscape}>
+                <View style={[styles.statCardLandscape, { backgroundColor: theme.cardBg }]}>
                   <Text style={styles.statIcon}>📊</Text>
-                  <Text style={styles.statValue}>{byInstrument.length}</Text>
-                  <Text style={styles.statLabel}>Instruments</Text>
+                  <Text style={[styles.statValue, { color: theme.textPrimary }]}>{byInstrument.length}</Text>
+                  <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Instruments</Text>
                 </View>
               </>
             )}
@@ -125,7 +127,7 @@ export default function ProgressScreen() {
                               ]}
                             />
                           </View>
-                          <Text style={styles.barLabel}>{item.day}</Text>
+                          <Text style={[styles.barLabel, { color: theme.textSecondary }]}>{item.day}</Text>
                         </View>
                       );
                     })}
@@ -142,8 +144,8 @@ export default function ProgressScreen() {
                   {byInstrument.map((inst) => (
                     <View key={inst.slug} style={styles.instrumentRow}>
                       <View style={styles.instrumentRowHeader}>
-                        <Text style={styles.instrumentName}>{inst.name}</Text>
-                        <Text style={styles.instrumentPercent}>{inst.percent}%</Text>
+                        <Text style={[styles.instrumentName, { color: theme.textPrimary }]}>{inst.name}</Text>
+                        <Text style={[styles.instrumentPercent, { color: theme.textSecondary }]}>{inst.percent}%</Text>
                       </View>
                       <View style={styles.progressBarBg}>
                         <View style={[styles.progressBarFill, { width: `${inst.percent}%` as any }]} />
@@ -189,23 +191,23 @@ export default function ProgressScreen() {
 
           {/* ── Stats Row ─────────────────────────────────– */}
           {!loading && (
-            <View style={styles.statsRow}>
+            <View style={[styles.statsRow, { backgroundColor: theme.cardBg }]}>
             <View style={styles.statCard}>
               <Text style={styles.statIcon}>⏰</Text>
-              <Text style={styles.statValue}>{totalMinutes}m</Text>
-              <Text style={styles.statLabel}>Practice Time</Text>
+              <Text style={[styles.statValue, { color: theme.textPrimary }]}>{totalMinutes}m</Text>
+              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Practice Time</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statCard}>
               <Text style={styles.statIcon}>✅</Text>
-              <Text style={styles.statValue}>{completedLessons}</Text>
-              <Text style={styles.statLabel}>Completed</Text>
+              <Text style={[styles.statValue, { color: theme.textPrimary }]}>{completedLessons}</Text>
+              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Completed</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statCard}>
               <Text style={styles.statIcon}>🔥</Text>
-              <Text style={styles.statValue}>0</Text>
-              <Text style={styles.statLabel}>Day Streak</Text>
+              <Text style={[styles.statValue, { color: theme.textPrimary }]}>0</Text>
+              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Day Streak</Text>
             </View>
           </View>
         )}
@@ -213,8 +215,8 @@ export default function ProgressScreen() {
         {/* ── Weekly Bar Chart ───────────────────────────── */}
         {!loading && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Daily Practice</Text>
-            <View style={styles.chartCard}>
+            <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Daily Practice</Text>
+            <View style={[styles.chartCard, { backgroundColor: theme.cardBg }]}>
               <View style={styles.chartBars}>
                 {weeklyData.map((item, idx) => {
                   const barH = item.minutes > 0
@@ -246,8 +248,8 @@ export default function ProgressScreen() {
         {/* ── Instrument Progress ────────────────────────── */}
         {!loading && byInstrument.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>By Instrument</Text>
-            <View style={styles.card}>
+            <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>By Instrument</Text>
+            <View style={[styles.card, { backgroundColor: theme.cardBg }]}>
               {byInstrument.map((inst) => (
                 <View key={inst.slug} style={styles.instrumentRow}>
                   <View style={styles.instrumentRowHeader}>
@@ -266,17 +268,17 @@ export default function ProgressScreen() {
         {/* ── Recent Sessions ────────────────────────────── */}
         {!loading && recentSessions.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Recent Sessions</Text>
+            <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Recent Sessions</Text>
             <View style={styles.sessionsList}>
               {recentSessions.map((session, idx) => (
-                <View key={idx} style={styles.sessionCard}>
+                <View key={idx} style={[styles.sessionCard, { backgroundColor: theme.cardBg }]}>
                   <View style={styles.sessionInfo}>
-                    <Text style={styles.sessionTitle}>{session.lesson_title}</Text>
-                    <Text style={styles.sessionDate}>
+                    <Text style={[styles.sessionTitle, { color: theme.textPrimary }]}>{session.lesson_title}</Text>
+                    <Text style={[styles.sessionDate, { color: theme.textSecondary }]}>
                       {new Date(session.started_at).toLocaleDateString()}
                     </Text>
                   </View>
-                  <Text style={styles.sessionDuration}>{formatDuration(session.duration_seconds)}</Text>
+                  <Text style={[styles.sessionDuration, { color: theme.textSecondary }]}>{formatDuration(session.duration_seconds)}</Text>
                 </View>
               ))}
             </View>
@@ -301,7 +303,6 @@ const styles = StyleSheet.create({
   },
   title: {
     ...TextPresets.displayMd,
-    color: Colors.textPrimary,
     marginBottom: Spacing.md,
   },
   toggleRow: {
@@ -316,15 +317,13 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.40)',
   },
   togglePillActive: {
-    backgroundColor: Colors.white,
-    borderColor: Colors.white,
+    backgroundColor: '#FFFFFF',
+    borderColor: '#FFFFFF',
   },
   toggleText: {
     ...TextPresets.labelSm,
-    color: Colors.textSecondary,
   },
   toggleTextActive: {
-    color: Colors.bgPrimary,
   },
 
   scroll: { flex: 1 },
@@ -336,7 +335,6 @@ const styles = StyleSheet.create({
   // Stats
   statsRow: {
     flexDirection: 'row',
-    backgroundColor: Colors.cardBg,
     borderRadius: Radius.lg,
     padding: Spacing.xl,
     marginBottom: Spacing.xl,
@@ -352,17 +350,15 @@ const styles = StyleSheet.create({
   },
   statValue: {
     ...TextPresets.h1,
-    color: Colors.textPrimary,
   },
   statLabel: {
     ...TextPresets.caption,
-    color: Colors.textSecondary,
     textAlign: 'center',
   },
   statDivider: {
     width: 1,
     height: 56,
-    backgroundColor: Colors.progressBg,
+    backgroundColor: 'rgba(255,255,255,0.20)',
     marginHorizontal: Spacing.sm,
   },
 
@@ -372,18 +368,15 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     ...TextPresets.h2,
-    color: Colors.textPrimary,
     marginBottom: Spacing.md,
   },
   card: {
-    backgroundColor: Colors.cardBg,
     borderRadius: Radius.lg,
     padding: Spacing.lg,
   },
 
   // Bar chart
   chartCard: {
-    backgroundColor: Colors.cardBg,
     borderRadius: Radius.lg,
     padding: Spacing.lg,
     paddingBottom: Spacing.md,
@@ -410,7 +403,7 @@ const styles = StyleSheet.create({
     borderRadius: Radius.sm,
   },
   barToday: {
-    backgroundColor: Colors.white,
+    backgroundColor: '#FFFFFF',
   },
   barEmpty: {
     backgroundColor: 'rgba(255,255,255,0.15)',
@@ -418,7 +411,6 @@ const styles = StyleSheet.create({
   },
   barLabel: {
     ...TextPresets.caption,
-    color: Colors.textSecondary,
   },
 
   // Instrument progress
@@ -432,21 +424,19 @@ const styles = StyleSheet.create({
   },
   instrumentName: {
     ...TextPresets.labelMd,
-    color: Colors.textPrimary,
   },
   instrumentPercent: {
     ...TextPresets.bodyMd,
-    color: Colors.textSecondary,
   },
   progressBarBg: {
     height: 8,
-    backgroundColor: Colors.progressBg,
+    backgroundColor: 'rgba(255,255,255,0.20)',
     borderRadius: Radius.full,
     overflow: 'hidden',
   },
   progressBarFill: {
     height: '100%',
-    backgroundColor: Colors.progressFill,
+    backgroundColor: '#FFFFFF',
     borderRadius: Radius.full,
   },
 
@@ -455,7 +445,6 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   sessionCard: {
-    backgroundColor: Colors.cardBg,
     borderRadius: Radius.lg,
     padding: Spacing.md,
     flexDirection: 'row',
@@ -467,16 +456,13 @@ const styles = StyleSheet.create({
   },
   sessionTitle: {
     ...TextPresets.labelMd,
-    color: Colors.textPrimary,
     marginBottom: 2,
   },
   sessionDate: {
     ...TextPresets.caption,
-    color: Colors.textSecondary,
   },
   sessionDuration: {
     ...TextPresets.labelSm,
-    color: Colors.textSecondary,
   },
 
   // ── Landscape Layout ─────────────────────────────────────
@@ -494,7 +480,6 @@ const styles = StyleSheet.create({
   },
   statCardLandscape: {
     width: '48%',
-    backgroundColor: Colors.cardBg,
     borderRadius: Radius.lg,
     padding: Spacing.lg,
     alignItems: 'center',

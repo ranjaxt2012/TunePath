@@ -18,21 +18,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScreenGradient } from '@/src/components/common/ScreenGradient';
 import {
-  Colors,
   FontSize,
   Radius,
   Spacing,
   Typography,
 } from '@/src/constants/theme';
+import { useTheme } from '@/src/contexts/ThemeContext';
 import { useAuthStore } from '@/src/store/authStore';
 import { useOrientation } from '@/src/hooks/useOrientation';
 import { getPreferences, patchPreferences } from '@/src/services/apiClient';
-
-const LEVELS = [
-  { slug: 'beginner', name: 'Beginner', icon: '🌱' },
-  { slug: 'intermediate', name: 'Intermediate', icon: '🎵' },
-  { slug: 'advanced', name: 'Advanced', icon: '🏆' },
-] as const;
 
 const GENRES = [
   'Classical', 'Folk', 'Bollywood', 'Jazz', 'Blues', 'Pop', 'Rock', 'Devotional',
@@ -48,6 +42,7 @@ const THEMES = [
 
 export default function SelectLevelScreen() {
   const router = useRouter();
+  const { theme } = useTheme();
   const {
     user,
     setSelectedLevel,
@@ -58,13 +53,12 @@ export default function SelectLevelScreen() {
     selectedLevelSlug,
   } = useAuthStore();
   const { isLandscape } = useOrientation();
-  const isTutor = user?.roles?.includes('tutor') ?? false;
 
   const [selectedSlug, setSelectedSlugState] = useState<string | null>(
     selectedLevelSlug
   );
   const [genres, setGenresState] = useState<string[]>(selectedGenres);
-  const [theme, setThemeState] = useState<string>(selectedTheme);
+  const [selectedThemeId, setThemeState] = useState<string>(selectedTheme);
   const [openPanel, setOpenPanel] = useState<'genres' | 'theme' | null>(null);
   const [genreHeight, setGenreHeight] = useState(0);
   const [themeHeight, setThemeHeight] = useState(0);
@@ -140,13 +134,13 @@ export default function SelectLevelScreen() {
     if (!selectedSlug) return;
     setSelectedLevel(selectedSlug);
     setGenres(genres);
-    setTheme(theme);
+    setTheme(selectedThemeId);
     router.replace('/(tabs)/home' as Parameters<typeof router.replace>[0]);
     patchPreferences({
       preferred_genres: genres,
-      preferred_theme: theme,
+      preferred_theme: selectedThemeId,
     }).catch(() => {});
-  }, [selectedSlug, genres, theme, setSelectedLevel, setGenres, setTheme, router]);
+  }, [selectedSlug, genres, selectedThemeId, setSelectedLevel, setGenres, setTheme, router]);
 
   const onGenreLayout = useCallback((e: LayoutChangeEvent) => {
     setGenreHeight(e.nativeEvent.layout.height);
@@ -170,46 +164,76 @@ export default function SelectLevelScreen() {
     <ScreenGradient style={styles.container}>
       <SafeAreaView style={styles.safe} edges={['top']}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backText}>← Back</Text>
+          <Text style={[styles.backText, { color: theme.textPrimary }]}>← Back</Text>
         </Pressable>
 
-        <Text style={styles.title}>Select Your Level</Text>
+        <Text style={[styles.title, { color: theme.textPrimary }]}>Select Your Level</Text>
 
-        <View style={styles.levelRow}>
-          {LEVELS.map((level) => {
-            const isSelected = selectedSlug === level.slug;
-            return (
-              <LevelPill
-                key={level.slug}
-                level={level}
-                isSelected={isSelected}
-                onPress={() => handleLevelSelect(level.slug)}
-              />
-            );
-          })}
+        <View style={styles.levelRowTop}>
+          <TouchableOpacity
+            style={[
+              styles.levelCard,
+              styles.levelCardHalf,
+              { backgroundColor: theme.cardBg },
+              selectedSlug === 'beginner' && { backgroundColor: theme.bgPrimary, borderColor: theme.textPrimary },
+            ]}
+            onPress={() => handleLevelSelect('beginner')}
+          >
+            <Text style={styles.levelEmoji}>🌱</Text>
+            <Text style={[styles.levelName, { color: theme.textPrimary }]}>Beginner</Text>
+            <Text style={[styles.levelDesc, { color: theme.textSecondary }]}>Start from scratch</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.levelCard,
+              styles.levelCardHalf,
+              { backgroundColor: theme.cardBg },
+              selectedSlug === 'intermediate' && { backgroundColor: theme.bgPrimary, borderColor: theme.textPrimary },
+            ]}
+            onPress={() => handleLevelSelect('intermediate')}
+          >
+            <Text style={styles.levelEmoji}>🎵</Text>
+            <Text style={[styles.levelName, { color: theme.textPrimary }]}>Intermediate</Text>
+            <Text style={[styles.levelDesc, { color: theme.textSecondary }]}>Build on basics</Text>
+          </TouchableOpacity>
         </View>
 
-        <Text style={styles.sectionTitle}>Select Genres and Theme</Text>
+        <TouchableOpacity
+          style={[
+            styles.levelCard,
+            styles.levelCardFull,
+            { backgroundColor: theme.cardBg },
+            selectedSlug === 'advanced' && { backgroundColor: theme.bgPrimary, borderColor: theme.textPrimary },
+          ]}
+          onPress={() => handleLevelSelect('advanced')}
+        >
+          <Text style={styles.levelEmoji}>🏆</Text>
+          <Text style={[styles.levelName, { color: theme.textPrimary }]}>Advanced</Text>
+          <Text style={[styles.levelDesc, { color: theme.textSecondary }]}>Master the instrument</Text>
+        </TouchableOpacity>
+
+        <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Select Genres and Theme</Text>
         <View style={styles.toggleRow}>
           <Pressable
             style={[
               styles.toggleBtn,
-              openPanel === 'genres' && styles.toggleBtnActive,
+              openPanel === 'genres' && { backgroundColor: theme.bgPrimary },
             ]}
             onPress={toggleGenres}
           >
             <Text style={styles.toggleIcon}>🎵</Text>
-            <Text style={styles.toggleLabel}>Genres</Text>
+            <Text style={[styles.toggleLabel, { color: theme.textPrimary }]}>Genres</Text>
           </Pressable>
           <Pressable
             style={[
               styles.toggleBtn,
-              openPanel === 'theme' && styles.toggleBtnActive,
+              openPanel === 'theme' && { backgroundColor: theme.bgPrimary },
             ]}
             onPress={toggleTheme}
           >
             <Text style={styles.toggleIcon}>🎨</Text>
-            <Text style={styles.toggleLabel}>Theme</Text>
+            <Text style={[styles.toggleLabel, { color: theme.textPrimary }]}>Theme</Text>
           </Pressable>
         </View>
 
@@ -244,6 +268,7 @@ export default function SelectLevelScreen() {
                   label={g}
                   selected={genres.includes(g)}
                   onPress={() => handleGenreTap(g)}
+                  themeObj={theme}
                 />
               ))}
             </View>
@@ -254,8 +279,9 @@ export default function SelectLevelScreen() {
                 <ThemeSwatch
                   key={t.id}
                   theme={t}
-                  selected={theme === t.id}
+                  selected={selectedThemeId === t.id}
                   onPress={() => handleThemeSelect(t.id)}
+                  themeObj={theme}
                 />
               ))}
             </View>
@@ -267,70 +293,33 @@ export default function SelectLevelScreen() {
         <Pressable
           style={[
             styles.continueBtn,
+            { backgroundColor: theme.textPrimary },
             !selectedSlug && styles.continueBtnDisabled,
           ]}
           onPress={handleContinue}
           disabled={!selectedSlug}
         >
-          <Text style={styles.continueText}>Continue →</Text>
+          <Text style={[styles.continueText, { color: theme.bgPrimary }]}>Continue →</Text>
         </Pressable>
 
-        {isTutor && (
-          <TouchableOpacity
-            style={styles.tutorBtn}
-            onPress={() => router.push('/tutor/upload')}
-          >
-            <Ionicons
-              name="cloud-upload-outline"
-              size={20}
-              color={Colors.textPrimary}
-            />
-            <Text style={styles.tutorBtnText}>Tutor Portal</Text>
-            <Ionicons
-              name="chevron-forward"
-              size={16}
-              color={Colors.textSecondary}
-            />
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity
+          style={[styles.tutorBtn, { backgroundColor: theme.cardBg }]}
+          onPress={() => router.push('/tutor/upload')}
+        >
+          <Ionicons
+            name="cloud-upload-outline"
+            size={22}
+            color={theme.textPrimary}
+          />
+          <Text style={[styles.tutorBtnText, { color: theme.textPrimary }]}>Tutor Portal</Text>
+          <Ionicons
+            name="chevron-forward"
+            size={16}
+            color={theme.textSecondary}
+          />
+        </TouchableOpacity>
       </SafeAreaView>
     </ScreenGradient>
-  );
-}
-
-function LevelPill({
-  level,
-  isSelected,
-  onPress,
-}: {
-  level: (typeof LEVELS)[number];
-  isSelected: boolean;
-  onPress: () => void;
-}) {
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-  useEffect(() => {
-    Animated.spring(scaleAnim, {
-      toValue: isSelected ? 1.05 : 1,
-      useNativeDriver: true,
-      tension: 80,
-      friction: 10,
-    }).start();
-  }, [isSelected, scaleAnim]);
-  return (
-    <Pressable onPress={onPress} style={styles.levelPillWrap}>
-      <Animated.View
-        style={[
-          styles.levelPill,
-          isSelected && styles.levelPillSelected,
-          { transform: [{ scale: scaleAnim }] },
-        ]}
-      >
-        <Text style={styles.levelIcon}>{level.icon}</Text>
-        <Text style={styles.levelName} numberOfLines={1}>
-          {level.name}
-        </Text>
-      </Animated.View>
-    </Pressable>
   );
 }
 
@@ -338,10 +327,12 @@ function GenreChip({
   label,
   selected,
   onPress,
+  themeObj,
 }: {
   label: string;
   selected: boolean;
   onPress: () => void;
+  themeObj: any;
 }) {
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const handlePress = () => {
@@ -366,12 +357,15 @@ function GenreChip({
       <Animated.View
         style={[
           styles.genreChip,
-          selected && styles.genreChipSelected,
+          selected && { backgroundColor: themeObj.bgPrimary },
           { transform: [{ scale: scaleAnim }] },
         ]}
       >
         <Text
-          style={[styles.genreChipText, selected && styles.genreChipTextSelected]}
+          style={[
+            styles.genreChipText,
+            { color: selected ? themeObj.textPrimary : themeObj.textSecondary },
+          ]}
         >
           {label}
         </Text>
@@ -384,10 +378,12 @@ function ThemeSwatch({
   theme,
   selected,
   onPress,
+  themeObj,
 }: {
   theme: (typeof THEMES)[number];
   selected: boolean;
   onPress: () => void;
+  themeObj: any;
 }) {
   const isHighContrast = theme.id === 'high-contrast';
   return (
@@ -396,15 +392,15 @@ function ThemeSwatch({
         style={[
           styles.swatchCircle,
           { backgroundColor: theme.color },
-          isHighContrast && styles.swatchCircleBorder,
-          selected && styles.swatchSelected,
+          isHighContrast && { borderColor: themeObj.textPrimary },
+          selected && { borderColor: themeObj.textPrimary },
         ]}
       >
         {selected && (
-          <Text style={styles.swatchCheck}>✓</Text>
+          <Text style={[styles.swatchCheck, { color: themeObj.textPrimary }]}>✓</Text>
         )}
       </View>
-      <Text style={styles.swatchLabel}>{theme.label}</Text>
+      <Text style={[styles.swatchLabel, { color: themeObj.textSecondary }]}>{theme.label}</Text>
     </Pressable>
   );
 }
@@ -420,51 +416,57 @@ const styles = StyleSheet.create({
   backText: {
     fontSize: FontSize.md,
     fontFamily: Typography.semiBold,
-    color: Colors.textPrimary,
   },
   title: {
     fontSize: FontSize.xxl,
     fontFamily: Typography.bold,
-    color: Colors.textPrimary,
     textAlign: 'center',
     marginBottom: Spacing.xl,
     marginTop: Spacing.lg,
   },
-  levelRow: {
+  levelRowTop: {
     flexDirection: 'row',
+    gap: Spacing.md,
+    marginBottom: Spacing.md,
+  },
+  levelCard: {
+    borderRadius: Radius.lg,
+    padding: Spacing.xl,
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.15)',
     gap: Spacing.sm,
-    marginBottom: Spacing.xl,
   },
-  levelPillWrap: {
+  levelCardHalf: {
     flex: 1,
-    minWidth: 0,
+    minHeight: 140,
   },
-  levelPill: {
-    flex: 1,
+  levelCardFull: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.sm,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-    borderRadius: Radius.xl,
+    gap: Spacing.lg,
+    paddingVertical: Spacing.lg,
+    marginBottom: Spacing.md,
   },
-  levelPillSelected: {
-    backgroundColor: Colors.bgPrimary,
-    borderWidth: 1.5,
-    borderColor: Colors.textPrimary,
+  levelCardSelected: {
+    borderWidth: 2,
   },
-  levelIcon: { fontSize: 24, marginBottom: Spacing.xs },
+  levelEmoji: {
+    fontSize: 32,
+  },
   levelName: {
-    fontSize: FontSize.sm,
+    fontSize: FontSize.md,
     fontFamily: Typography.semiBold,
-    color: Colors.textPrimary,
+  },
+  levelDesc: {
+    fontFamily: Typography.regular,
+    fontSize: FontSize.sm,
+    textAlign: 'center',
   },
   sectionTitle: {
     fontSize: FontSize.lg,
     fontFamily: Typography.semiBold,
-    color: Colors.textPrimary,
     marginBottom: Spacing.md,
   },
   toggleRow: {
@@ -485,13 +487,11 @@ const styles = StyleSheet.create({
     borderRadius: Radius.md,
   },
   toggleBtnActive: {
-    backgroundColor: Colors.bgPrimary,
   },
   toggleIcon: { fontSize: 18 },
   toggleLabel: {
     fontSize: FontSize.sm,
     fontFamily: Typography.semiBold,
-    color: Colors.textPrimary,
   },
   accordionWrap: {
     overflow: 'hidden',
@@ -527,17 +527,14 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.2)',
   },
   genreChipSelected: {
-    backgroundColor: Colors.bgPrimary,
     borderWidth: 1.5,
     borderColor: 'rgba(255,255,255,0.5)',
   },
   genreChipText: {
     fontSize: FontSize.sm,
     fontFamily: Typography.medium,
-    color: Colors.textSecondary,
   },
   genreChipTextSelected: {
-    color: Colors.textPrimary,
   },
   themeContent: {
     flexDirection: 'row',
@@ -557,28 +554,23 @@ const styles = StyleSheet.create({
   },
   swatchCircleBorder: {
     borderWidth: 1,
-    borderColor: Colors.textPrimary,
   },
   swatchSelected: {
     borderWidth: 3,
-    borderColor: Colors.textPrimary,
   },
   swatchCheck: {
     fontSize: 20,
     fontFamily: Typography.bold,
-    color: Colors.textPrimary,
   },
   swatchLabel: {
     fontSize: FontSize.xs,
     fontFamily: Typography.regular,
-    color: Colors.textSecondary,
     marginTop: Spacing.xs,
   },
   spacer: { flex: 1 },
   continueBtn: {
     height: 52,
     borderRadius: Radius.full,
-    backgroundColor: Colors.textPrimary,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.xxl,
@@ -589,25 +581,22 @@ const styles = StyleSheet.create({
   continueText: {
     fontSize: FontSize.md,
     fontFamily: Typography.semiBold,
-    color: Colors.bgPrimary,
   },
   tutorBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    marginHorizontal: Spacing.xl,
-    marginBottom: Spacing.xl,
-    backgroundColor: Colors.cardBg,
-    borderRadius: Radius.md,
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.xl,
+    borderRadius: Radius.lg,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.15)',
+    marginTop: Spacing.md,
+    marginBottom: Spacing.xl,
   },
   tutorBtnText: {
     flex: 1,
-    fontFamily: Typography.medium,
+    fontFamily: Typography.semiBold,
     fontSize: FontSize.md,
-    color: Colors.textPrimary,
   },
 });

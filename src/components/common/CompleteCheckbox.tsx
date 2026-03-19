@@ -7,7 +7,8 @@ import {
   StyleSheet,
   Animated,
 } from 'react-native';
-import { Colors, TextPresets, Typography } from '@/src/constants/theme';
+import { TextPresets, Typography } from '@/src/constants/theme';
+import { useTheme } from '@/src/contexts/ThemeContext';
 
 const SIZE = 28;
 const CHECKMARK = '\u2713'; // ✓
@@ -26,6 +27,7 @@ export function CompleteCheckbox({
   loading = false,
   compact = false,
 }: CompleteCheckboxProps) {
+  const { theme } = useTheme();
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
@@ -61,16 +63,16 @@ export function CompleteCheckbox({
       )}
       <View style={styles.squareWrap}>
         {loading ? (
-          <ActivityIndicator size="small" color={Colors.white} />
+          <ActivityIndicator size="small" color={theme.textPrimary} />
         ) : (
           <Animated.View
             style={[
               styles.square,
-              isComplete ? styles.squareComplete : styles.squareDefault,
+              { backgroundColor: isComplete ? theme.success : theme.bgPrimary },
               { transform: [{ scale: scaleAnim }] },
             ]}
           >
-            <Text style={styles.checkmark}>{CHECKMARK}</Text>
+            <Text style={[styles.checkmark, { color: '#FFFFFF' }]}>{CHECKMARK}</Text>
           </Animated.View>
         )}
       </View>
@@ -103,13 +105,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   squareDefault: {
-    backgroundColor: Colors.bgPrimary,
   },
   squareComplete: {
-    backgroundColor: Colors.success,
   },
   checkmark: {
-    color: Colors.white,
     fontSize: 16,
     fontFamily: Typography.bold,
   },

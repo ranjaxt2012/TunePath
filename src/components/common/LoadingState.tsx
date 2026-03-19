@@ -1,16 +1,18 @@
 import React from 'react';
 import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
-import { Colors, TextPresets, CommonStyles } from '@/src/constants/theme';
+import { TextPresets, CommonStyles } from '@/src/constants/theme';
+import { useTheme } from '@/src/contexts/ThemeContext';
 
 type Props = {
   message?: string;
 };
 
 export function LoadingState({ message = 'Loading...' }: Props) {
+  const { theme } = useTheme();
   return (
     <View style={styles.container}>
-      <ActivityIndicator size="large" color={Colors.white} />
-      <Text style={styles.text}>{message}</Text>
+      <ActivityIndicator size="large" color={theme.textPrimary} />
+      <Text style={[styles.text, { color: theme.textSecondary }]}>{message}</Text>
     </View>
   );
 }
@@ -25,6 +27,5 @@ const styles = StyleSheet.create({
   },
   text: {
     ...TextPresets.bodyMd,
-    color: Colors.textSecondary,
   },
 });

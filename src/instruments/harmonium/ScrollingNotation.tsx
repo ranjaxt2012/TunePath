@@ -4,6 +4,7 @@
  * Active note highlighted; next line dim preview. ScrollView with auto-scroll.
  */
 
+import { useTheme } from '@/src/contexts/ThemeContext';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
@@ -18,7 +19,7 @@ import {
   TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, FontSize, Radius, Spacing, Typography } from '@/src/constants/theme';
+import { FontSize, Radius, Spacing, Typography } from '@/src/constants/theme';
 import { chunkNotes } from '@/src/utils/notation';
 import type { Note } from '@/src/utils/notation';
 
@@ -210,7 +211,7 @@ export function ScrollingNotation({
                 <Ionicons
                   name="close"
                   size={20}
-                  color={Colors.textPrimary}
+                  color={'#FFFFFF'}
                 />
               </TouchableOpacity>
             </View>
@@ -626,7 +627,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   cellActiveInner: {
-    backgroundColor: Colors.bgPrimary,
+    backgroundColor: '#7C3AED',
     borderRadius: Radius.md,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
@@ -634,28 +635,28 @@ const styles = StyleSheet.create({
   cellTextActive: {
     fontFamily: Typography.bold,
     fontSize: FontSize.lg,
-    color: Colors.textPrimary,
+    color: '#FFFFFF',
   },
   cellTextNext: {
     fontFamily: Typography.regular,
     fontSize: FontSize.md,
-    color: Colors.textSecondary,
+    color: 'rgba(255,255,255,0.75)',
   },
   cellTextFuture: {
     fontFamily: Typography.regular,
     fontSize: FontSize.md,
-    color: Colors.textSecondary,
+    color: 'rgba(255,255,255,0.75)',
   },
   cellTextPast: {
     fontFamily: Typography.regular,
     fontSize: FontSize.md,
-    color: Colors.textSecondary,
+    color: 'rgba(255,255,255,0.75)',
     opacity: 0.2,
   },
   cellLyric: {
     fontFamily: Typography.regular,
     fontSize: FontSize.xs,
-    color: Colors.textSecondary,
+    color: 'rgba(255,255,255,0.75)',
     opacity: 0.7,
     marginTop: 2,
   },
@@ -697,7 +698,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontFamily: Typography.semiBold,
     fontSize: FontSize.lg,
-    color: Colors.textPrimary,
+    color: '#FFFFFF',
   },
   editRow: {
     flexDirection: 'row',
@@ -708,7 +709,7 @@ const styles = StyleSheet.create({
   editLabel: {
     fontFamily: Typography.regular,
     fontSize: FontSize.sm,
-    color: Colors.textSecondary,
+    color: 'rgba(255,255,255,0.75)',
     width: 42,
   },
   timeInput: {
@@ -716,7 +717,7 @@ const styles = StyleSheet.create({
     borderRadius: Radius.sm,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
-    color: Colors.textPrimary,
+    color: '#FFFFFF',
     fontFamily: Typography.medium,
     fontSize: FontSize.sm,
     width: 70,
@@ -739,18 +740,18 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: Spacing.md,
     borderRadius: Radius.md,
-    backgroundColor: Colors.bgPrimary,
+    backgroundColor: '#7C3AED',
     alignItems: 'center',
   },
   cancelText: {
     fontFamily: Typography.medium,
     fontSize: FontSize.md,
-    color: Colors.textSecondary,
+    color: 'rgba(255,255,255,0.75)',
   },
   saveText: {
     fontFamily: Typography.semiBold,
     fontSize: FontSize.md,
-    color: Colors.textPrimary,
+    color: '#FFFFFF',
   },
   notePicker: {
     flexDirection: 'row',
@@ -765,13 +766,13 @@ const styles = StyleSheet.create({
   notePickerText: {
     fontFamily: Typography.medium,
     fontSize: FontSize.sm,
-    color: Colors.textPrimary,
+    color: '#FFFFFF',
   },
   noteDropdown: {
     position: 'absolute',
     top: 32,
     left: 0,
-    backgroundColor: Colors.cardBg,
+    backgroundColor: 'rgba(255,255,255,0.12)',
     borderRadius: Radius.md,
     zIndex: 999,
     overflow: 'hidden',
@@ -782,17 +783,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
   },
   noteOptionActive: {
-    backgroundColor: Colors.bgPrimary,
+    backgroundColor: '#7C3AED',
   },
   noteOptionText: {
     fontFamily: Typography.regular,
     fontSize: FontSize.sm,
-    color: Colors.textSecondary,
+    color: 'rgba(255,255,255,0.75)',
   },
   noteOptionTextActive: {
     fontFamily: Typography.medium,
     fontSize: FontSize.sm,
-    color: Colors.textPrimary,
+    color: '#FFFFFF',
   },
 });
 
@@ -814,7 +815,7 @@ function NotePickerDropdown({
         <Ionicons
           name="chevron-down"
           size={12}
-          color={Colors.textSecondary}
+          color={'rgba(255,255,255,0.75)'}
         />
       </TouchableOpacity>
       {open && (

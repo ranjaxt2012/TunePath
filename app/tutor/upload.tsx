@@ -24,8 +24,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScreenGradient } from '@/src/components/common/ScreenGradient';
+import { useTheme } from '@/src/contexts/ThemeContext';
 import {
-  Colors,
   FontSize,
   Radius,
   Spacing,
@@ -53,8 +53,150 @@ type Step = 'pick-method' | 'youtube-url' | 'youtube-preview' | 'details' | 'pro
 
 export default function TutorUploadScreen() {
   const router = useRouter();
+  const { theme } = useTheme();
   const [step, setStep] = useState<Step>('pick-method');
   const [error, setError] = useState<string | null>(null);
+
+  const styles = StyleSheet.create({
+    screen: { flex: 1 },
+    safe: { flex: 1 },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: Spacing.lg,
+      paddingVertical: Spacing.md,
+      gap: Spacing.md,
+    },
+    backBtn: { padding: Spacing.xs },
+    headerTitle: {
+      fontSize: FontSize.xl,
+      fontFamily: Typography.bold,
+      color: theme.textPrimary,
+    },
+    errorBanner: {
+      backgroundColor: 'rgba(239,68,68,0.3)',
+      marginHorizontal: Spacing.lg,
+      padding: Spacing.md,
+      borderRadius: Radius.md,
+      marginBottom: Spacing.md,
+    },
+    errorText: { fontSize: FontSize.sm, color: theme.error },
+    scroll: { flex: 1 },
+    scrollContent: { padding: Spacing.lg, paddingBottom: 100 },
+    pickSection: { gap: Spacing.lg },
+    pickTitle: {
+      fontSize: FontSize.lg,
+      fontFamily: Typography.semiBold,
+      color: theme.textPrimary,
+      marginBottom: Spacing.md,
+      textAlign: 'center',
+    },
+    optionBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.md,
+      backgroundColor: theme.cardBg,
+      padding: Spacing.xl,
+      borderRadius: Radius.lg,
+      borderWidth: 1,
+      borderColor: theme.borderColor,
+    },
+    optionText: { fontSize: FontSize.md, fontFamily: Typography.medium, color: theme.textPrimary },
+    youtubeUrlSection: { gap: Spacing.md },
+    label: { fontSize: FontSize.sm, fontFamily: Typography.semiBold, color: theme.textSecondary, marginTop: Spacing.md },
+    input: {
+      height: 48,
+      backgroundColor: theme.cardBg,
+      borderRadius: Radius.md,
+      paddingHorizontal: Spacing.md,
+      fontSize: FontSize.md,
+      color: theme.textPrimary,
+      borderWidth: 1,
+      borderColor: theme.borderColor,
+    },
+    primaryBtn: {
+      height: 52,
+      backgroundColor: '#FFFFFF',
+      borderRadius: Radius.full,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginTop: Spacing.lg,
+    },
+    primaryBtnText: { fontSize: FontSize.md, fontFamily: Typography.semiBold, color: theme.bgPrimary },
+    btnDisabled: { opacity: 0.6 },
+    previewCard: {
+      backgroundColor: theme.cardBg,
+      borderRadius: Radius.lg,
+      padding: Spacing.lg,
+      borderWidth: 1,
+      borderColor: theme.borderColor,
+    },
+    thumbnail: { width: '100%', height: 180, borderRadius: Radius.md, marginBottom: Spacing.md },
+    previewTitle: { fontSize: FontSize.lg, fontFamily: Typography.semiBold, color: theme.textPrimary, marginBottom: Spacing.xs },
+    previewChannel: { fontSize: FontSize.sm, color: theme.textSecondary, marginBottom: Spacing.xs },
+    previewDuration: { fontSize: FontSize.sm, color: theme.textDisabled, marginBottom: Spacing.md },
+    warningBox: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.sm,
+      backgroundColor: 'rgba(245,158,11,0.2)',
+      padding: Spacing.md,
+      borderRadius: Radius.md,
+      marginBottom: Spacing.md,
+    },
+    warningText: { fontSize: FontSize.sm, color: theme.error },
+    checkboxRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, marginBottom: Spacing.lg },
+    checkbox: {
+      width: 22,
+      height: 22,
+      borderRadius: 4,
+      borderWidth: 2,
+      borderColor: theme.borderColorStrong,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    checkboxChecked: { backgroundColor: theme.borderColorStrong },
+    checkboxLabel: { fontSize: FontSize.md, color: theme.textPrimary, flex: 1 },
+    detailsSection: { gap: Spacing.xs },
+    pickerRow: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.sm },
+    pill: {
+      paddingHorizontal: Spacing.md,
+      paddingVertical: Spacing.sm,
+      borderRadius: Radius.full,
+      backgroundColor: theme.cardBg,
+      borderWidth: 1,
+      borderColor: theme.borderColor,
+    },
+    pillSelected: { backgroundColor: theme.bgPrimary, borderColor: theme.borderColorStrong },
+    pillText: { fontSize: FontSize.sm, color: theme.textSecondary },
+    pillTextSelected: { color: theme.textPrimary },
+    processingSection: { gap: Spacing.lg },
+    processingTitle: {
+      fontSize: FontSize.lg,
+      fontFamily: Typography.semiBold,
+      color: theme.textPrimary,
+      textAlign: 'center',
+    },
+    checklist: { gap: Spacing.sm },
+    checklistRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+    circle: {
+      width: 20,
+      height: 20,
+      borderRadius: 10,
+      borderWidth: 2,
+      borderColor: theme.textDisabled,
+    },
+    circleActive: { borderColor: theme.success, backgroundColor: theme.success },
+    checklistText: { fontSize: FontSize.md, color: theme.textSecondary },
+    checklistTextDone: { color: theme.textPrimary },
+    processingHint: { fontSize: FontSize.sm, color: theme.textDisabled, textAlign: 'center' },
+    reviewReady: { marginTop: Spacing.xl, gap: Spacing.md },
+    reviewReadyText: { fontSize: FontSize.lg, fontFamily: Typography.semiBold, color: theme.success, textAlign: 'center' },
+    secondaryBtn: { backgroundColor: theme.cardBg, borderWidth: 1, borderColor: theme.borderColor },
+    secondaryBtnText: { fontSize: FontSize.md, fontFamily: Typography.semiBold, color: theme.textPrimary },
+    ghostBtn: { backgroundColor: 'transparent' },
+    ghostBtnText: { fontSize: FontSize.md, fontFamily: Typography.regular, color: theme.textSecondary },
+  });
 
   // YouTube flow
   const [youtubeUrl, setYoutubeUrl] = useState('');
@@ -276,7 +418,7 @@ export default function TutorUploadScreen() {
         {items.map((it, i) => (
           <View key={it.key} style={styles.checklistRow}>
             {it.done ? (
-              <Ionicons name="checkmark-circle" size={20} color={Colors.success} />
+              <Ionicons name="checkmark-circle" size={20} color={theme.success} />
             ) : (
               <View style={[styles.circle, i === 1 || (isYoutube && i === 2) ? styles.circleActive : null]} />
             )}
@@ -302,7 +444,7 @@ export default function TutorUploadScreen() {
               }}
               style={styles.backBtn}
             >
-              <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
+              <Ionicons name="arrow-back" size={24} color={theme.textPrimary} />
             </Pressable>
           )}
           <Text style={styles.headerTitle}>
@@ -325,15 +467,15 @@ export default function TutorUploadScreen() {
             <View style={styles.pickSection}>
               <Text style={styles.pickTitle}>How would you like to add your lesson?</Text>
               <Pressable style={styles.optionBtn} onPress={() => handlePickVideo(true)}>
-                <Ionicons name="videocam" size={32} color={Colors.textPrimary} />
+                <Ionicons name="videocam" size={32} color={theme.textPrimary} />
                 <Text style={styles.optionText}>Record Now</Text>
               </Pressable>
               <Pressable style={styles.optionBtn} onPress={() => handlePickVideo(false)}>
-                <Ionicons name="folder-open" size={32} color={Colors.textPrimary} />
+                <Ionicons name="folder-open" size={32} color={theme.textPrimary} />
                 <Text style={styles.optionText}>Choose from Library</Text>
               </Pressable>
               <Pressable style={styles.optionBtn} onPress={handleYoutubeLink}>
-                <Ionicons name="film" size={32} color={Colors.textPrimary} />
+                <Ionicons name="film" size={32} color={theme.textPrimary} />
                 <Text style={styles.optionText}>Paste YouTube Link</Text>
               </Pressable>
             </View>
@@ -347,7 +489,7 @@ export default function TutorUploadScreen() {
                 value={youtubeUrl}
                 onChangeText={setYoutubeUrl}
                 placeholder="https://youtube.com/..."
-                placeholderTextColor={Colors.textTertiary}
+                placeholderTextColor={theme.textDisabled}
                 autoCapitalize="none"
                 autoCorrect={false}
               />
@@ -357,7 +499,7 @@ export default function TutorUploadScreen() {
                 disabled={youtubePreviewLoading || !youtubeUrl.trim()}
               >
                 {youtubePreviewLoading ? (
-                  <ActivityIndicator color={Colors.gradientTop} />
+                  <ActivityIndicator color={theme.bgPrimary} />
                 ) : (
                   <Text style={styles.primaryBtnText}>Preview →</Text>
                 )}
@@ -372,7 +514,7 @@ export default function TutorUploadScreen() {
               <Text style={styles.previewChannel}>by {youtubePreview.channel}</Text>
               <Text style={styles.previewDuration}>Duration: {formatDuration(youtubePreview.duration_seconds)}</Text>
               <View style={styles.warningBox}>
-                <Ionicons name="warning" size={20} color={Colors.warning} />
+                <Ionicons name="warning" size={20} color={theme.error} />
                 <Text style={styles.warningText}>Only use videos you own or have rights to</Text>
               </View>
               <Pressable
@@ -380,7 +522,7 @@ export default function TutorUploadScreen() {
                 onPress={() => setConfirmedOwnership((v) => !v)}
               >
                 <View style={[styles.checkbox, confirmedOwnership && styles.checkboxChecked]}>
-                  {confirmedOwnership && <Ionicons name="checkmark" size={14} color={Colors.textPrimary} />}
+                  {confirmedOwnership && <Ionicons name="checkmark" size={14} color={theme.textPrimary} />}
                 </View>
                 <Text style={styles.checkboxLabel}>I confirm this is my own content</Text>
               </Pressable>
@@ -402,7 +544,7 @@ export default function TutorUploadScreen() {
                 value={title}
                 onChangeText={setTitle}
                 placeholder="Lesson title"
-                placeholderTextColor={Colors.textTertiary}
+                placeholderTextColor={theme.textDisabled}
               />
               <Text style={styles.label}>Instrument</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pickerRow}>
@@ -508,144 +650,3 @@ export default function TutorUploadScreen() {
     </ScreenGradient>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: { flex: 1 },
-  safe: { flex: 1 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    gap: Spacing.md,
-  },
-  backBtn: { padding: Spacing.xs },
-  headerTitle: {
-    fontSize: FontSize.xl,
-    fontFamily: Typography.bold,
-    color: Colors.textPrimary,
-  },
-  errorBanner: {
-    backgroundColor: 'rgba(239,68,68,0.3)',
-    marginHorizontal: Spacing.lg,
-    padding: Spacing.md,
-    borderRadius: Radius.md,
-    marginBottom: Spacing.md,
-  },
-  errorText: { fontSize: FontSize.sm, color: Colors.error },
-  scroll: { flex: 1 },
-  scrollContent: { padding: Spacing.lg, paddingBottom: 100 },
-  pickSection: { gap: Spacing.lg },
-  pickTitle: {
-    fontSize: FontSize.lg,
-    fontFamily: Typography.semiBold,
-    color: Colors.textPrimary,
-    marginBottom: Spacing.md,
-    textAlign: 'center',
-  },
-  optionBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-    backgroundColor: Colors.cardBg,
-    padding: Spacing.xl,
-    borderRadius: Radius.lg,
-    borderWidth: 1,
-    borderColor: Colors.cardBorder,
-  },
-  optionText: { fontSize: FontSize.md, fontFamily: Typography.medium, color: Colors.textPrimary },
-  youtubeUrlSection: { gap: Spacing.md },
-  label: { fontSize: FontSize.sm, fontFamily: Typography.semiBold, color: Colors.textSecondary, marginTop: Spacing.md },
-  input: {
-    height: 48,
-    backgroundColor: Colors.cardBg,
-    borderRadius: Radius.md,
-    paddingHorizontal: Spacing.md,
-    fontSize: FontSize.md,
-    color: Colors.textPrimary,
-    borderWidth: 1,
-    borderColor: Colors.cardBorder,
-  },
-  primaryBtn: {
-    height: 52,
-    backgroundColor: Colors.white,
-    borderRadius: Radius.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: Spacing.lg,
-  },
-  primaryBtnText: { fontSize: FontSize.md, fontFamily: Typography.semiBold, color: Colors.gradientTop },
-  btnDisabled: { opacity: 0.6 },
-  previewCard: {
-    backgroundColor: Colors.cardBg,
-    borderRadius: Radius.lg,
-    padding: Spacing.lg,
-    borderWidth: 1,
-    borderColor: Colors.cardBorder,
-  },
-  thumbnail: { width: '100%', height: 180, borderRadius: Radius.md, marginBottom: Spacing.md },
-  previewTitle: { fontSize: FontSize.lg, fontFamily: Typography.semiBold, color: Colors.textPrimary, marginBottom: Spacing.xs },
-  previewChannel: { fontSize: FontSize.sm, color: Colors.textSecondary, marginBottom: Spacing.xs },
-  previewDuration: { fontSize: FontSize.sm, color: Colors.textTertiary, marginBottom: Spacing.md },
-  warningBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    backgroundColor: 'rgba(245,158,11,0.2)',
-    padding: Spacing.md,
-    borderRadius: Radius.md,
-    marginBottom: Spacing.md,
-  },
-  warningText: { fontSize: FontSize.sm, color: Colors.warning },
-  checkboxRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, marginBottom: Spacing.lg },
-  checkbox: {
-    width: 22,
-    height: 22,
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: Colors.cardBorderStrong,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkboxChecked: { backgroundColor: Colors.cardBorderStrong },
-  checkboxLabel: { fontSize: FontSize.md, color: Colors.textPrimary, flex: 1 },
-  detailsSection: { gap: Spacing.xs },
-  pickerRow: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.sm },
-  pill: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radius.full,
-    backgroundColor: Colors.cardBg,
-    borderWidth: 1,
-    borderColor: Colors.cardBorder,
-  },
-  pillSelected: { backgroundColor: Colors.cardBgSelected, borderColor: Colors.cardBorderStrong },
-  pillText: { fontSize: FontSize.sm, color: Colors.textSecondary },
-  pillTextSelected: { color: Colors.textPrimary },
-  processingSection: { gap: Spacing.lg },
-  processingTitle: {
-    fontSize: FontSize.lg,
-    fontFamily: Typography.semiBold,
-    color: Colors.textPrimary,
-    textAlign: 'center',
-  },
-  checklist: { gap: Spacing.sm },
-  checklistRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
-  circle: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: Colors.textTertiary,
-  },
-  circleActive: { borderColor: Colors.progressFill, backgroundColor: Colors.progressFill },
-  checklistText: { fontSize: FontSize.md, color: Colors.textSecondary },
-  checklistTextDone: { color: Colors.textPrimary },
-  processingHint: { fontSize: FontSize.sm, color: Colors.textTertiary, textAlign: 'center' },
-  reviewReady: { marginTop: Spacing.xl, gap: Spacing.md },
-  reviewReadyText: { fontSize: FontSize.lg, fontFamily: Typography.semiBold, color: Colors.success, textAlign: 'center' },
-  secondaryBtn: { backgroundColor: Colors.cardBg, borderWidth: 1, borderColor: Colors.cardBorder },
-  secondaryBtnText: { fontSize: FontSize.md, fontFamily: Typography.semiBold, color: Colors.textPrimary },
-  ghostBtn: { backgroundColor: 'transparent' },
-  ghostBtnText: { fontSize: FontSize.md, fontFamily: Typography.regular, color: Colors.textSecondary },
-});

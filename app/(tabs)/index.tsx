@@ -2,11 +2,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
 import { ScreenGradient } from '@/src/components/common/ScreenGradient';
-import { Colors } from '@/src/constants/theme';
+import { useTheme } from '@/src/contexts/ThemeContext';
 import { welcomeStyles } from '../../src/styles/welcomeStyles';
 
 export default function WelcomeScreen() {
   const router = useRouter();
+  const { theme } = useTheme();
 
   const handleGetStarted = () => {
     router.push('/sign-in' as any);
@@ -17,7 +18,7 @@ export default function WelcomeScreen() {
       <View style={welcomeStyles.backgroundGradient}>
         <View style={welcomeStyles.logoContainer}>
           <View style={welcomeStyles.logoCircle}>
-            <Ionicons name="musical-notes" size={64} color={Colors.textPrimary} />
+            <Ionicons name="musical-notes" size={64} color={theme.textPrimary} />
           </View>
         </View>
         

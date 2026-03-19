@@ -6,52 +6,12 @@ import { useAuth } from '@clerk/clerk-expo';
 import { useRouter } from 'expo-router';
 import { BottomTabBar } from '../../src/components/ui';
 import { ScreenGradient } from '@/src/components/common/ScreenGradient';
-import { profileStyles } from '../../src/styles/profileStyles';
+import { createProfileStyles } from '../../src/styles/profileStyles';
 import { useTheme, THEMES, type ThemeId } from '@/src/contexts/ThemeContext';
 import { useAuthStore } from '@/src/store/authStore';
 import { useOrientation } from '@/src/hooks/useOrientation';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
-
-const SettingsItem = React.memo(function SettingsItem({
-  icon,
-  label,
-  value,
-  onPress,
-}: {
-  icon: IconName;
-  label: string;
-  value?: string;
-  onPress?: () => void;
-}) {
-  return (
-    <Pressable
-      style={({ pressed }) => [
-        profileStyles.settingsItem,
-        { opacity: pressed ? 0.8 : 1 },
-      ]}
-      onPress={onPress}
-    >
-      <View style={profileStyles.settingsItemLeft}>
-        <Ionicons
-          name={icon}
-          size={20}
-          color="#FFFFFF"
-          style={profileStyles.settingsItemIcon}
-        />
-        <Text style={profileStyles.settingsItemLabel}>{label}</Text>
-      </View>
-      <View style={profileStyles.settingsItemRight}>
-        {value && <Text style={profileStyles.settingsItemValue}>{value}</Text>}
-        <Ionicons
-          name="chevron-forward"
-          size={20}
-          color="rgba(255,255,255,0.75)"
-        />
-      </View>
-    </Pressable>
-  );
-});
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -62,6 +22,47 @@ export default function ProfileScreen() {
   const selectedLevel = useAuthStore((s) => s.selectedLevelSlug);
   const genres = useAuthStore((s) => s.selectedGenres);
   const { isLandscape } = useOrientation();
+  const profileStyles = createProfileStyles(theme);
+
+  const SettingsItem = React.memo(function SettingsItem({
+    icon,
+    label,
+    value,
+    onPress,
+  }: {
+    icon: IconName;
+    label: string;
+    value?: string;
+    onPress?: () => void;
+  }) {
+    return (
+      <Pressable
+        style={({ pressed }) => [
+          profileStyles.settingsItem,
+          { opacity: pressed ? 0.8 : 1 },
+        ]}
+        onPress={onPress}
+      >
+        <View style={profileStyles.settingsItemLeft}>
+          <Ionicons
+            name={icon}
+            size={20}
+            color="#FFFFFF"
+            style={profileStyles.settingsItemIcon}
+          />
+          <Text style={profileStyles.settingsItemLabel}>{label}</Text>
+        </View>
+        <View style={profileStyles.settingsItemRight}>
+          {value && <Text style={profileStyles.settingsItemValue}>{value}</Text>}
+          <Ionicons
+            name="chevron-forward"
+            size={20}
+            color="rgba(255,255,255,0.75)"
+          />
+        </View>
+      </Pressable>
+    );
+  });
 
   const handleSignOut = async () => {
     try {

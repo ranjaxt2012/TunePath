@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { Colors } from '@/src/constants/theme';
+import { useTheme } from '@/src/contexts/ThemeContext';
 import { sharedStyles } from '../../../styles/sharedStyles';
 
 type TabName = 'home' | 'practice' | 'progress' | 'profile';
@@ -23,6 +23,7 @@ const TABS: { name: TabName; icon: keyof typeof Ionicons.glyphMap; label: string
 
 function BottomTabBar({ activeTab }: BottomTabBarProps) {
   const router = useRouter();
+  const { theme } = useTheme();
   const [showHelpLabel, setShowHelpLabel] = useState(false);
 
   const handlePress = useCallback(
@@ -41,7 +42,7 @@ function BottomTabBar({ activeTab }: BottomTabBarProps) {
   const onHelpPressOut = useCallback(() => setShowHelpLabel(false), []);
 
   return (
-    <View style={sharedStyles.bottomTabBar}>
+    <View style={[sharedStyles.bottomTabBar, { backgroundColor: theme.bgSecondary }]}>
       <View style={sharedStyles.tabBarContent}>
         {TABS.map((tab) => {
           const isActive = tab.name === activeTab;
@@ -54,10 +55,15 @@ function BottomTabBar({ activeTab }: BottomTabBarProps) {
               <Ionicons
                 name={tab.icon}
                 size={TAB_SIZE}
-                color={Colors.textPrimary}
+                color={theme.textPrimary}
                 style={{ opacity: isActive ? 1 : 0.6 }}
               />
-              <Text style={isActive ? sharedStyles.tabTextActive : sharedStyles.tabTextInactive}>
+              <Text
+                style={[
+                  isActive ? sharedStyles.tabTextActive : sharedStyles.tabTextInactive,
+                  { color: theme.textPrimary },
+                ]}
+              >
                 {tab.label}
               </Text>
             </Pressable>
@@ -67,8 +73,10 @@ function BottomTabBar({ activeTab }: BottomTabBarProps) {
 
       <View style={sharedStyles.helpButtonWrapper}>
         {showHelpLabel && (
-          <View style={sharedStyles.hoverLabel}>
-            <Text style={sharedStyles.hoverLabelText}>Help & Resources</Text>
+          <View style={[sharedStyles.hoverLabel, { backgroundColor: theme.modalBg }]}>
+            <Text style={[sharedStyles.hoverLabelText, { color: theme.textPrimary }]}>
+              Help & Resources
+            </Text>
           </View>
         )}
         <Pressable
@@ -77,8 +85,8 @@ function BottomTabBar({ activeTab }: BottomTabBarProps) {
           onPressIn={onHelpPressIn}
           onPressOut={onHelpPressOut}
         >
-          <Ionicons name="help-circle" size={HELP_SIZE} color={Colors.textPrimary} style={{ opacity: 0.6 }} />
-          <Text style={sharedStyles.helpLabel}>Help</Text>
+          <Ionicons name="help-circle" size={HELP_SIZE} color={theme.textPrimary} style={{ opacity: 0.6 }} />
+          <Text style={[sharedStyles.helpLabel, { color: theme.textPrimary }]}>Help</Text>
         </Pressable>
       </View>
     </View>
