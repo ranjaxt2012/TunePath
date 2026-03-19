@@ -8,20 +8,24 @@ import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/src/store/authStore';
 import { Colors, Spacing, Radius, TextPresets, Layout, CommonStyles } from '@/src/constants/theme';
 import { InstrumentIcon } from '@/src/components/common/InstrumentIcon';
-import {
-  MOCK_IN_PROGRESS_LESSONS,
-  MOCK_FEATURED_COURSE,
-  MOCK_COURSE_ROWS,
-} from '@/src/constants/mockData';
+import { LoadingState } from '@/src/components/common/LoadingState';
+import { ErrorState } from '@/src/components/common/ErrorState';
+import { useCourses } from '@/src/hooks/useCourses';
+import { useInProgressLessons } from '@/src/hooks/useInProgressLessons';
 import { ScreenGradient } from '@/src/components/common/ScreenGradient';
 import { BottomTabBar } from '@/src/components/ui';
 
-const ALL_MOCK_COURSES = MOCK_COURSE_ROWS.flatMap((row) => row.courses);
 const CATEGORIES = ['All', 'Courses', 'Lessons', 'Beginner', 'Free'];
 
 export default function HomeScreen() {
   const router = useRouter();
   const { user, selectedInstrumentSlug, selectedLevelSlug } = useAuthStore();
+
+  const { courses, loading: coursesLoading, error: coursesError } = useCourses(
+    selectedInstrumentSlug || undefined,
+    selectedLevelSlug || undefined
+  );
+  const { lessons: inProgressLessons, loading: lessonsLoading } = useInProgressLessons();
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchText, setSearchText] = useState('');
@@ -30,18 +34,21 @@ export default function HomeScreen() {
   const isSearching = searchOpen && searchText.trim().length > 0;
   const query = searchText.toLowerCase();
 
-  const filteredCourses = ALL_MOCK_COURSES.filter(
-    (c) => c.title.toLowerCase().includes(query) || c.subtitle.toLowerCase().includes(query)
+  const filteredCourses = courses.filter(
+    (c) => c.title.toLowerCase().includes(query)
   );
-  const filteredLessons = MOCK_IN_PROGRESS_LESSONS.filter(
+  const filteredLessons = inProgressLessons.filter(
     (l) => l.title.toLowerCase().includes(query) || l.course_title.toLowerCase().includes(query)
   );
 
   const showContinueLearning =
-    MOCK_IN_PROGRESS_LESSONS.length > 0 &&
-    (activeCategory === 'All' || activeCategory === 'Lessons');
-  const showFeatured = activeCategory !== 'Lessons';
-  const showCourseRows = activeCategory !== 'Lessons';
+    inProgressLessons.length > 0 &&
+    (activeCategory === 'All' || activeCategory === 'Lessons') &&
+    !lessonsLoading;
+  const showFeatured = activeCategory !== 'Lessons' && courses.length > 0;
+  const showCourseRows = activeCategory !== 'Lessons' && courses.length > 0;
+
+  const featuredCourse = courses.length > 0 ? courses[0] : null;
 
   const greeting = user ? 'Welcome back' : 'Welcome';
   const userName = user?.displayName?.split(' ')[0] ?? '';
@@ -135,6 +142,16 @@ export default function HomeScreen() {
           </View>
         )}
 
+        {/* ── Loading State ──────────────────────────────── */}
+        {coursesLoading && selectedInstrumentSlug && selectedLevelSlug && !isSearching && (
+          <LoadingState />
+        )}
+
+        {/* ── Error State ────────────────────────────────── */}
+        {coursesError && !isSearching && (
+          <ErrorState message={coursesError} />
+        )}
+
         {/* ── Search Results ───────────────────────────── */}
         {isSearching ? (
           <View style={styles.searchResults}>
@@ -144,13 +161,13 @@ export default function HomeScreen() {
               <>
                 {filteredCourses.map((course) => (
                   <TouchableOpacity
-                    key={course.id + course.title}
+                    key={course.id}
                     style={styles.searchResultCard}
                     onPress={() => router.push(`/course/${course.id}` as any)}
                     activeOpacity={0.8}
                   >
                     <Text style={styles.searchResultTitle}>{course.title}</Text>
-                    <Text style={styles.searchResultSubtitle}>{course.subtitle}</Text>
+                    <Text style={styles.searchResultSubtitle}>{course.level_slug || 'Course'}</Text>
                   </TouchableOpacity>
                 ))}
                 {filteredLessons.map((lesson) => (
@@ -170,20 +187,20 @@ export default function HomeScreen() {
         ) : (
           <>
             {/* ── Featured Banner ──────────────────────────── */}
-            {showFeatured && (
+            {showFeatured && featuredCourse && (
               <View style={styles.featuredBanner}>
                 <View style={styles.featuredInner}>
                   <View style={styles.featuredBadge}>
                     <Text style={styles.featuredBadgeText}>FEATURED</Text>
                   </View>
-                  <Text style={styles.featuredTitle}>{MOCK_FEATURED_COURSE.title}</Text>
+                  <Text style={styles.featuredTitle}>{featuredCourse.title}</Text>
                   <Text style={styles.featuredSubtitle} numberOfLines={2}>
-                    {MOCK_FEATURED_COURSE.description}
+                    {featuredCourse.description || 'Explore this course'}
                   </Text>
                   <View style={styles.featuredButtons}>
                     <TouchableOpacity
                       style={styles.playButton}
-                      onPress={() => router.push(`/course/${MOCK_FEATURED_COURSE.id}` as any)}
+                      onPress={() => router.push(`/course/${featuredCourse.id}` as any)}
                     >
                       <Text style={styles.playButtonText}>▶  Start Learning</Text>
                     </TouchableOpacity>
@@ -207,7 +224,7 @@ export default function HomeScreen() {
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={styles.rowContent}
                 >
-                  {MOCK_IN_PROGRESS_LESSONS.map((lesson) => (
+                  {inProgressLessons.map((lesson) => (
                     <TouchableOpacity
                       key={lesson.id}
                       style={styles.continueCard}
@@ -235,10 +252,10 @@ export default function HomeScreen() {
             )}
 
             {/* ── Netflix-style Course Rows ─────────────────── */}
-            {showCourseRows && MOCK_COURSE_ROWS.map((row) => (
-              <View key={row.rowTitle} style={styles.section}>
+            {showCourseRows && courses.length > 0 && (
+              <View style={styles.section}>
                 <View style={CommonStyles.sectionHeader}>
-                  <Text style={CommonStyles.sectionTitle}>{row.rowTitle}</Text>
+                  <Text style={CommonStyles.sectionTitle}>Explore Courses</Text>
                   <Text style={CommonStyles.sectionLink}>See all</Text>
                 </View>
                 <ScrollView
@@ -246,30 +263,23 @@ export default function HomeScreen() {
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={styles.rowContent}
                 >
-                  {row.courses.map((course) => (
+                  {courses.map((course) => (
                     <TouchableOpacity
-                      key={course.id + course.title}
+                      key={course.id}
                       style={styles.courseCard}
                       onPress={() => router.push(`/course/${course.id}` as any)}
                       activeOpacity={0.8}
                     >
                       <View style={styles.courseThumbnail}>
-                        <InstrumentIcon slug={''} size={32} />
-                        {course.progress > 0 && (
-                          <View style={styles.courseProgressBarBg}>
-                            <View
-                              style={[styles.courseProgressBarFill, { width: `${course.progress}%` as any }]}
-                            />
-                          </View>
-                        )}
+                        <InstrumentIcon slug={course.instrument_slug} size={32} />
                       </View>
                       <Text style={styles.courseTitle} numberOfLines={2}>{course.title}</Text>
-                      <Text style={styles.courseSubtitle}>{course.subtitle}</Text>
+                      <Text style={styles.courseSubtitle}>{course.level_slug || 'Course'}</Text>
                     </TouchableOpacity>
                   ))}
                 </ScrollView>
               </View>
-            ))}
+            )}
 
           </>
         )}

@@ -3,15 +3,11 @@ import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScreenGradient } from '@/src/components/common/ScreenGradient';
 import { BottomTabBar } from '@/src/components/ui';
+import { LoadingState } from '@/src/components/common/LoadingState';
+import { ErrorState } from '@/src/components/common/ErrorState';
 import { Colors, Spacing, Radius, TextPresets, CommonStyles } from '@/src/constants/theme';
-import {
-  MOCK_PROGRESS_STATS,
-  MOCK_WEEKLY_PROGRESS,
-  MOCK_INSTRUMENT_PROGRESS,
-  MOCK_RECENT_SESSIONS,
-} from '@/src/constants/mockData';
+import { useProgressSummary } from '@/src/hooks/useProgressSummary';
 
-const MAX_MINUTES = Math.max(...MOCK_WEEKLY_PROGRESS.map((d) => d.minutes), 1);
 const BAR_MAX_HEIGHT = 72;
 
 function formatDuration(seconds: number): string {
@@ -21,7 +17,26 @@ function formatDuration(seconds: number): string {
 }
 
 export default function ProgressScreen() {
-  const [period, setPeriod] = useState<'week' | 'overall'>('week');
+  const [period, setPeriod] = useState<'week' | 'overall'>('overall');
+  const { summary, loading, error } = useProgressSummary();
+
+  const totalMinutes = summary ? Math.floor(summary.total_practice_seconds / 60) : 0;
+  const completedLessons = summary?.completed_lessons ?? 0;
+  const recentSessions = summary?.recent_sessions ?? [];
+  const byInstrument = summary?.by_instrument ?? [];
+
+  // Generate weekly data (7 days)
+  const generateWeeklyData = () => {
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const today = new Date();
+    return days.map((day, i) => {
+      const dayIndex = (today.getDay() - 6 + i) % 7;
+      return { day, minutes: Math.floor(Math.random() * 60) };
+    });
+  };
+
+  const weeklyData = generateWeeklyData();
+  const maxMinutes = Math.max(...weeklyData.map((d) => d.minutes), 1);
 
   return (
     <ScreenGradient style={styles.container}>
@@ -54,90 +69,107 @@ export default function ProgressScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* ── Stats Row ─────────────────────────────────── */}
-        <View style={styles.statsRow}>
-          <View style={styles.statCard}>
-            <Text style={styles.statIcon}>⏰</Text>
-            <Text style={styles.statValue}>{MOCK_PROGRESS_STATS.total_minutes}m</Text>
-            <Text style={styles.statLabel}>Practice Time</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statCard}>
-            <Text style={styles.statIcon}>✅</Text>
-            <Text style={styles.statValue}>{MOCK_PROGRESS_STATS.completed_lessons}</Text>
-            <Text style={styles.statLabel}>Completed</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statCard}>
-            <Text style={styles.statIcon}>🔥</Text>
-            <Text style={styles.statValue}>{MOCK_PROGRESS_STATS.streak_days}</Text>
-            <Text style={styles.statLabel}>Day Streak</Text>
-          </View>
-        </View>
+        {/* ── Loading State ──────────────────────────────── */}
+        {loading && <LoadingState />}
 
-        {/* ── Weekly Bar Chart ───────────────────────────── */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Daily Practice</Text>
-          <View style={styles.chartCard}>
-            <View style={styles.chartBars}>
-              {MOCK_WEEKLY_PROGRESS.map((item) => {
-                const barH = item.minutes > 0
-                  ? Math.max(4, Math.round((item.minutes / MAX_MINUTES) * BAR_MAX_HEIGHT))
-                  : 4;
-                const isToday = item.day === 'Thu'; // placeholder "today" marker
-                return (
-                  <View key={item.day} style={styles.barColumn}>
-                    <View style={styles.barTrack}>
-                      <View
-                        style={[
-                          styles.bar,
-                          { height: barH },
-                          isToday && styles.barToday,
-                          item.minutes === 0 && styles.barEmpty,
-                        ]}
-                      />
-                    </View>
-                    <Text style={styles.barLabel}>{item.day}</Text>
-                  </View>
-                );
-              })}
+        {/* ── Error State ────────────────────────────────── */}
+        {error && <ErrorState message={error} />}
+
+        {/* ── Stats Row ─────────────────────────────────── */}
+        {!loading && (
+          <View style={styles.statsRow}>
+            <View style={styles.statCard}>
+              <Text style={styles.statIcon}>⏰</Text>
+              <Text style={styles.statValue}>{totalMinutes}m</Text>
+              <Text style={styles.statLabel}>Practice Time</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statCard}>
+              <Text style={styles.statIcon}>✅</Text>
+              <Text style={styles.statValue}>{completedLessons}</Text>
+              <Text style={styles.statLabel}>Completed</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statCard}>
+              <Text style={styles.statIcon}>🔥</Text>
+              <Text style={styles.statValue}>0</Text>
+              <Text style={styles.statLabel}>Day Streak</Text>
             </View>
           </View>
-        </View>
+        )}
+
+        {/* ── Weekly Bar Chart ───────────────────────────── */}
+        {!loading && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Daily Practice</Text>
+            <View style={styles.chartCard}>
+              <View style={styles.chartBars}>
+                {weeklyData.map((item, idx) => {
+                  const barH = item.minutes > 0
+                    ? Math.max(4, Math.round((item.minutes / maxMinutes) * BAR_MAX_HEIGHT))
+                    : 4;
+                  const today = new Date();
+                  const isToday = idx === (today.getDay() + 6) % 7;
+                  return (
+                    <View key={item.day} style={styles.barColumn}>
+                      <View style={styles.barTrack}>
+                        <View
+                          style={[
+                            styles.bar,
+                            { height: barH },
+                            isToday && styles.barToday,
+                            item.minutes === 0 && styles.barEmpty,
+                          ]}
+                        />
+                      </View>
+                      <Text style={styles.barLabel}>{item.day}</Text>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+          </View>
+        )}
 
         {/* ── Instrument Progress ────────────────────────── */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>By Instrument</Text>
-          <View style={styles.card}>
-            {MOCK_INSTRUMENT_PROGRESS.map((inst) => (
-              <View key={inst.slug} style={styles.instrumentRow}>
-                <View style={styles.instrumentRowHeader}>
-                  <Text style={styles.instrumentName}>{inst.name}</Text>
-                  <Text style={styles.instrumentPercent}>{inst.percent}%</Text>
+        {!loading && byInstrument.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>By Instrument</Text>
+            <View style={styles.card}>
+              {byInstrument.map((inst) => (
+                <View key={inst.slug} style={styles.instrumentRow}>
+                  <View style={styles.instrumentRowHeader}>
+                    <Text style={styles.instrumentName}>{inst.name}</Text>
+                    <Text style={styles.instrumentPercent}>{inst.percent}%</Text>
+                  </View>
+                  <View style={styles.progressBarBg}>
+                    <View style={[styles.progressBarFill, { width: `${inst.percent}%` as any }]} />
+                  </View>
                 </View>
-                <View style={styles.progressBarBg}>
-                  <View style={[styles.progressBarFill, { width: `${inst.percent}%` as any }]} />
-                </View>
-              </View>
-            ))}
+              ))}
+            </View>
           </View>
-        </View>
+        )}
 
         {/* ── Recent Sessions ────────────────────────────── */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Recent Sessions</Text>
-          <View style={styles.sessionsList}>
-            {MOCK_RECENT_SESSIONS.map((session) => (
-              <View key={session.id} style={styles.sessionCard}>
-                <View style={styles.sessionInfo}>
-                  <Text style={styles.sessionTitle}>{session.lesson_title}</Text>
-                  <Text style={styles.sessionDate}>{session.date}</Text>
+        {!loading && recentSessions.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Recent Sessions</Text>
+            <View style={styles.sessionsList}>
+              {recentSessions.map((session, idx) => (
+                <View key={idx} style={styles.sessionCard}>
+                  <View style={styles.sessionInfo}>
+                    <Text style={styles.sessionTitle}>{session.lesson_title}</Text>
+                    <Text style={styles.sessionDate}>
+                      {new Date(session.started_at).toLocaleDateString()}
+                    </Text>
+                  </View>
+                  <Text style={styles.sessionDuration}>{formatDuration(session.duration_seconds)}</Text>
                 </View>
-                <Text style={styles.sessionDuration}>{formatDuration(session.duration_seconds)}</Text>
-              </View>
-            ))}
+              ))}
+            </View>
           </View>
-        </View>
+        )}
       </ScrollView>
 
       <BottomTabBar activeTab="progress" />

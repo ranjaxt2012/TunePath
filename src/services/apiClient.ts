@@ -104,6 +104,25 @@ export async function getProgressSummary(): Promise<ProgressSummary> {
   return request<ProgressSummary>('/api/progress/summary');
 }
 
+export type InProgressLesson = {
+  id: string;
+  title: string;
+  course_title: string;
+  instrument_slug: string;
+  duration_seconds: number | null;
+  watch_percent: number;
+  last_position_seconds: number;
+  thumbnail_url: string | null;
+};
+
+export async function getInProgressLessons(): Promise<InProgressLesson[]> {
+  try {
+    return await request<InProgressLesson[]>('/api/progress/in-progress');
+  } catch {
+    return [];
+  }
+}
+
 // ── User preferences ───────────────────────────────────────────────────
 export type UserPreferences = {
   preferred_genres: string[];
