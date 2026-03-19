@@ -8,7 +8,19 @@ import { BottomTabBar } from '@/src/components/ui';
 import { useTheme } from '@/src/contexts/ThemeContext';
 import { useAuthStore } from '@/src/store/authStore';
 import { Spacing, Radius, TextPresets, CommonStyles } from '@/src/constants/theme';
-import { postToAPI } from '@/src/services/apiClient';
+
+// Simple API call function
+const applyAstutor = async () => {
+  const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/tutor/apply`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${await (useAuthStore.getState() as any).getAuthToken?.()}`,
+    },
+  });
+  if (!response.ok) throw new Error('Failed to apply');
+  return response.json();
+};
 
 export default function TutorApplyScreen() {
   const router = useRouter();
@@ -29,7 +41,7 @@ export default function TutorApplyScreen() {
     setLoading(true);
     setError(null);
     try {
-      const response = await postToAPI('/tutor/apply', {});
+      await applyAstutor();
       setTutorStatus('pending');
       setApplied(true);
     } catch (err) {
@@ -60,12 +72,12 @@ export default function TutorApplyScreen() {
   };
 
   return (
-    <ScreenGradient style={[CommonStyles.screen]}>
+    <ScreenGradient style={CommonStyles.screen}>
       <SafeAreaView edges={['top']} style={{ flex: 1 }}>
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{
-            padding: Spacing.lg,
+            paddingHorizontal: Spacing.lg,
             paddingTop: Spacing.xl,
             paddingBottom: 100,
             alignItems: 'center',

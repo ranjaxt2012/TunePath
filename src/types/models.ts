@@ -11,6 +11,7 @@ export type TunePathUser = {
   avatarUrl: string | null;
   roles: UserRole[];
   activeMode: string;
+  tutor_status?: 'none' | 'pending' | 'approved' | 'rejected';
 };
 
 export type NotationMode = 'sargam' | 'staff' | 'tabs' | 'chords' | 'bols';
