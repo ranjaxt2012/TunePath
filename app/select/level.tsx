@@ -25,6 +25,7 @@ import {
   Typography,
 } from '@/src/constants/theme';
 import { useAuthStore } from '@/src/store/authStore';
+import { useOrientation } from '@/src/hooks/useOrientation';
 import { getPreferences, patchPreferences } from '@/src/services/apiClient';
 
 const LEVELS = [
@@ -48,6 +49,7 @@ const THEMES = [
 export default function SelectLevelScreen() {
   const router = useRouter();
   const {
+    user,
     setSelectedLevel,
     setGenres,
     setTheme,
@@ -55,6 +57,8 @@ export default function SelectLevelScreen() {
     selectedTheme,
     selectedLevelSlug,
   } = useAuthStore();
+  const { isLandscape } = useOrientation();
+  const isTutor = user?.roles?.includes('tutor') ?? false;
 
   const [selectedSlug, setSelectedSlugState] = useState<string | null>(
     selectedLevelSlug
@@ -271,17 +275,24 @@ export default function SelectLevelScreen() {
           <Text style={styles.continueText}>Continue →</Text>
         </Pressable>
 
-        <TouchableOpacity
-          style={styles.tutorBtn}
-          onPress={() => router.push('/tutor/upload')}
-        >
-          <Ionicons
-            name="cloud-upload-outline"
-            size={20}
-            color={Colors.textPrimary}
-          />
-          <Text style={styles.tutorBtnText}>Tutor Portal</Text>
-        </TouchableOpacity>
+        {isTutor && (
+          <TouchableOpacity
+            style={styles.tutorBtn}
+            onPress={() => router.push('/tutor/upload')}
+          >
+            <Ionicons
+              name="cloud-upload-outline"
+              size={20}
+              color={Colors.textPrimary}
+            />
+            <Text style={styles.tutorBtnText}>Tutor Portal</Text>
+            <Ionicons
+              name="chevron-forward"
+              size={16}
+              color={Colors.textSecondary}
+            />
+          </TouchableOpacity>
+        )}
       </SafeAreaView>
     </ScreenGradient>
   );
@@ -583,15 +594,20 @@ const styles = StyleSheet.create({
   tutorBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     gap: Spacing.sm,
-    paddingVertical: Spacing.sm,
-    opacity: 0.7,
-    marginBottom: Spacing.lg,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    marginHorizontal: Spacing.xl,
+    marginBottom: Spacing.xl,
+    backgroundColor: Colors.cardBg,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
   },
   tutorBtnText: {
+    flex: 1,
     fontFamily: Typography.medium,
-    fontSize: FontSize.sm,
+    fontSize: FontSize.md,
     color: Colors.textPrimary,
   },
 });
