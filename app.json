@@ -3,7 +3,7 @@
     "name": "TunePath",
     "slug": "TunePath",
     "version": "1.0.0",
-    "sdkVersion": "54",
+    "sdkVersion": "54.0.0",
     "icon": "./assets/images/icon.png",
     "scheme": "tunepath",
     "userInterfaceStyle": "automatic",
