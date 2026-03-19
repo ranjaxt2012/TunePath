@@ -262,27 +262,46 @@ export default function ProfileScreen() {
           </View>
         )}
 
-        {/* Tutor Portal */}
-        <View style={profileStyles.section}>
-          <Pressable
-            style={profileStyles.settingsItem}
-            onPress={() => router.push('/tutor/upload')}
-          >
-            <View style={profileStyles.settingsItemLeft}>
-              <Ionicons
-                name="cloud-upload-outline"
-                size={20}
-                color="#FFFFFF"
+        {/* Tutor Section */}
+        {user?.roles?.includes('tutor') ? (
+          <View style={profileStyles.section}>
+            <Text style={profileStyles.sectionTitle}>Tutor</Text>
+            <View style={profileStyles.sectionCard}>
+              <SettingsItem
+                icon="cloud-upload-outline"
+                label="Tutor Portal"
+                onPress={() => router.push('/tutor/upload')}
               />
-              <Text style={profileStyles.settingsItemLabel}>Tutor Portal</Text>
+              <View style={profileStyles.divider} />
+              <SettingsItem
+                icon="list-outline"
+                label="My Lessons"
+                onPress={() => {}} // TODO: implement my lessons view
+              />
             </View>
-            <Ionicons
-              name="chevron-forward"
-              size={20}
-              color="rgba(255,255,255,0.75)"
-            />
-          </Pressable>
-        </View>
+          </View>
+        ) : (
+          <View style={profileStyles.section}>
+            <Pressable
+              style={profileStyles.settingsItem}
+              onPress={() => router.push('/tutor/apply')}
+            >
+              <View style={profileStyles.settingsItemLeft}>
+                <Ionicons
+                  name="school-outline"
+                  size={20}
+                  color="#FFFFFF"
+                />
+                <Text style={profileStyles.settingsItemLabel}>Become a Tutor</Text>
+              </View>
+              <Ionicons
+                name="chevron-forward"
+                size={20}
+                color="rgba(255,255,255,0.75)"
+              />
+            </Pressable>
+          </View>
+        )}
 
         {/* Sign Out Button */}
         <Pressable
