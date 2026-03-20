@@ -196,6 +196,14 @@ export default function TutorUploadScreen() {
     secondaryBtnText: { fontSize: FontSize.md, fontFamily: Typography.semiBold, color: theme.textPrimary },
     ghostBtn: { backgroundColor: 'transparent' },
     ghostBtnText: { fontSize: FontSize.md, fontFamily: Typography.regular, color: theme.textSecondary },
+    uploadHint: {
+      fontFamily: Typography.regular,
+      fontSize: FontSize.sm,
+      color: theme.textSecondary,
+      textAlign: 'center',
+      marginTop: Spacing.sm,
+      opacity: 0.7,
+    },
   });
 
   // YouTube flow
@@ -599,6 +607,9 @@ export default function TutorUploadScreen() {
               <Pressable style={styles.primaryBtn} onPress={handleSubmitDetails}>
                 <Text style={styles.primaryBtnText}>Upload & Process</Text>
               </Pressable>
+              <Text style={styles.uploadHint}>
+                ⏱ Processing usually takes 1–3 minutes depending on video length
+              </Text>
             </View>
           )}
 
