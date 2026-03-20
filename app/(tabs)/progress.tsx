@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { ScreenGradient } from '@/src/components/common/ScreenGradient';
 import { BottomTabBar } from '@/src/components/ui';
 import { LoadingState } from '@/src/components/common/LoadingState';
@@ -41,29 +42,56 @@ export default function ProgressScreen() {
   const weeklyData = generateWeeklyData();
   const maxMinutes = Math.max(...weeklyData.map((d) => d.minutes), 1);
 
+  const handleShare = useCallback(async () => {
+    const message = [
+      '🎵 My TunePath Progress',
+      `✅ Lessons completed: ${completedLessons}`,
+      `⏱ Time practiced: ${totalMinutes} mins`,
+      `🔥 Instrument: Harmonium`,
+      '',
+      'Join me on TunePath!',
+    ].join('\n');
+
+    try {
+      await Share.share({ message });
+    } catch (e) {
+      console.error('Share failed:', e);
+    }
+  }, [completedLessons, totalMinutes]);
+
   return (
     <ScreenGradient style={styles.container}>
       <SafeAreaView edges={['top']}>
         <View style={styles.header}>
           <Text style={[styles.title, { color: theme.textPrimary }]}>Your Progress</Text>
-          <View style={styles.toggleRow}>
-            <TouchableOpacity
-              style={[styles.togglePill, period === 'week' && styles.togglePillActive]}
-              onPress={() => setPeriod('week')}
-            >
-              <Text style={[styles.toggleText, { color: period === 'week' ? theme.bgPrimary : theme.textSecondary }]}>
-                This Week
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.togglePill, period === 'overall' && styles.togglePillActive]}
-              onPress={() => setPeriod('overall')}
-            >
-              <Text style={[styles.toggleText, { color: period === 'overall' ? theme.bgPrimary : theme.textSecondary }]}>
-                Overall
-              </Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            onPress={handleShare}
+            style={styles.shareBtn}
+          >
+            <Ionicons
+              name="share-outline"
+              size={22}
+              color={theme.textPrimary}
+            />
+          </TouchableOpacity>
+        </View>
+        <View style={styles.toggleRow}>
+          <TouchableOpacity
+            style={[styles.togglePill, period === 'week' && styles.togglePillActive]}
+            onPress={() => setPeriod('week')}
+          >
+            <Text style={[styles.toggleText, { color: period === 'week' ? theme.bgPrimary : theme.textSecondary }]}>
+              This Week
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.togglePill, period === 'overall' && styles.togglePillActive]}
+            onPress={() => setPeriod('overall')}
+          >
+            <Text style={[styles.toggleText, { color: period === 'overall' ? theme.bgPrimary : theme.textSecondary }]}>
+              Overall
+            </Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
 
@@ -297,13 +325,19 @@ const styles = StyleSheet.create({
     ...CommonStyles.screen,
   },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.lg,
     paddingBottom: Spacing.md,
   },
   title: {
     ...TextPresets.displayMd,
-    marginBottom: Spacing.md,
+    flex: 1,
+  },
+  shareBtn: {
+    padding: Spacing.sm,
   },
   toggleRow: {
     flexDirection: 'row',
