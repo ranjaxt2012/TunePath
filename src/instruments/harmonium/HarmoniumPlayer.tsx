@@ -63,6 +63,7 @@ export function HarmoniumPlayer({
 }: LessonPlayerProps) {
   const user = useAuthStore((s) => s.user);
   const isTutor = user?.roles?.includes('tutor') ?? false;
+  const { theme } = useTheme();
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
   const engineRef = useRef<SargamPlayerEngine | null>(null);
@@ -196,7 +197,7 @@ export function HarmoniumPlayer({
             onValueChange={(val) => {
               setPlaybackSpeed(Math.round(val * 20) / 20);
             }}
-            minimumTrackTintColor={'#7C3AED'}
+            minimumTrackTintColor={theme.bgPrimary}
             maximumTrackTintColor="rgba(255,255,255,0.2)"
             thumbTintColor={'#FFFFFF'}
           />

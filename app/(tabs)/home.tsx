@@ -143,7 +143,7 @@ export default function HomeScreen() {
                   >
                     <Text style={[
                       styles.pillText,
-                      { color: activeCategory === cat ? '#7C3AED' : theme.textPrimary },
+                      { color: activeCategory === cat ? theme.bgPrimary : theme.textPrimary },
                     ]}>
                       {cat}
                     </Text>
@@ -249,7 +249,7 @@ export default function HomeScreen() {
                     >
                       <Text style={[
                         styles.pillText,
-                        { color: activeCategory === cat ? '#7C3AED' : theme.textPrimary },
+                        { color: activeCategory === cat ? theme.bgPrimary : theme.textPrimary },
                       ]}>
                         {cat}
                       </Text>

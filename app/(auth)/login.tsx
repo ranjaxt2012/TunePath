@@ -4,6 +4,7 @@ import { Typography } from '@/src/constants/theme';
 import { useRouter } from 'expo-router';
 import { useCallback } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { THEMES } from '@/src/contexts/ThemeContext';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -55,7 +56,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#7C3AED',
+    backgroundColor: THEMES.purple.bgPrimary,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,

@@ -103,7 +103,6 @@ export const sharedStyles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#5B21B6',
     borderTopWidth: 0,
   },
   tabBarContent: {

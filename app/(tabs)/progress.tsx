@@ -51,7 +51,7 @@ export default function ProgressScreen() {
               style={[styles.togglePill, period === 'week' && styles.togglePillActive]}
               onPress={() => setPeriod('week')}
             >
-              <Text style={[styles.toggleText, { color: period === 'week' ? '#7C3AED' : theme.textSecondary }]}>
+              <Text style={[styles.toggleText, { color: period === 'week' ? theme.bgPrimary : theme.textSecondary }]}>
                 This Week
               </Text>
             </TouchableOpacity>
@@ -59,7 +59,7 @@ export default function ProgressScreen() {
               style={[styles.togglePill, period === 'overall' && styles.togglePillActive]}
               onPress={() => setPeriod('overall')}
             >
-              <Text style={[styles.toggleText, { color: period === 'overall' ? '#7C3AED' : theme.textSecondary }]}>
+              <Text style={[styles.toggleText, { color: period === 'overall' ? theme.bgPrimary : theme.textSecondary }]}>
                 Overall
               </Text>
             </TouchableOpacity>

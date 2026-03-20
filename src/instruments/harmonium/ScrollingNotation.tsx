@@ -46,6 +46,7 @@ export function ScrollingNotation({
   onNotesEdit,
   isLandscape = false,
 }: ScrollingNotationProps) {
+  const { theme } = useTheme();
   const [panelHeight, setPanelHeight] = useState(300);
   const [dismissed, setDismissed] = useState<Set<number>>(() => new Set());
   const [editingLine, setEditingLine] = useState<number | null>(null);
@@ -148,6 +149,7 @@ export function ScrollingNotation({
             onEditLine={handleEditLine}
             isLandscape={isLandscape}
             lineHeight={lineHeight}
+            theme={theme}
           />
       )}
       <ScrollView
@@ -190,6 +192,7 @@ export function ScrollingNotation({
               onEditLine={handleEditLine}
               isLandscape={isLandscape}
               lineHeight={lineHeight}
+              theme={theme}
             />
           );
         })}
@@ -234,6 +237,7 @@ export function ScrollingNotation({
                           updated[noteIdx] = { ...updated[noteIdx], note: newNote };
                           setEditingNotes(updated);
                         }}
+                        theme={theme}
                       />
                       <Text style={styles.editLabel}>Time</Text>
                       <TextInput
@@ -264,7 +268,7 @@ export function ScrollingNotation({
                 <Text style={styles.cancelText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.saveBtn}
+                style={[styles.saveBtn, { backgroundColor: theme.bgPrimary }]}
                 onPress={handleSaveLine}
               >
                 <Text style={styles.saveText}>Save Line</Text>
@@ -295,6 +299,7 @@ type NotationLineProps = {
   onEditLine?: (lineIndex: number) => void;
   isLandscape: boolean;
   lineHeight: number;
+  theme: ReturnType<typeof useTheme>['theme'];
 };
 
 const NotationLine = React.memo(function NotationLine({
@@ -315,6 +320,7 @@ const NotationLine = React.memo(function NotationLine({
   onEditLine,
   isLandscape,
   lineHeight,
+  theme,
 }: NotationLineProps) {
   const flatStart = lineIndex * NOTES_PER_LINE;
   const translateY = useRef(new Animated.Value(0)).current;
@@ -431,6 +437,7 @@ const NotationLine = React.memo(function NotationLine({
             isNextLine={isNextLine}
             isFuture={isFuture}
             isLandscape={isLandscape}
+            theme={theme}
           />
         );
       })}
@@ -473,6 +480,7 @@ type NoteCellProps = {
   isNextLine: boolean;
   isFuture: boolean;
   isLandscape: boolean;
+  theme: ReturnType<typeof useTheme>['theme'];
 };
 
 const NoteCell = React.memo(function NoteCell({
@@ -488,6 +496,7 @@ const NoteCell = React.memo(function NoteCell({
   isNextLine,
   isFuture,
   isLandscape,
+  theme,
 }: NoteCellProps) {
   const scaleAnim = useRef(new Animated.Value(isActive ? 1.15 : 1)).current;
 
@@ -516,7 +525,7 @@ const NoteCell = React.memo(function NoteCell({
       <Animated.View
         style={[styles.cell, styles.cellActive, { transform: [{ scale: scaleAnim }] }]}
       >
-        <View style={[styles.cellActiveInner, { opacity: activeNoteOpacity }]}>
+        <View style={[styles.cellActiveInner, { opacity: activeNoteOpacity, backgroundColor: theme.bgPrimary }]}>
           {renderContent(styles.cellTextActive)}
         </View>
       </Animated.View>
@@ -627,7 +636,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   cellActiveInner: {
-    backgroundColor: '#7C3AED',
     borderRadius: Radius.md,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
@@ -740,7 +748,6 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: Spacing.md,
     borderRadius: Radius.md,
-    backgroundColor: '#7C3AED',
     alignItems: 'center',
   },
   cancelText: {
@@ -782,9 +789,6 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.md,
   },
-  noteOptionActive: {
-    backgroundColor: '#7C3AED',
-  },
   noteOptionText: {
     fontFamily: Typography.regular,
     fontSize: FontSize.sm,
@@ -800,9 +804,11 @@ const styles = StyleSheet.create({
 function NotePickerDropdown({
   value,
   onChange,
+  theme,
 }: {
   value: string;
   onChange: (note: string) => void;
+  theme: ReturnType<typeof useTheme>['theme'];
 }) {
   const [open, setOpen] = useState(false);
   return (
@@ -825,7 +831,7 @@ function NotePickerDropdown({
               key={n}
               style={[
                 styles.noteOption,
-                n === value && styles.noteOptionActive,
+                n === value && { backgroundColor: theme.bgPrimary },
               ]}
               onPress={() => {
                 onChange(n);
