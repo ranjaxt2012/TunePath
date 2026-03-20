@@ -184,8 +184,12 @@ export function HarmoniumPlayer({
         )}
       </View>
 
-      {/* Video shadow — portrait only */}
-      {!isLandscape && <View style={styles.videoShadow} />}
+      {/* Section divider — portrait only, between video and speed/notation */}
+      {!isLandscape && (
+        <View style={styles.sectionDivider}>
+          <View style={styles.sectionDividerLine} />
+        </View>
+      )}
 
       {/* Vertical divider — landscape only */}
       {isLandscape && <View style={styles.verticalDivider} />}
@@ -213,9 +217,6 @@ export function HarmoniumPlayer({
           </Text>
         </View>
 
-        {/* Divider between speed and notation */}
-        {!isLandscape && <View style={styles.divider} />}
-
         {activeNotes.length > 0 ? (
           <View style={styles.notationPanelWrap}>
             <ScrollingNotation
@@ -242,6 +243,7 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     overflow: 'hidden',
+    backgroundColor: 'transparent',
   },
   containerLandscape: {
     flexDirection: 'row',
@@ -251,6 +253,7 @@ const styles = StyleSheet.create({
     aspectRatio: 16 / 9,
     backgroundColor: '#000',
     overflow: 'hidden',
+    minHeight: 200,
   },
   videoSectionLandscape: {
     flex: 1,
@@ -405,25 +408,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: Spacing.xxl,
   },
-  divider: {
-    height: 1,
+  sectionDivider: {
     width: '100%',
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    marginVertical: 0,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.xs,
+    backgroundColor: 'rgba(0,0,0,0.2)',
   },
-  videoShadow: {
-    height: 4,
-    width: '100%',
-    backgroundColor: 'transparent',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.5,
-    shadowRadius: 4,
-    elevation: 4,
+  sectionDividerLine: {
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    borderRadius: 1,
   },
   verticalDivider: {
     width: 1,
     height: '100%',
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: 'rgba(255,255,255,0.25)',
   },
 });
