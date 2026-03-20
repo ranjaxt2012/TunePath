@@ -184,6 +184,12 @@ export function HarmoniumPlayer({
         )}
       </View>
 
+      {/* Video shadow — portrait only */}
+      {!isLandscape && <View style={styles.videoShadow} />}
+
+      {/* Vertical divider — landscape only */}
+      {isLandscape && <View style={styles.verticalDivider} />}
+
       {/* Right panel — portrait uses full-width flow below video */}
       <View style={[styles.rightPanel, isLandscape && styles.rightPanelLandscape]}>
         <View style={styles.speedRow}>
@@ -206,6 +212,9 @@ export function HarmoniumPlayer({
             {playbackSpeed.toFixed(2)}x
           </Text>
         </View>
+
+        {/* Divider between speed and notation */}
+        {!isLandscape && <View style={styles.divider} />}
 
         {activeNotes.length > 0 ? (
           <View style={styles.notationPanelWrap}>
@@ -369,6 +378,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm,
+    paddingTop: Spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.1)',
   },
   speedSlider: {
     flex: 1,
@@ -392,5 +404,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: Spacing.xxl,
+  },
+  divider: {
+    height: 1,
+    width: '100%',
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    marginVertical: 0,
+  },
+  videoShadow: {
+    height: 4,
+    width: '100%',
+    backgroundColor: 'transparent',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  verticalDivider: {
+    width: 1,
+    height: '100%',
+    backgroundColor: 'rgba(255,255,255,0.15)',
   },
 });

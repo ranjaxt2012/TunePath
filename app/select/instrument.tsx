@@ -44,6 +44,7 @@ export default function SelectInstrumentScreen() {
         <EmptyState title="No instruments available" />
       ) : (
         <FlatList
+          key={numColumns}
           data={instruments}
           keyExtractor={(item) => item.slug}
           numColumns={numColumns}

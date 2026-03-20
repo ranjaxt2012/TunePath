@@ -37,6 +37,13 @@ export default function TutorApplyScreen() {
     }
   }, [user]);
 
+  // If already a tutor, redirect to upload (must be in useEffect to avoid render-time navigation loop)
+  useEffect(() => {
+    if (tutorStatus === 'approved') {
+      router.replace('/tutor/upload');
+    }
+  }, [tutorStatus, router]);
+
   const handleApply = async () => {
     setLoading(true);
     setError(null);
@@ -51,9 +58,8 @@ export default function TutorApplyScreen() {
     }
   };
 
-  // If already a tutor, redirect to upload
+  // While redirecting approved tutors, show nothing briefly
   if (tutorStatus === 'approved') {
-    router.replace('/tutor/upload');
     return null;
   }
 

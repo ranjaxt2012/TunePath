@@ -164,6 +164,58 @@ export function createProfileStyles(theme: AppTheme) {
       fontFamily: Typography.semiBold,
       color: '#EF4444',
     },
+    colorPickerOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.7)',
+      justifyContent: 'flex-end',
+    },
+    colorPickerSheet: {
+      borderTopLeftRadius: Radius.xl,
+      borderTopRightRadius: Radius.xl,
+      padding: Spacing.xl,
+      paddingBottom: Spacing.xxl,
+    },
+    colorPickerTitle: {
+      fontFamily: Typography.semiBold,
+      fontSize: 18,
+      color: theme.textPrimary,
+      marginBottom: Spacing.lg,
+      textAlign: 'center',
+    },
+    colorGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: Spacing.md,
+      justifyContent: 'center',
+      marginBottom: Spacing.xl,
+    },
+    colorDot: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+    },
+    colorDotSelected: {
+      borderWidth: 3,
+      borderColor: '#FFFFFF',
+    },
+    colorPickerClose: {
+      paddingVertical: Spacing.lg,
+      paddingHorizontal: Spacing.xl,
+      backgroundColor: theme.cardBg,
+      borderRadius: Radius.lg,
+      alignItems: 'center',
+    },
+    colorPickerCloseText: {
+      fontSize: 16,
+      fontFamily: Typography.semiBold,
+      color: theme.textPrimary,
+    },
+    swatchCustom: {
+      backgroundColor: 'rgba(255,255,255,0.1)',
+      borderWidth: 1.5,
+      borderColor: 'rgba(255,255,255,0.3)',
+      borderStyle: 'dashed',
+    },
   });
 }
 

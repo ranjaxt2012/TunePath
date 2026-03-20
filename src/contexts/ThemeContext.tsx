@@ -4,10 +4,12 @@ import { patchPreferences } from '@/src/services/apiClient';
 
 export type ThemeId =
   | 'purple'
-  | 'midnight'
+  | 'ocean'
+  | 'forest'
+  | 'rose'
   | 'saffron'
-  | 'slate'
-  | 'high-contrast';
+  | 'midnight'
+  | 'custom';
 
 export interface AppTheme {
   id: ThemeId;
@@ -47,30 +49,12 @@ export const THEMES: Record<ThemeId, AppTheme> = {
     error: '#EF4444',
     success: '#10B981',
   },
-  midnight: {
-    id: 'midnight',
-    label: 'Midnight',
-    bgPrimary: '#1E3A5F',
-    bgSecondary: '#1e2d5f',
-    gradient: ['#2563EB', '#1E3A5F', '#1e2d5f', '#0f172a'],
-    cardBg: 'rgba(255,255,255,0.10)',
-    cardBgHover: 'rgba(255,255,255,0.16)',
-    textPrimary: '#FFFFFF',
-    textSecondary: 'rgba(255,255,255,0.70)',
-    textDisabled: 'rgba(255,255,255,0.30)',
-    borderColor: 'rgba(255,255,255,0.12)',
-    borderColorStrong: 'rgba(255,255,255,0.35)',
-    modalBg: '#0f2040',
-    overlayBg: 'rgba(0,0,0,0.7)',
-    error: '#EF4444',
-    success: '#10B981',
-  },
-  saffron: {
-    id: 'saffron',
-    label: 'Saffron',
-    bgPrimary: '#D97706',
-    bgSecondary: '#B45309',
-    gradient: ['#F59E0B', '#D97706', '#B45309', '#92400E'],
+  ocean: {
+    id: 'ocean',
+    label: 'Ocean',
+    bgPrimary: '#0EA5E9',
+    bgSecondary: '#0284C7',
+    gradient: ['#38BDF8', '#0EA5E9', '#0284C7', '#075985'],
     cardBg: 'rgba(255,255,255,0.12)',
     cardBgHover: 'rgba(255,255,255,0.18)',
     textPrimary: '#FFFFFF',
@@ -78,52 +62,106 @@ export const THEMES: Record<ThemeId, AppTheme> = {
     textDisabled: 'rgba(255,255,255,0.35)',
     borderColor: 'rgba(255,255,255,0.15)',
     borderColorStrong: 'rgba(255,255,255,0.40)',
-    modalBg: '#7C3500',
+    modalBg: '#0c4a6e',
     overlayBg: 'rgba(0,0,0,0.6)',
     error: '#EF4444',
     success: '#10B981',
   },
-  slate: {
-    id: 'slate',
-    label: 'Slate',
-    bgPrimary: '#334155',
-    bgSecondary: '#1e293b',
-    gradient: ['#475569', '#334155', '#1e293b', '#0f172a'],
+  forest: {
+    id: 'forest',
+    label: 'Forest',
+    bgPrimary: '#16A34A',
+    bgSecondary: '#15803D',
+    gradient: ['#4ADE80', '#16A34A', '#15803D', '#166534'],
+    cardBg: 'rgba(255,255,255,0.12)',
+    cardBgHover: 'rgba(255,255,255,0.18)',
+    textPrimary: '#FFFFFF',
+    textSecondary: 'rgba(255,255,255,0.75)',
+    textDisabled: 'rgba(255,255,255,0.35)',
+    borderColor: 'rgba(255,255,255,0.15)',
+    borderColorStrong: 'rgba(255,255,255,0.40)',
+    modalBg: '#14532d',
+    overlayBg: 'rgba(0,0,0,0.6)',
+    error: '#EF4444',
+    success: '#10B981',
+  },
+  rose: {
+    id: 'rose',
+    label: 'Rose',
+    bgPrimary: '#E11D48',
+    bgSecondary: '#BE123C',
+    gradient: ['#FB7185', '#E11D48', '#BE123C', '#9F1239'],
+    cardBg: 'rgba(255,255,255,0.12)',
+    cardBgHover: 'rgba(255,255,255,0.18)',
+    textPrimary: '#FFFFFF',
+    textSecondary: 'rgba(255,255,255,0.75)',
+    textDisabled: 'rgba(255,255,255,0.35)',
+    borderColor: 'rgba(255,255,255,0.15)',
+    borderColorStrong: 'rgba(255,255,255,0.40)',
+    modalBg: '#881337',
+    overlayBg: 'rgba(0,0,0,0.6)',
+    error: '#FCA5A5',
+    success: '#10B981',
+  },
+  saffron: {
+    id: 'saffron',
+    label: 'Saffron',
+    bgPrimary: '#D97706',
+    bgSecondary: '#B45309',
+    gradient: ['#FCD34D', '#F59E0B', '#D97706', '#92400E'],
+    cardBg: 'rgba(255,255,255,0.12)',
+    cardBgHover: 'rgba(255,255,255,0.18)',
+    textPrimary: '#FFFFFF',
+    textSecondary: 'rgba(255,255,255,0.75)',
+    textDisabled: 'rgba(255,255,255,0.35)',
+    borderColor: 'rgba(255,255,255,0.15)',
+    borderColorStrong: 'rgba(255,255,255,0.40)',
+    modalBg: '#78350f',
+    overlayBg: 'rgba(0,0,0,0.6)',
+    error: '#EF4444',
+    success: '#10B981',
+  },
+  midnight: {
+    id: 'midnight',
+    label: 'Midnight',
+    bgPrimary: '#6366F1',
+    bgSecondary: '#4F46E5',
+    gradient: ['#818CF8', '#6366F1', '#4F46E5', '#3730A3'],
     cardBg: 'rgba(255,255,255,0.10)',
     cardBgHover: 'rgba(255,255,255,0.16)',
     textPrimary: '#FFFFFF',
-    textSecondary: 'rgba(255,255,255,0.70)',
-    textDisabled: 'rgba(255,255,255,0.30)',
-    borderColor: 'rgba(255,255,255,0.12)',
-    borderColorStrong: 'rgba(255,255,255,0.35)',
-    modalBg: '#1e293b',
+    textSecondary: 'rgba(255,255,255,0.75)',
+    textDisabled: 'rgba(255,255,255,0.35)',
+    borderColor: 'rgba(255,255,255,0.15)',
+    borderColorStrong: 'rgba(255,255,255,0.40)',
+    modalBg: '#1e1b4b',
     overlayBg: 'rgba(0,0,0,0.7)',
     error: '#EF4444',
     success: '#10B981',
   },
-  'high-contrast': {
-    id: 'high-contrast',
-    label: 'High Contrast',
-    bgPrimary: '#000000',
-    bgSecondary: '#1a1a1a',
-    gradient: ['#1a1a1a', '#000000', '#000000', '#000000'],
-    cardBg: 'rgba(255,255,255,0.15)',
-    cardBgHover: 'rgba(255,255,255,0.25)',
+  custom: {
+    id: 'custom',
+    label: 'Custom',
+    bgPrimary: '#7C3AED',
+    bgSecondary: '#6D28D9',
+    gradient: ['#8B5CF6', '#7C3AED', '#6D28D9', '#5B21B6'],
+    cardBg: 'rgba(255,255,255,0.12)',
+    cardBgHover: 'rgba(255,255,255,0.18)',
     textPrimary: '#FFFFFF',
-    textSecondary: 'rgba(255,255,255,0.90)',
-    textDisabled: 'rgba(255,255,255,0.50)',
-    borderColor: 'rgba(255,255,255,0.30)',
-    borderColorStrong: 'rgba(255,255,255,0.70)',
-    modalBg: '#111111',
-    overlayBg: 'rgba(0,0,0,0.8)',
-    error: '#FF6B6B',
-    success: '#51CF66',
+    textSecondary: 'rgba(255,255,255,0.75)',
+    textDisabled: 'rgba(255,255,255,0.35)',
+    borderColor: 'rgba(255,255,255,0.15)',
+    borderColorStrong: 'rgba(255,255,255,0.40)',
+    modalBg: '#2D1B69',
+    overlayBg: 'rgba(0,0,0,0.6)',
+    error: '#EF4444',
+    success: '#10B981',
   },
 };
 
 interface ThemeContextType {
   theme: AppTheme;
-  setTheme: (id: ThemeId) => void;
+  setTheme: (id: ThemeId, customTheme?: AppTheme) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType>({
@@ -136,14 +174,20 @@ export function ThemeProvider({
 }: {
   children: React.ReactNode;
 }) {
+  const [currentTheme, setCurrentTheme] = React.useState<AppTheme | null>(null);
   const selectedTheme = (useAuthStore(
     (s) => s.selectedTheme
   ) ?? 'purple') as ThemeId;
 
-  const theme = THEMES[selectedTheme] ?? THEMES.purple;
+  const theme = currentTheme ?? (THEMES[selectedTheme] ?? THEMES.purple);
 
-  const setTheme = useCallback(async (id: ThemeId) => {
-    useAuthStore.getState().setTheme(id);
+  const setTheme = useCallback(async (id: ThemeId, customTheme?: AppTheme) => {
+    if (customTheme) {
+      setCurrentTheme(customTheme);
+    } else {
+      setCurrentTheme(null);
+      useAuthStore.getState().setTheme(id);
+    }
     try {
       await patchPreferences({
         preferred_theme: id,

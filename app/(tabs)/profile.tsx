@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { ComponentProps } from 'react';
 import { useAuth } from '@clerk/clerk-expo';
@@ -7,11 +7,20 @@ import { useRouter } from 'expo-router';
 import { BottomTabBar } from '../../src/components/ui';
 import { ScreenGradient } from '@/src/components/common/ScreenGradient';
 import { createProfileStyles } from '../../src/styles/profileStyles';
-import { useTheme, THEMES, type ThemeId } from '@/src/contexts/ThemeContext';
+import { useTheme, THEMES, type ThemeId, type AppTheme } from '@/src/contexts/ThemeContext';
 import { useAuthStore } from '@/src/store/authStore';
 import { useOrientation } from '@/src/hooks/useOrientation';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
+
+const CUSTOM_COLORS = [
+  '#EF4444', '#F97316', '#EAB308',
+  '#22C55E', '#14B8A6', '#3B82F6',
+  '#8B5CF6', '#EC4899', '#64748B',
+  '#DC2626', '#EA580C', '#CA8A04',
+  '#16A34A', '#0D9488', '#2563EB',
+  '#7C3AED', '#DB2777', '#475569',
+];
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -23,6 +32,26 @@ export default function ProfileScreen() {
   const genres = useAuthStore((s) => s.selectedGenres);
   const { isLandscape } = useOrientation();
   const profileStyles = createProfileStyles(theme);
+
+  const [showColorPicker, setShowColorPicker] = React.useState(false);
+  const [customColor, setCustomColor] = React.useState<string | null>(null);
+
+  const applyCustomTheme = (color: string) => {
+    const customTheme: AppTheme = {
+      ...THEMES.purple,
+      id: 'custom' as ThemeId,
+      label: 'Custom',
+      bgPrimary: color,
+      bgSecondary: color + 'CC',
+      gradient: [
+        color + '99',
+        color,
+        color + 'CC',
+        color + 'EE'
+      ],
+    };
+    setTheme('custom', customTheme);
+  };
 
   const SettingsItem = React.memo(function SettingsItem({
     icon,
@@ -126,26 +155,46 @@ export default function ProfileScreen() {
               <Text style={profileStyles.sectionTitle}>Theme</Text>
               <View style={profileStyles.themesContainer}>
                 <View style={profileStyles.themesGrid}>
-                  {Object.values(THEMES).map((t) => (
-                    <Pressable
-                      key={t.id}
-                      onPress={() => setTheme(t.id as ThemeId)}
-                      style={{ alignItems: 'center' }}
-                    >
-                      <View
-                        style={[
-                          profileStyles.themeSwatch,
-                          { backgroundColor: t.bgPrimary },
-                          theme.id === t.id && profileStyles.themeSwatchActive,
-                        ]}
+                  {Object.values(THEMES)
+                    .filter((t) => t.id !== 'custom')
+                    .map((t) => (
+                      <Pressable
+                        key={t.id}
+                        onPress={() => setTheme(t.id as ThemeId)}
+                        style={{ alignItems: 'center' }}
                       >
-                        {theme.id === t.id && (
-                          <Ionicons name="checkmark" size={24} color="#FFFFFF" />
-                        )}
-                      </View>
-                      <Text style={profileStyles.themeLabel}>{t.label}</Text>
-                    </Pressable>
-                  ))}
+                        <View
+                          style={[
+                            profileStyles.themeSwatch,
+                            { backgroundColor: t.bgPrimary },
+                            theme.id === t.id && profileStyles.themeSwatchActive,
+                          ]}
+                        >
+                          {theme.id === t.id && (
+                            <Ionicons name="checkmark" size={24} color="#FFFFFF" />
+                          )}
+                        </View>
+                        <Text style={profileStyles.themeLabel}>{t.label}</Text>
+                      </Pressable>
+                    ))}
+                  <Pressable
+                    onPress={() => setShowColorPicker(true)}
+                    style={{ alignItems: 'center' }}
+                  >
+                    <View
+                      style={[
+                        profileStyles.themeSwatch,
+                        profileStyles.swatchCustom,
+                      ]}
+                    >
+                      <Ionicons
+                        name="color-palette-outline"
+                        size={20}
+                        color={theme.textPrimary}
+                      />
+                    </View>
+                    <Text style={profileStyles.themeLabel}>Custom</Text>
+                  </Pressable>
                 </View>
               </View>
             </View>
@@ -224,26 +273,46 @@ export default function ProfileScreen() {
           <Text style={profileStyles.sectionTitle}>Theme</Text>
           <View style={profileStyles.themesContainer}>
             <View style={profileStyles.themesGrid}>
-              {Object.values(THEMES).map((t) => (
-                <Pressable
-                  key={t.id}
-                  onPress={() => setTheme(t.id as ThemeId)}
-                  style={{ alignItems: 'center' }}
-                >
-                  <View
-                    style={[
-                      profileStyles.themeSwatch,
-                      { backgroundColor: t.bgPrimary },
-                      theme.id === t.id && profileStyles.themeSwatchActive,
-                    ]}
+              {Object.values(THEMES)
+                .filter((t) => t.id !== 'custom')
+                .map((t) => (
+                  <Pressable
+                    key={t.id}
+                    onPress={() => setTheme(t.id as ThemeId)}
+                    style={{ alignItems: 'center' }}
                   >
-                    {theme.id === t.id && (
-                      <Ionicons name="checkmark" size={24} color="#FFFFFF" />
-                    )}
-                  </View>
-                  <Text style={profileStyles.themeLabel}>{t.label}</Text>
-                </Pressable>
-              ))}
+                    <View
+                      style={[
+                        profileStyles.themeSwatch,
+                        { backgroundColor: t.bgPrimary },
+                        theme.id === t.id && profileStyles.themeSwatchActive,
+                      ]}
+                    >
+                      {theme.id === t.id && (
+                        <Ionicons name="checkmark" size={24} color="#FFFFFF" />
+                      )}
+                    </View>
+                    <Text style={profileStyles.themeLabel}>{t.label}</Text>
+                  </Pressable>
+                ))}
+              <Pressable
+                onPress={() => setShowColorPicker(true)}
+                style={{ alignItems: 'center' }}
+              >
+                <View
+                  style={[
+                    profileStyles.themeSwatch,
+                    profileStyles.swatchCustom,
+                  ]}
+                >
+                  <Ionicons
+                    name="color-palette-outline"
+                    size={20}
+                    color={theme.textPrimary}
+                  />
+                </View>
+                <Text style={profileStyles.themeLabel}>Custom</Text>
+              </Pressable>
             </View>
           </View>
         </View>
@@ -315,6 +384,51 @@ export default function ProfileScreen() {
         </Pressable>
         </ScrollView>
       )}
+
+      {/* Color Picker Modal */}
+      <Modal
+        visible={showColorPicker}
+        transparent
+        animationType="slide"
+      >
+        <View style={profileStyles.colorPickerOverlay}>
+          <View
+            style={[
+              profileStyles.colorPickerSheet,
+              { backgroundColor: theme.modalBg },
+            ]}
+          >
+            <Text style={profileStyles.colorPickerTitle}>
+              Choose Your Color
+            </Text>
+
+            <View style={profileStyles.colorGrid}>
+              {CUSTOM_COLORS.map((color) => (
+                <Pressable
+                  key={color}
+                  style={[
+                    profileStyles.colorDot,
+                    { backgroundColor: color },
+                    customColor === color && profileStyles.colorDotSelected,
+                  ]}
+                  onPress={() => {
+                    setCustomColor(color);
+                    applyCustomTheme(color);
+                    setShowColorPicker(false);
+                  }}
+                />
+              ))}
+            </View>
+
+            <Pressable
+              style={profileStyles.colorPickerClose}
+              onPress={() => setShowColorPicker(false)}
+            >
+              <Text style={profileStyles.colorPickerCloseText}>Cancel</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
 
       <BottomTabBar activeTab="profile" />
     </ScreenGradient>
