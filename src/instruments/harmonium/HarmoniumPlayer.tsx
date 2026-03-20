@@ -185,11 +185,7 @@ export function HarmoniumPlayer({
       </View>
 
       {/* Section divider — portrait only, between video and speed/notation */}
-      {!isLandscape && (
-        <View style={styles.sectionDivider}>
-          <View style={styles.sectionDividerLine} />
-        </View>
-      )}
+      {!isLandscape && <View style={styles.sectionDivider} />}
 
       {/* Vertical divider — landscape only */}
       {isLandscape && <View style={styles.verticalDivider} />}
@@ -410,18 +406,12 @@ const styles = StyleSheet.create({
   },
   sectionDivider: {
     width: '100%',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.xs,
-    backgroundColor: 'rgba(0,0,0,0.2)',
-  },
-  sectionDividerLine: {
-    height: 1,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-    borderRadius: 1,
+    height: 6,
+    backgroundColor: '#000000',
   },
   verticalDivider: {
-    width: 1,
+    width: 6,
     height: '100%',
-    backgroundColor: 'rgba(255,255,255,0.25)',
+    backgroundColor: '#000000',
   },
 });
