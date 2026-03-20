@@ -5,7 +5,7 @@ import { Pressable, Text, View } from 'react-native';
 import { useTheme } from '@/src/contexts/ThemeContext';
 import { sharedStyles } from '../../../styles/sharedStyles';
 
-type TabName = 'home' | 'practice' | 'progress' | 'profile';
+type TabName = 'home' | 'learn' | 'progress' | 'profile';
 
 interface BottomTabBarProps {
   activeTab: TabName;
@@ -16,7 +16,7 @@ const HELP_SIZE = 24;
 
 const TABS: { name: TabName; icon: keyof typeof Ionicons.glyphMap; label: string; route: string }[] = [
   { name: 'home',     icon: 'home',          label: 'Home',     route: '/home' },
-  { name: 'practice', icon: 'musical-notes', label: 'Learn',    route: '/practice' },
+  { name: 'learn',    icon: 'musical-notes', label: 'Learn',    route: '/learn' },
   { name: 'progress', icon: 'bar-chart',     label: 'Progress', route: '/progress' },
   { name: 'profile',  icon: 'person',        label: 'Profile',  route: '/profile' },
 ];

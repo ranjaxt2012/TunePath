@@ -20,7 +20,7 @@ export default function LearnScreen() {
           </Text>
         </View>
       </SafeAreaView>
-      <BottomTabBar activeTab="practice" />
+      <BottomTabBar activeTab="learn" />
     </ScreenGradient>
   );
 }
