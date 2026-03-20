@@ -51,6 +51,7 @@ export function ScrollingNotation({
   const [dismissed, setDismissed] = useState<Set<number>>(() => new Set());
   const [editingLine, setEditingLine] = useState<number | null>(null);
   const [editingNotes, setEditingNotes] = useState<Note[]>([]);
+  const [saveToast, setSaveToast] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const lineHeight = isLandscape ? LINE_HEIGHT_LANDSCAPE : LINE_HEIGHT_PORTRAIT;
 
@@ -121,6 +122,8 @@ export function ScrollingNotation({
     ];
     setEditingLine(null);
     onNotesEdit?.(sorted);
+    setSaveToast(true);
+    setTimeout(() => setSaveToast(false), 2000);
   }, [editingLine, editingNotes, onNotesEdit]);
 
   return (
@@ -277,6 +280,11 @@ export function ScrollingNotation({
           </View>
         </View>
       </Modal>
+      {saveToast && (
+        <View style={styles.toast}>
+          <Text style={styles.toastText}>✅ Line saved</Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -796,6 +804,22 @@ const styles = StyleSheet.create({
   },
   noteOptionTextActive: {
     fontFamily: Typography.medium,
+    fontSize: FontSize.sm,
+    color: '#FFFFFF',
+  },
+  toast: {
+    position: 'absolute',
+    bottom: 80,
+    alignSelf: 'center',
+    backgroundColor: '#7C3AED',
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radius.full,
+    zIndex: 999,
+    elevation: 5,
+  },
+  toastText: {
+    fontFamily: Typography.semiBold,
     fontSize: FontSize.sm,
     color: '#FFFFFF',
   },
