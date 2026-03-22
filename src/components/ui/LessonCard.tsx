@@ -9,6 +9,8 @@ interface LessonCardProps {
   lesson: Lesson;
   size: 'mini' | 'regular' | 'featured';
   onPress: () => void;
+  width?: number;
+  thumbHeight?: number;
 }
 
 function formatDuration(seconds: number): string {
@@ -17,22 +19,22 @@ function formatDuration(seconds: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
-export function LessonCard({ lesson, size, onPress }: LessonCardProps) {
+export function LessonCard({ lesson, size, onPress, width = 140, thumbHeight = 90 }: LessonCardProps) {
   const { theme } = useTheme();
 
   if (size === 'mini') {
     return (
       <TouchableOpacity
-        style={[styles.miniCard, { backgroundColor: theme.surface }]}
+        style={[styles.miniCard, { backgroundColor: theme.surface, width }]}
         onPress={onPress}
         activeOpacity={0.8}
       >
         {/* Thumbnail */}
-        <View style={styles.miniThumbContainer}>
+        <View style={[styles.miniThumbContainer, { height: thumbHeight }]}>
           {lesson.thumbnail_url ? (
-            <Image source={{ uri: lesson.thumbnail_url }} style={styles.miniThumb} resizeMode="cover" />
+            <Image source={{ uri: lesson.thumbnail_url }} style={[styles.miniThumb, { height: thumbHeight }]} resizeMode="cover" />
           ) : (
-            <View style={[styles.miniThumb, { backgroundColor: theme.surfaceHigh, alignItems: 'center', justifyContent: 'center' }]}>
+            <View style={[styles.miniThumb, { height: thumbHeight, backgroundColor: theme.surfaceHigh, alignItems: 'center', justifyContent: 'center' }]}>
               <Ionicons name="musical-notes" size={24} color={theme.textDisabled} />
             </View>
           )}

@@ -1,5 +1,5 @@
-import React, { useState, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Modal, Pressable, Platform, Dimensions } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Modal, Platform } from 'react-native';
 import ColorPicker, { Panel1, Swatches, Preview, HueSlider } from 'reanimated-color-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -20,8 +20,6 @@ import { Avatar } from '@/src/components/ui/Avatar';
 
 const WEB_CONTENT_MAX = 960;
 
-const SCREEN_HEIGHT = Dimensions.get('window').height;
-
 export default function ProfileScreen() {
   const { theme, themeId, setTheme } = useTheme();
   const router = useRouter();
@@ -35,22 +33,8 @@ export default function ProfileScreen() {
 
   const selectedTheme = themeId;
 
-  const [colorModalVisible, setColorModalVisible] = useState(false);
-  const [pickedColor, setPickedColor] = useState('#8B5CF6');
-
-  const handleColorComplete = useCallback(({ hex }: { hex: string }) => {
-    setPickedColor(hex);
-  }, []);
-
-  const handleApplyColor = useCallback(() => {
-    setTheme('custom', {
-      primary: pickedColor,
-      primaryLight: pickedColor + 'CC',
-      primaryDark: pickedColor + 'EE',
-      gradient: [pickedColor, pickedColor, pickedColor, pickedColor] as any,
-    });
-    setColorModalVisible(false);
-  }, [pickedColor, setTheme]);
+  const [showColorPicker, setShowColorPicker] = useState(false);
+  const [selectedHex, setSelectedHex] = useState(theme.primary);
 
   const displayName =
     user?.firstName && user?.lastName
@@ -130,7 +114,7 @@ export default function ProfileScreen() {
               />
             ))}
             <TouchableOpacity
-              onPress={() => setColorModalVisible(true)}
+              onPress={() => { setSelectedHex(theme.primary); setShowColorPicker(true); }}
               style={[
                 styles.swatch,
                 {
@@ -232,58 +216,87 @@ export default function ProfileScreen() {
         </View>
       </ScrollView>
 
-      {/* Custom color picker modal */}
+      {/* Color picker modal */}
       <Modal
-        visible={colorModalVisible}
+        visible={showColorPicker}
         transparent
         animationType="slide"
-        onRequestClose={() => setColorModalVisible(false)}
+        onRequestClose={() => setShowColorPicker(false)}
       >
-        <Pressable
-          style={[styles.colorModalOverlay, { backgroundColor: theme.overlay }]}
-          onPress={() => setColorModalVisible(false)}
-        >
-          <Pressable
-            style={[
-              styles.colorModalSheet,
-              { backgroundColor: theme.modalBg, borderTopLeftRadius: Radius.xl, borderTopRightRadius: Radius.xl, height: SCREEN_HEIGHT * 0.7 },
-            ]}
-            onPress={(e) => e.stopPropagation()}
-          >
-            <View style={styles.colorModalHandle}>
-              <View style={[styles.handleBar, { backgroundColor: theme.border }]} />
-            </View>
-            <Text style={[styles.colorModalTitle, { color: theme.textPrimary }]}>Pick your color 🎨</Text>
+        <View style={[styles.pickerOverlay, { backgroundColor: theme.overlay }]}>
+          <View style={[styles.pickerSheet, { backgroundColor: theme.modalBg }]}>
+            <View style={styles.handle} />
+            <Text style={[styles.pickerTitle, { color: theme.textPrimary }]}>
+              🎨 Pick your color
+            </Text>
 
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.pickerContent}>
-              <ColorPicker
-                style={styles.colorPicker}
-                value={pickedColor}
-                onComplete={handleColorComplete}
-              >
-                <Preview />
-                <Panel1 />
-                <HueSlider />
-                <Swatches />
-              </ColorPicker>
-            </ScrollView>
+            <ColorPicker
+              style={{ width: '100%' }}
+              value={selectedHex}
+              onComplete={({ hex }) => setSelectedHex(hex)}
+            >
+              <Preview
+                style={{
+                  height: 52,
+                  borderRadius: Radius.md,
+                  marginBottom: Spacing.md,
+                }}
+              />
+              <Panel1
+                style={{
+                  height: 160,
+                  borderRadius: Radius.md,
+                  marginBottom: Spacing.md,
+                }}
+              />
+              <HueSlider
+                style={{
+                  borderRadius: Radius.full,
+                  marginBottom: Spacing.md,
+                }}
+              />
+              <Swatches
+                style={{ marginBottom: Spacing.lg }}
+                swatchStyle={{
+                  borderRadius: Radius.full,
+                  width: 28,
+                  height: 28,
+                }}
+                colors={[
+                  '#7C3AED', '#0EA5E9', '#16A34A',
+                  '#E11D48', '#D97706', '#6366F1',
+                  '#EC4899', '#14B8A6', '#F97316',
+                  '#8B5CF6', '#EF4444', '#10B981',
+                ]}
+              />
+            </ColorPicker>
 
-            <View style={styles.colorModalActions}>
+            <View style={styles.pickerBtns}>
               <TouchableOpacity
-                style={[styles.colorActionBtn, { backgroundColor: theme.surface, borderRadius: Radius.md }]}
-                onPress={() => setColorModalVisible(false)}
+                style={[styles.cancelBtn, { borderColor: theme.border }]}
+                onPress={() => setShowColorPicker(false)}
               >
-                <Text style={[styles.colorActionText, { color: theme.textSecondary }]}>Cancel</Text>
+                <Text style={{ color: theme.textSecondary, fontSize: FontSize.md }}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.colorActionBtn, { backgroundColor: pickedColor, borderRadius: Radius.md }]}
-                onPress={handleApplyColor}
+                style={[styles.applyBtn, { backgroundColor: selectedHex }]}
+                onPress={() => {
+                  setTheme('custom', {
+                    primary: selectedHex,
+                    primaryLight: selectedHex,
+                    primaryDark: selectedHex,
+                    gradient: [selectedHex, selectedHex, selectedHex, selectedHex] as any,
+                  });
+                  setShowColorPicker(false);
+                }}
               >
-                <Text style={[styles.colorActionText, { color: '#FFFFFF' }]}>Apply</Text>
+                <Text style={{ color: '#FFFFFF', fontSize: FontSize.md, fontWeight: '700' }}>
+                  Apply →
+                </Text>
               </TouchableOpacity>
             </View>
-          </Pressable>
-        </Pressable>
+          </View>
+        </View>
       </Modal>
     </SafeAreaView>
   );
@@ -402,49 +415,45 @@ const styles = StyleSheet.create({
   prefLabel: {
     fontSize: FontSize.md,
   },
-  colorModalOverlay: {
+  pickerOverlay: {
     flex: 1,
     justifyContent: 'flex-end',
   },
-  colorModalSheet: {
-    width: '100%',
+  pickerSheet: {
+    borderTopLeftRadius: Radius.xl,
+    borderTopRightRadius: Radius.xl,
     padding: Spacing.xl,
     paddingBottom: Spacing.xxxl,
   },
-  colorModalHandle: {
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-  },
-  handleBar: {
-    width: 40,
+  handle: {
+    width: 36,
     height: 4,
     borderRadius: 2,
-  },
-  colorModalTitle: {
-    fontSize: FontSize.xl,
-    fontWeight: 'bold',
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignSelf: 'center',
     marginBottom: Spacing.lg,
   },
-  pickerContent: {
-    paddingBottom: Spacing.lg,
+  pickerTitle: {
+    fontSize: FontSize.lg,
+    fontWeight: '700',
+    marginBottom: Spacing.lg,
+    textAlign: 'center',
   },
-  colorPicker: {
-    width: '100%',
-    gap: Spacing.md,
-  },
-  colorModalActions: {
+  pickerBtns: {
     flexDirection: 'row',
     gap: Spacing.md,
-    marginTop: Spacing.lg,
   },
-  colorActionBtn: {
+  cancelBtn: {
     flex: 1,
-    height: 48,
+    paddingVertical: Spacing.md,
+    borderRadius: Radius.lg,
+    borderWidth: 0.5,
     alignItems: 'center',
-    justifyContent: 'center',
   },
-  colorActionText: {
-    fontSize: FontSize.md,
-    fontWeight: '700',
+  applyBtn: {
+    flex: 2,
+    paddingVertical: Spacing.md,
+    borderRadius: Radius.lg,
+    alignItems: 'center',
   },
 });

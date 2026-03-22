@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, Platform } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Platform, TouchableOpacity, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { useTheme, Spacing, FontSize } from '@/src/design';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
+import { useTheme, Spacing, FontSize, Radius } from '@/src/design';
 import { useLessons } from '@/src/hooks/useLessons';
 import { BASE_URL } from '@/src/services/api';
-import { useOrientation } from '@/src/hooks/useOrientation';
 import { LessonCard } from '@/src/components/ui/LessonCard';
 import { TagChip } from '@/src/components/ui/TagChip';
 import { SectionHeader } from '@/src/components/ui/SectionHeader';
@@ -15,172 +16,280 @@ import { Log } from '@/src/utils/log';
 
 const WEB_CONTENT_MAX = 960;
 
-const TAGS = ['All', 'Harmonium', 'Guitar', 'Piano', 'Tabla', 'Classical', 'Folk', 'Bollywood'];
+const TAGS = [
+  'All',
+  'Harmonium 🪗',
+  'Guitar 🎸',
+  'Piano 🎹',
+  'Tabla 🥁',
+  'Classical',
+  'Folk',
+  'Bollywood',
+  'Devotional',
+];
+
+// Map display tag label → instrument/tag query value
+function tagToInstrument(tag: string): string | undefined {
+  if (tag === 'All') return undefined;
+  // Strip emoji and lowercase
+  return tag.replace(/\s*[\u{1F300}-\u{1FAFF}]/gu, '').trim().toLowerCase();
+}
+
+function formatDuration(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
 
 export default function DiscoverScreen() {
   const { theme } = useTheme();
   const router = useRouter();
-  const { isLandscape } = useOrientation();
+  const isWeb = Platform.OS === 'web';
   const [activeTag, setActiveTag] = useState('All');
 
-  const instrument = activeTag === 'All' ? undefined : activeTag.toLowerCase();
-  const { lessons, loading, error, refetch } = useLessons({ instrument });
+  const instrument = tagToInstrument(activeTag);
 
-  const showEmpty = !loading && (error !== null || lessons.length === 0);
-  const showError = !loading && error !== null;
+  // Three separate data fetches for three rows
+  const {
+    lessons: trending,
+    loading: loadTrending,
+    error: errorTrending,
+    refetch: refetchTrending,
+  } = useLessons({ sort: 'trending', limit: 10, instrument });
+
+  const {
+    lessons: newLessons,
+    loading: loadNew,
+    refetch: refetchNew,
+  } = useLessons({ sort: 'new', limit: 10, instrument });
+
+  const {
+    lessons: harmonium,
+    loading: loadHarmonium,
+  } = useLessons({ instrument: 'harmonium', limit: 10 });
+
+  const featured = trending[0];
+  const cardWidth = isWeb ? 220 : 140;
+  const thumbHeight = isWeb ? 124 : 90;
+
+  const hPad = isWeb ? Spacing.xl : Spacing.lg;
 
   useEffect(() => {
     Log.ui('discover mounted');
     Log.api('fetching lessons', { BASE_URL });
   }, []);
 
-  useEffect(() => {
-    if (!loading) {
-      Log.api('lessons result', { count: lessons?.length ?? 0, error });
-    }
-  }, [loading, lessons?.length, error]);
-
-  const headerAndSearch = (
-    <View>
-      <Text style={[styles.title, { color: theme.textPrimary }]}>Discover 🎵</Text>
-      <View style={[styles.searchBar, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-        <Text style={[styles.searchIcon, { color: theme.textSecondary }]}>🔍</Text>
-        <Text style={[styles.searchPlaceholder, { color: theme.textDisabled }]}>
-          Search songs, artists...
-        </Text>
-      </View>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.tagRow}
-      >
-        {TAGS.map((tag) => (
-          <TagChip
-            key={tag}
-            label={tag}
-            active={activeTag === tag}
-            onPress={() => setActiveTag(tag)}
-          />
-        ))}
-      </ScrollView>
-    </View>
-  );
-
-  const content = showEmpty ? (
-    showError ? (
-      <EmptyState
-        emoji="⚠️"
-        title="Something went wrong"
-        subtitle={error ?? 'Failed to load lessons'}
-        actionLabel="Retry"
-        onAction={refetch}
-      />
-    ) : (
-      <EmptyState
-        emoji="🎵"
-        title="No lessons yet"
-        subtitle="Check back soon!"
-        actionLabel="Create one"
-        onAction={() => router.push('/(tabs)/create' as any)}
-      />
-    )
-  ) : (
-    <View>
-      {/* Featured hero */}
-      {!loading && lessons[0] && (
-        <View style={styles.featuredContainer}>
-          <LessonCard
-            lesson={lessons[0]}
-            size="featured"
-            onPress={() => router.push(`/lesson/${lessons[0].id}` as any)}
-          />
-        </View>
-      )}
-      {loading && (
-        <View style={styles.featuredContainer}>
-          <LoadingCard width={undefined} />
-        </View>
-      )}
-
-      {/* Trending */}
-      <SectionHeader title="Trending" />
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.horizontalRow}
-      >
-        {loading
-          ? Array.from({ length: 5 }).map((_, i) => <LoadingCard key={i} width={140} />)
-          : lessons.slice(1, 6).map((lesson) => (
-              <LessonCard
-                key={lesson.id}
-                lesson={lesson}
-                size="mini"
-                onPress={() => router.push(`/lesson/${lesson.id}` as any)}
-              />
-            ))}
-      </ScrollView>
-
-      {/* New Lessons */}
-      <SectionHeader title="New Lessons" />
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.horizontalRow}
-      >
-        {loading
-          ? Array.from({ length: 5 }).map((_, i) => <LoadingCard key={i} width={140} />)
-          : lessons.slice(6, 12).map((lesson) => (
-              <LessonCard
-                key={lesson.id}
-                lesson={lesson}
-                size="mini"
-                onPress={() => router.push(`/lesson/${lesson.id}` as any)}
-              />
-            ))}
-      </ScrollView>
-    </View>
-  );
-
-  const containerStyle = [
-    styles.container,
-    { backgroundColor: theme.background },
-    Platform.OS === 'web' && styles.webContainer,
-  ];
-
-  if (isLandscape) {
+  // Error state — show if trending fails (primary data source)
+  if (!loadTrending && errorTrending) {
     return (
       <SafeAreaView style={[styles.flex, { backgroundColor: theme.background }]}>
-        <View
-          style={[
-            styles.landscapeWrapper,
-            Platform.OS === 'web' && styles.webContainer,
-          ]}
-        >
-          <View style={styles.landscapeLeft}>
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.padded}>
-              {headerAndSearch}
-            </ScrollView>
-          </View>
-          <View style={styles.landscapeRight}>
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.padded}>
-              {content}
-            </ScrollView>
-          </View>
-        </View>
+        <EmptyState
+          emoji="⚠️"
+          title="Something went wrong"
+          subtitle={errorTrending ?? 'Failed to load lessons'}
+          actionLabel="Retry"
+          onAction={refetchTrending}
+        />
       </SafeAreaView>
     );
   }
+
+  // Empty state — no trending lessons and not loading
+  if (!loadTrending && trending.length === 0 && !errorTrending) {
+    return (
+      <SafeAreaView style={[styles.flex, { backgroundColor: theme.background }]}>
+        <EmptyState
+          emoji="🎵"
+          title="No lessons yet 🎵"
+          subtitle="Be the first to create one"
+          actionLabel="Create"
+          onAction={() => router.push('/(tabs)/create' as any)}
+        />
+      </SafeAreaView>
+    );
+  }
+
+  const containerStyle = [
+    styles.container,
+    isWeb && { maxWidth: WEB_CONTENT_MAX, alignSelf: 'center' as const, width: '100%' as const },
+  ];
 
   return (
     <SafeAreaView style={[styles.flex, { backgroundColor: theme.background }]}>
       <ScrollView
         style={styles.flex}
-        contentContainerStyle={containerStyle}
+        contentContainerStyle={[styles.scrollContent, { backgroundColor: theme.background }]}
         showsVerticalScrollIndicator={false}
       >
-        {headerAndSearch}
-        {content}
+        <View style={containerStyle}>
+
+          {/* ── Title ── */}
+          <Text style={[styles.title, { color: theme.textPrimary, paddingHorizontal: hPad }]}>
+            Discover 🎵
+          </Text>
+
+          {/* ── Tag chips ── */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={[styles.tagRow, { paddingHorizontal: hPad }]}
+          >
+            {TAGS.map((tag) => (
+              <TagChip
+                key={tag}
+                label={tag}
+                active={activeTag === tag}
+                onPress={() => setActiveTag(tag)}
+              />
+            ))}
+          </ScrollView>
+
+          {/* ── Featured hero ── */}
+          <View style={[styles.heroWrapper, { paddingHorizontal: hPad }]}>
+            {loadTrending ? (
+              <View
+                style={[
+                  styles.heroShimmer,
+                  {
+                    backgroundColor: theme.surfaceHigh,
+                    aspectRatio: isWeb ? 16 / 6 : 16 / 9,
+                    borderRadius: Radius.lg,
+                  },
+                ]}
+              />
+            ) : featured ? (
+              <TouchableOpacity
+                style={[
+                  styles.heroCard,
+                  {
+                    aspectRatio: isWeb ? 16 / 6 : 16 / 9,
+                    borderRadius: Radius.lg,
+                  },
+                ]}
+                onPress={() => router.push(`/lesson/${featured.id}` as any)}
+                activeOpacity={0.9}
+              >
+                {/* Background */}
+                {featured.thumbnail_url ? (
+                  <Image
+                    source={{ uri: featured.thumbnail_url }}
+                    style={StyleSheet.absoluteFillObject}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <View style={[StyleSheet.absoluteFillObject, { backgroundColor: theme.surfaceHigh }]} />
+                )}
+
+                {/* Duration badge */}
+                <View style={[styles.heroDuration, { backgroundColor: theme.overlay }]}>
+                  <Text style={[styles.heroDurationText, { color: '#FFFFFF' }]}>
+                    {formatDuration(featured.duration_seconds)}
+                  </Text>
+                </View>
+
+                {/* Center play button */}
+                <View style={styles.heroPlayBtn}>
+                  <Ionicons name="play" size={28} color="#FFFFFF" style={{ marginLeft: 3 }} />
+                </View>
+
+                {/* Bottom overlay */}
+                <LinearGradient
+                  colors={['transparent', 'rgba(0,0,0,0.8)']}
+                  style={styles.heroGradient}
+                >
+                  <View style={styles.heroMeta}>
+                    {featured.level_slug && (
+                      <View style={[styles.levelBadge, { backgroundColor: theme.primary }]}>
+                        <Text style={[styles.levelText, { color: theme.textOnPrimary }]}>
+                          {featured.level_slug}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={styles.heroTitle} numberOfLines={2}>{featured.title}</Text>
+                  <View style={styles.heroCreatorRow}>
+                    <Text style={styles.heroCreator} numberOfLines={1}>
+                      {featured.creator_name ?? 'Unknown'}
+                    </Text>
+                    {featured.creator_verified && (
+                      <Text style={[styles.verifiedDot, { color: theme.primary }]}> •</Text>
+                    )}
+                  </View>
+                </LinearGradient>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+
+          {/* ── Row 1: Trending 🔥 ── */}
+          <SectionHeader title="Trending 🔥" onSeeAll={() => {}} />
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={[styles.rowContent, { paddingHorizontal: hPad }]}
+          >
+            {loadTrending
+              ? Array.from({ length: 5 }).map((_, i) => (
+                  <LoadingCard key={i} width={cardWidth} thumbHeight={thumbHeight} />
+                ))
+              : trending.slice(1).map((lesson) => (
+                  <LessonCard
+                    key={lesson.id}
+                    lesson={lesson}
+                    size="mini"
+                    width={cardWidth}
+                    thumbHeight={thumbHeight}
+                    onPress={() => router.push(`/lesson/${lesson.id}` as any)}
+                  />
+                ))}
+          </ScrollView>
+
+          {/* ── Row 2: New Lessons ✨ ── */}
+          <SectionHeader title="New Lessons ✨" onSeeAll={() => {}} />
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={[styles.rowContent, { paddingHorizontal: hPad }]}
+          >
+            {loadNew
+              ? Array.from({ length: 5 }).map((_, i) => (
+                  <LoadingCard key={i} width={cardWidth} thumbHeight={thumbHeight} />
+                ))
+              : newLessons.map((lesson) => (
+                  <LessonCard
+                    key={lesson.id}
+                    lesson={lesson}
+                    size="mini"
+                    width={cardWidth}
+                    thumbHeight={thumbHeight}
+                    onPress={() => router.push(`/lesson/${lesson.id}` as any)}
+                  />
+                ))}
+          </ScrollView>
+
+          {/* ── Row 3: Harmonium 🪗 ── */}
+          <SectionHeader title="Harmonium 🪗" onSeeAll={() => {}} />
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={[styles.rowContent, { paddingHorizontal: hPad }]}
+          >
+            {loadHarmonium
+              ? Array.from({ length: 5 }).map((_, i) => (
+                  <LoadingCard key={i} width={cardWidth} thumbHeight={thumbHeight} />
+                ))
+              : harmonium.map((lesson) => (
+                  <LessonCard
+                    key={lesson.id}
+                    lesson={lesson}
+                    size="mini"
+                    width={cardWidth}
+                    thumbHeight={thumbHeight}
+                    onPress={() => router.push(`/lesson/${lesson.id}` as any)}
+                  />
+                ))}
+          </ScrollView>
+
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -190,14 +299,11 @@ const styles = StyleSheet.create({
   flex: {
     flex: 1,
   },
-  container: {
-    paddingHorizontal: Spacing.lg,
+  scrollContent: {
     paddingBottom: Spacing.xxxl,
   },
-  webContainer: {
-    maxWidth: WEB_CONTENT_MAX,
-    alignSelf: 'center',
-    width: '100%',
+  container: {
+    // max-width centering applied inline for web
   },
   title: {
     fontSize: FontSize.hero,
@@ -205,59 +311,92 @@ const styles = StyleSheet.create({
     marginTop: Spacing.lg,
     marginBottom: Spacing.md,
   },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    marginBottom: Spacing.md,
-    gap: Spacing.sm,
-  },
-  searchIcon: {
-    fontSize: FontSize.md,
-  },
-  searchPlaceholder: {
-    fontSize: FontSize.md,
-    flex: 1,
-  },
   tagRow: {
     flexDirection: 'row',
     gap: Spacing.sm,
-    paddingRight: Spacing.lg,
     paddingBottom: Spacing.md,
+    paddingRight: Spacing.xl,
   },
-  featuredContainer: {
-    marginBottom: Spacing.md,
+  heroWrapper: {
+    marginBottom: Spacing.lg,
   },
-  featuredLoading: {
-    height: 220,
-    borderRadius: 16,
+  heroShimmer: {
+    width: '100%',
   },
-  horizontalRow: {
+  heroCard: {
+    width: '100%',
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroDuration: {
+    position: 'absolute',
+    top: Spacing.sm,
+    right: Spacing.sm,
+    borderRadius: Radius.sm,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 3,
+  },
+  heroDurationText: {
+    fontSize: FontSize.xs,
+    fontWeight: '600',
+  },
+  heroPlayBtn: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.6)',
+  },
+  heroGradient: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: Spacing.md,
+    gap: Spacing.xs,
+  },
+  heroMeta: {
     flexDirection: 'row',
     gap: Spacing.sm,
-    paddingRight: Spacing.lg,
-    paddingBottom: Spacing.md,
+    marginBottom: Spacing.xs,
   },
-  miniCard: {
-    width: 140,
-    height: 120,
-    borderRadius: 12,
+  levelBadge: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    borderRadius: Radius.sm,
   },
-  padded: {
-    padding: Spacing.lg,
-    paddingBottom: Spacing.xxxl,
+  levelText: {
+    fontSize: FontSize.xs,
+    fontWeight: '600',
+    textTransform: 'capitalize',
   },
-  landscapeWrapper: {
-    flex: 1,
+  heroTitle: {
+    fontSize: FontSize.lg,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    lineHeight: 24,
+  },
+  heroCreatorRow: {
     flexDirection: 'row',
+    alignItems: 'center',
   },
-  landscapeLeft: {
-    flex: 0.4,
+  heroCreator: {
+    fontSize: FontSize.sm,
+    color: 'rgba(255,255,255,0.85)',
+    fontWeight: '500',
   },
-  landscapeRight: {
-    flex: 0.6,
+  verifiedDot: {
+    fontSize: FontSize.sm,
+    fontWeight: '700',
+  },
+  rowContent: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    paddingBottom: Spacing.md,
+    paddingRight: Spacing.xl,
   },
 });

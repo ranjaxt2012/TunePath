@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { Animated, View, StyleSheet } from 'react-native';
 import { useTheme, Radius, Spacing } from '@/src/design';
 
-export function LoadingCard({ width = 140 }: { width?: number }) {
+export function LoadingCard({ width = 140, thumbHeight = 90 }: { width?: number; thumbHeight?: number }) {
   const { theme } = useTheme();
   const opacity = useRef(new Animated.Value(0.3)).current;
 
@@ -17,7 +17,7 @@ export function LoadingCard({ width = 140 }: { width?: number }) {
 
   return (
     <Animated.View style={[styles.card, { width, backgroundColor: theme.surface, opacity }]}>
-      <View style={[styles.thumb, { backgroundColor: theme.surfaceHigh }]} />
+      <View style={[styles.thumb, { backgroundColor: theme.surfaceHigh, height: thumbHeight }]} />
       <View style={styles.info}>
         <View style={[styles.line, { backgroundColor: theme.surfaceHigh, width: '80%' }]} />
         <View style={[styles.line, { backgroundColor: theme.surfaceHigh, width: '55%' }]} />
@@ -28,7 +28,7 @@ export function LoadingCard({ width = 140 }: { width?: number }) {
 
 const styles = StyleSheet.create({
   card: { borderRadius: Radius.lg, overflow: 'hidden' },
-  thumb: { width: '100%', height: 90 },
+  thumb: { width: '100%' },
   info: { padding: Spacing.sm, gap: Spacing.xs },
   line: { height: 10, borderRadius: Radius.sm },
 });
