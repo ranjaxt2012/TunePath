@@ -1,7 +1,7 @@
 import React from 'react';
+import type { Note } from '@/src/hooks/useLesson';
 import { HarmoniumPlayer } from './harmonium/HarmoniumPlayer';
 import type { Lesson } from '@/src/types/models';
-import type { Note } from './harmonium/SargamPlayerEngine';
 
 interface PlayerProps {
   lesson: Lesson;

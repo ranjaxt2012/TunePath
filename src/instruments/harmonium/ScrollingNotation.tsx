@@ -2,7 +2,7 @@ import React, { memo, useRef, useEffect } from 'react';
 import { ScrollView, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, Spacing, FontSize, Radius } from '@/src/design';
-import type { Note } from './SargamPlayerEngine';
+import type { Note } from '@/src/hooks/useLesson';
 
 const NOTES_PER_ROW = 8;
 const ROW_HEIGHT = 60;
@@ -12,7 +12,7 @@ interface ScrollingNotationProps {
   activeNoteIndex: number;
   noteProgress: number;
   isTutor: boolean;
-  onNotesEdit(notes: Note[]): void;
+  onRowEdit(rowIndex: number, rowNotes: Note[]): void;
   isLandscape: boolean;
 }
 
@@ -21,7 +21,7 @@ function ScrollingNotationInner({
   activeNoteIndex,
   noteProgress,
   isTutor,
-  onNotesEdit,
+  onRowEdit,
   isLandscape,
 }: ScrollingNotationProps) {
   const { theme } = useTheme();
@@ -102,7 +102,7 @@ function ScrollingNotationInner({
             {isTutor && (
               <TouchableOpacity
                 style={[styles.editBtn, { backgroundColor: theme.surfaceHigh }]}
-                onPress={() => onNotesEdit(notes)}
+                onPress={() => onRowEdit(rowIndex, rowNotes)}
                 activeOpacity={0.7}
               >
                 <Ionicons name="pencil" size={14} color={theme.textSecondary} />
