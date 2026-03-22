@@ -12,7 +12,6 @@ import { useTheme } from '@/src/design';
 import { useOrientation } from '@/src/hooks/useOrientation';
 import { SupportBot } from '@/src/components/SupportBot';
 import { AppTour } from '@/src/components/AppTour';
-import { WebLayout } from '@/src/components/layout/WebLayout';
 
 const TABS = [
   {
