@@ -12,117 +12,241 @@ import {
 import { useTheme, Spacing, Radius, FontSize } from '@/src/design';
 import { useAuthStore } from '@/src/store/authStore';
 
+const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
+
 const YOUTUBE_TUTORIAL_URL = '';
 
 const STEPS = [
-  { message: "Hi! I'm Tune 🎵\nLet me show you around in 60 seconds!", position: 'center' as const },
-  { message: "This is Discover 🔍\nFind lessons from creators worldwide", position: 'bottom' as const },
-  { message: "Search any song,\nartist or instrument here 🎸", position: 'top' as const },
-  { message: "Tap any lesson\nto start learning 👆", position: 'center' as const },
+  { message: "Hi! I'm Tune 🎵\nLet me show you around TunePath!", position: 'center' as const },
+  { message: "Discover 🔍\nFind lessons from music teachers worldwide", position: 'bottom' as const },
+  { message: "Search for any song,\nartist, or instrument 🎸", position: 'top' as const },
+  { message: "Tap any lesson card\nto start learning! 👆", position: 'center' as const },
   { message: "Watch the video\nand follow along 🎬", position: 'center' as const },
-  { message: "These are Sargam notes 🎵\nThey highlight as music plays\nLike karaoke for instruments!", position: 'center' as const },
-  { message: "Slow down the video\nwith this speed slider 🐢", position: 'bottom' as const },
+  { message: "These are Sargam notes 🎵\nThey light up as music plays!\nLike karaoke for instruments!", position: 'center' as const },
+  { message: "Slow down the video\nwith the speed slider 🐢", position: 'bottom' as const },
   { message: "Tap + to share\nyour own music lessons 🎬", position: 'bottom' as const },
-  { message: "Import any YouTube\nvideo as a lesson ▶", position: 'center' as const },
-  { message: "Tap 💬 anytime\nI'm always here to help!", position: 'bottom' as const },
+  { message: "Import any YouTube video\nas a lesson ▶", position: 'center' as const },
+  { message: "Tap 💬 anytime —\nI'm always here to help!", position: 'bottom' as const },
   { message: "You're all set! 🎉\nWant to see everything in detail?", position: 'center' as const, showYouTube: true },
-];
+] as const;
+
+const TOTAL_STEPS = STEPS.length;
 
 export function AppTour() {
   const { theme } = useTheme();
-  const hasOnboarded = useAuthStore((s) => s.hasOnboarded);
-  const tourSeen = (useAuthStore((s) => s as any).tourSeen) as boolean | undefined;
-  const setTourSeen = (useAuthStore((s) => s as any).setTourSeen) as ((v: boolean) => void) | undefined;
-  const isSignedIn = useAuthStore((s) => !!s.user);
+  const { isSignedIn, hasOnboarded, tourSeen, setTourSeen } = useAuthStore((s) => ({
+    isSignedIn: !!s.user,
+    hasOnboarded: s.hasOnboarded,
+    tourSeen: s.tourSeen,
+    setTourSeen: s.setTourSeen,
+  }));
 
   const [visible, setVisible] = useState(false);
-  const [step, setStep] = useState(0);
-  const bounce = useRef(new Animated.Value(0)).current;
+  const [currentStep, setCurrentStep] = useState(0);
 
+  const bounceAnim = useRef(new Animated.Value(0)).current;
+
+  // Show tour after 1000ms delay if conditions met
   useEffect(() => {
     if (isSignedIn && hasOnboarded && !tourSeen) {
-      const timer = setTimeout(() => setVisible(true), 1000);
+      const timer = setTimeout(() => {
+        setVisible(true);
+      }, 1000);
       return () => clearTimeout(timer);
     }
   }, [isSignedIn, hasOnboarded, tourSeen]);
 
+  // Bounce animation loop
   useEffect(() => {
     if (!visible) return;
-    const anim = Animated.loop(
+
+    const animation = Animated.loop(
       Animated.sequence([
-        Animated.timing(bounce, { toValue: -10, duration: 600, useNativeDriver: true }),
-        Animated.timing(bounce, { toValue: 0, duration: 600, useNativeDriver: true }),
+        Animated.timing(bounceAnim, {
+          toValue: -10,
+          duration: 600,
+          useNativeDriver: true,
+        }),
+        Animated.timing(bounceAnim, {
+          toValue: 0,
+          duration: 600,
+          useNativeDriver: true,
+        }),
       ])
     );
-    anim.start();
-    return () => anim.stop();
-  }, [visible, bounce]);
+    animation.start();
 
-  const handleClose = () => {
-    setVisible(false);
-    setTourSeen?.(true);
+    return () => animation.stop();
+  }, [visible, bounceAnim]);
+
+  const handleNext = () => {
+    if (currentStep < TOTAL_STEPS - 1) {
+      setCurrentStep((prev) => prev + 1);
+    } else {
+      completeTour();
+    }
   };
 
-  const currentStep = STEPS[step];
-  const screenHeight = Dimensions.get('window').height;
-  const isTop = currentStep.position === 'top';
-  const isBottom = currentStep.position === 'bottom';
+  const completeTour = () => {
+    setTourSeen(true);
+    setVisible(false);
+  };
+
+  const skipTour = () => {
+    setTourSeen(true);
+    setVisible(false);
+  };
+
+  const step = STEPS[currentStep];
+  const isLastStep = currentStep === TOTAL_STEPS - 1;
+
+  const getContentStyle = () => {
+    switch (step.position) {
+      case 'top':
+        return { paddingTop: 80 };
+      case 'bottom':
+        return { paddingBottom: 120, justifyContent: 'flex-end' as const };
+      case 'center':
+      default:
+        return { justifyContent: 'center' as const };
+    }
+  };
+
+  const styles = StyleSheet.create({
+    overlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.75)',
+    },
+    contentWrapper: {
+      flex: 1,
+      alignItems: 'center',
+      paddingHorizontal: Spacing.xl,
+    },
+    botCircle: {
+      width: 60,
+      height: 60,
+      borderRadius: 30,
+      backgroundColor: theme.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: Spacing.md,
+    },
+    botEmoji: {
+      fontSize: 28,
+    },
+    speechBubble: {
+      backgroundColor: '#FFFFFF',
+      borderRadius: Radius.lg,
+      padding: Spacing.lg,
+      maxWidth: 280,
+      alignItems: 'center',
+      marginBottom: Spacing.md,
+    },
+    bubbleText: {
+      color: '#000000',
+      textAlign: 'center',
+      lineHeight: 22,
+      fontSize: FontSize.md,
+    },
+    youtubeCard: {
+      backgroundColor: theme.surface,
+      borderRadius: Radius.md,
+      paddingHorizontal: Spacing.md,
+      paddingVertical: Spacing.sm,
+      marginTop: Spacing.sm,
+      borderWidth: 1,
+      borderColor: theme.border,
+    },
+    youtubeText: {
+      color: theme.primary,
+      fontSize: FontSize.sm,
+      fontWeight: '600',
+    },
+    stepCounter: {
+      color: 'rgba(255,255,255,0.6)',
+      fontSize: FontSize.sm,
+      marginBottom: Spacing.lg,
+    },
+    navRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.md,
+    },
+    skipButton: {
+      paddingHorizontal: Spacing.md,
+      paddingVertical: Spacing.sm,
+    },
+    skipText: {
+      color: 'rgba(255,255,255,0.5)',
+      fontSize: FontSize.sm,
+    },
+    nextButton: {
+      backgroundColor: theme.primary,
+      borderRadius: Radius.full,
+      paddingHorizontal: Spacing.xl,
+      paddingVertical: Spacing.sm,
+    },
+    nextText: {
+      color: theme.textOnPrimary,
+      fontSize: FontSize.md,
+      fontWeight: '600',
+    },
+  });
+
+  const contentStyle = getContentStyle();
 
   return (
-    <Modal visible={visible} transparent animationType="fade">
+    <Modal
+      visible={visible}
+      animationType="fade"
+      transparent
+      onRequestClose={skipTour}
+    >
       <View style={styles.overlay}>
-        <View style={[
-          styles.content,
-          isTop && { justifyContent: 'flex-start', paddingTop: 80 },
-          isBottom && { justifyContent: 'flex-end', paddingBottom: 120 },
-          currentStep.position === 'center' && { justifyContent: 'center' },
-        ]}>
-          {/* Bot character */}
+        <View style={[styles.contentWrapper, contentStyle]}>
+          {/* Bouncing bot */}
           <Animated.View
             style={[
-              styles.bot,
-              { backgroundColor: theme.primary, transform: [{ translateY: bounce }] },
+              styles.botCircle,
+              { transform: [{ translateY: bounceAnim }] },
             ]}
           >
             <Text style={styles.botEmoji}>🎵</Text>
           </Animated.View>
 
           {/* Speech bubble */}
-          <View style={styles.bubble}>
-            <Text style={styles.bubbleText}>{currentStep.message}</Text>
+          <View style={styles.speechBubble}>
+            <Text style={styles.bubbleText}>{step.message}</Text>
+
+            {'showYouTube' in step && step.showYouTube && (
+              <TouchableOpacity
+                style={styles.youtubeCard}
+                onPress={() => {
+                  if (YOUTUBE_TUTORIAL_URL) {
+                    Linking.openURL(YOUTUBE_TUTORIAL_URL);
+                  }
+                }}
+                activeOpacity={0.75}
+              >
+                <Text style={styles.youtubeText}>Watch on YouTube →</Text>
+              </TouchableOpacity>
+            )}
           </View>
 
-          {/* YouTube card for last step */}
-          {(currentStep as any).showYouTube && YOUTUBE_TUTORIAL_URL && (
-            <TouchableOpacity
-              style={[styles.ytCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
-              onPress={() => Linking.openURL(YOUTUBE_TUTORIAL_URL)}
-            >
-              <Text style={[styles.ytTitle, { color: theme.textPrimary }]}>TunePath Complete Guide</Text>
-              <Text style={[styles.ytLink, { color: theme.primary }]}>Watch on YouTube →</Text>
-            </TouchableOpacity>
-          )}
-
           {/* Step counter */}
-          <Text style={styles.stepCount}>{step + 1} of {STEPS.length}</Text>
+          <Text style={styles.stepCounter}>
+            {currentStep + 1} of {TOTAL_STEPS}
+          </Text>
 
-          {/* Navigation */}
+          {/* Navigation row */}
           <View style={styles.navRow}>
-            <TouchableOpacity onPress={handleClose}>
+            <TouchableOpacity style={styles.skipButton} onPress={skipTour}>
               <Text style={styles.skipText}>Skip tour</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.nextBtn, { backgroundColor: theme.primary }]}
-              onPress={() => {
-                if (step < STEPS.length - 1) {
-                  setStep((s) => s + 1);
-                } else {
-                  handleClose();
-                }
-              }}
-            >
-              <Text style={[styles.nextBtnText, { color: theme.textOnPrimary }]}>
-                {step === STEPS.length - 1 ? 'Start Learning →' : 'Next →'}
+
+            <TouchableOpacity style={styles.nextButton} onPress={handleNext} activeOpacity={0.85}>
+              <Text style={styles.nextText}>
+                {isLastStep ? 'Start Learning →' : 'Next →'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -132,65 +256,4 @@ export function AppTour() {
   );
 }
 
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.75)',
-  },
-  content: {
-    flex: 1,
-    alignItems: 'center',
-    paddingHorizontal: Spacing.xl,
-    gap: Spacing.md,
-  },
-  bot: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  botEmoji: { fontSize: 28 },
-  bubble: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: Radius.lg,
-    padding: Spacing.lg,
-    maxWidth: 280,
-  },
-  bubbleText: {
-    color: '#000000',
-    fontSize: FontSize.md,
-    textAlign: 'center',
-    lineHeight: 22,
-  },
-  ytCard: {
-    padding: Spacing.lg,
-    borderRadius: Radius.lg,
-    borderWidth: 1,
-    alignItems: 'center',
-    gap: Spacing.sm,
-    width: 240,
-  },
-  ytTitle: { fontSize: FontSize.sm, fontWeight: '600', textAlign: 'center' },
-  ytLink: { fontSize: FontSize.sm, fontWeight: '700' },
-  stepCount: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: FontSize.xs,
-  },
-  navRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xl,
-    marginTop: Spacing.sm,
-  },
-  skipText: {
-    color: 'rgba(255,255,255,0.5)',
-    fontSize: FontSize.sm,
-  },
-  nextBtn: {
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.md,
-    borderRadius: Radius.lg,
-  },
-  nextBtnText: { fontSize: FontSize.md, fontWeight: '700' },
-});
+export default AppTour;

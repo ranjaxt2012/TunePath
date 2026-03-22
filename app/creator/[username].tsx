@@ -1,265 +1,202 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
+  StyleSheet,
   ScrollView,
   TouchableOpacity,
-  StyleSheet,
   ActivityIndicator,
   Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme, Spacing, Radius, FontSize } from '@/src/design';
-import { apiPost } from '@/src/services/apiClient';
-import type { Course } from '@/src/types/models';
+import { useTheme, Spacing, FontSize, Radius } from '@/src/design';
+import { api } from '@/src/services/api';
+import { Avatar } from '@/src/components/ui/Avatar';
+import { LessonCard } from '@/src/components/ui/LessonCard';
+import type { Creator, Lesson } from '@/src/types/models';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000';
-
-async function fetchCreator(username: string): Promise<any> {
-  const res = await fetch(`${API_URL}/api/users/creator/${username}`);
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
-}
-
-async function fetchCreatorCourses(userId: string): Promise<Course[]> {
-  const res = await fetch(`${API_URL}/api/courses?tutor_id=${userId}`);
-  if (!res.ok) return [];
-  return res.json();
-}
-
-export default function CreatorProfileScreen() {
+export default function CreatorScreen() {
   const { username } = useLocalSearchParams<{ username: string }>();
   const router = useRouter();
   const { theme } = useTheme();
-  const [creator, setCreator] = useState<any>(null);
-  const [courses, setCourses] = useState<Course[]>([]);
+
+  const [creator, setCreator] = useState<Creator | null>(null);
+  const [lessons, setLessons] = useState<Lesson[]>([]);
   const [loading, setLoading] = useState(true);
-  const [following, setFollowing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!username) return;
     setLoading(true);
-    fetchCreator(username)
-      .then(async (data) => {
-        setCreator(data);
-        if (data?.id) {
-          const c = await fetchCreatorCourses(data.id);
-          setCourses(c);
-        }
+    Promise.all([
+      api.get<Creator>(`/api/creators/${username}`),
+      api.get<Lesson[]>(`/api/creators/${username}/lessons`),
+    ])
+      .then(([c, l]) => {
+        setCreator(c);
+        setLessons(l);
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }, [username]);
 
-  const handleFollow = async () => {
-    if (!creator?.id) return;
-    setFollowing(!following);
-    try {
-      await apiPost(`/api/users/${creator.id}/follow`, {});
-    } catch {
-      setFollowing(following);
-    }
-  };
-
-  if (loading) {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-        <View style={styles.center}>
-          <ActivityIndicator color={theme.primary} />
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  if (error || !creator) {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-        <View style={styles.center}>
-          <Text style={[styles.errorText, { color: theme.error }]}>{error ?? 'Creator not found'}</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  const initials = (creator.displayName ?? creator.email ?? '?').slice(0, 2).toUpperCase();
-  const isVerified = creator.trust_tier === 'verified';
-
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-      <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-        <Ionicons name="arrow-back" size={24} color={theme.textPrimary} />
-      </TouchableOpacity>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top']}>
+      {/* Header */}
+      <View style={[styles.header, { borderBottomColor: theme.border }]}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <Ionicons name="chevron-back" size={24} color={theme.textPrimary} />
+        </TouchableOpacity>
+        <Text style={[styles.headerTitle, { color: theme.textPrimary }]} numberOfLines={1}>
+          {creator?.display_name ?? username ?? 'Creator'}
+        </Text>
+        <View style={styles.backBtn} />
+      </View>
 
-      <ScrollView contentContainerStyle={{ paddingBottom: Spacing.xxxl }}>
-        {/* Hero */}
-        <View style={[styles.hero, { backgroundColor: theme.surface }]}>
-          <View style={[styles.avatar, { backgroundColor: theme.primary }]}>
-            <Text style={[styles.avatarText, { color: theme.textOnPrimary }]}>{initials}</Text>
-          </View>
-          <Text style={[styles.displayName, { color: theme.textPrimary }]}>
-            {creator.displayName ?? creator.email}
-          </Text>
-          {isVerified && (
-            <View style={[styles.verifiedBadge, { backgroundColor: theme.primary }]}>
-              <Text style={[styles.verifiedText, { color: theme.textOnPrimary }]}>✓ Verified</Text>
-            </View>
-          )}
-          {creator.bio && (
-            <Text style={[styles.bio, { color: theme.textSecondary }]}>{creator.bio}</Text>
-          )}
-          <TouchableOpacity
-            style={[styles.followBtn, { backgroundColor: following ? theme.surface : theme.primary, borderColor: theme.border, borderWidth: following ? 1 : 0 }]}
-            onPress={handleFollow}
-          >
-            <Text style={[styles.followBtnText, { color: following ? theme.textSecondary : theme.textOnPrimary }]}>
-              {following ? 'Following ✓' : 'Follow'}
+      {loading && (
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color={theme.primary} />
+        </View>
+      )}
+
+      {error && !loading && (
+        <View style={styles.center}>
+          <Text style={{ color: theme.textSecondary }}>Could not load creator</Text>
+        </View>
+      )}
+
+      {creator && !loading && (
+        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+          {/* Profile card */}
+          <View style={[styles.profileCard, { backgroundColor: theme.surface }]}>
+            <Avatar
+              name={creator.display_name}
+              imageUrl={creator.avatar_url}
+              size={72}
+            />
+            <Text style={[styles.displayName, { color: theme.textPrimary }]}>
+              {creator.display_name}
+              {creator.is_verified ? ' ✓' : ''}
             </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Stats */}
-        <View style={styles.statsRow}>
-          {[
-            { label: 'Lessons', value: courses.length },
-            { label: 'Followers', value: creator.follower_count ?? 0 },
-            { label: 'Views', value: creator.total_views ?? 0 },
-          ].map((s) => (
-            <View key={s.label} style={[styles.statCard, { backgroundColor: theme.surface }]}>
-              <Text style={[styles.statValue, { color: theme.textPrimary }]}>{s.value}</Text>
-              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>{s.label}</Text>
+            {creator.bio && (
+              <Text style={[styles.bio, { color: theme.textSecondary }]}>{creator.bio}</Text>
+            )}
+            <View style={styles.statsRow}>
+              <View style={styles.stat}>
+                <Text style={[styles.statNum, { color: theme.textPrimary }]}>
+                  {creator.follower_count}
+                </Text>
+                <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Followers</Text>
+              </View>
+              <View style={styles.stat}>
+                <Text style={[styles.statNum, { color: theme.textPrimary }]}>
+                  {creator.lesson_count}
+                </Text>
+                <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Lessons</Text>
+              </View>
             </View>
-          ))}
-        </View>
 
-        {/* Contact */}
-        {(creator.whatsapp || creator.email_public || creator.website || creator.youtube || creator.instagram) && (
-          <View style={[styles.contactCard, { backgroundColor: theme.surface }]}>
-            {creator.whatsapp && (
-              <TouchableOpacity style={styles.contactRow} onPress={() => Linking.openURL(`https://wa.me/${creator.whatsapp}`)}>
-                <Ionicons name="logo-whatsapp" size={20} color={theme.primary} />
-                <Text style={[styles.contactLabel, { color: theme.textPrimary }]}>WhatsApp</Text>
-              </TouchableOpacity>
-            )}
-            {creator.website && (
-              <TouchableOpacity style={styles.contactRow} onPress={() => Linking.openURL(creator.website)}>
-                <Ionicons name="globe-outline" size={20} color={theme.primary} />
-                <Text style={[styles.contactLabel, { color: theme.textPrimary }]}>Website</Text>
-              </TouchableOpacity>
-            )}
-            {creator.youtube && (
-              <TouchableOpacity style={styles.contactRow} onPress={() => Linking.openURL(creator.youtube)}>
-                <Ionicons name="logo-youtube" size={20} color={theme.primary} />
-                <Text style={[styles.contactLabel, { color: theme.textPrimary }]}>YouTube</Text>
-              </TouchableOpacity>
-            )}
-            {creator.instagram && (
-              <TouchableOpacity style={styles.contactRow} onPress={() => Linking.openURL(creator.instagram)}>
-                <Ionicons name="logo-instagram" size={20} color={theme.primary} />
-                <Text style={[styles.contactLabel, { color: theme.textPrimary }]}>Instagram</Text>
-              </TouchableOpacity>
-            )}
+            {/* Social links */}
+            <View style={styles.socialRow}>
+              {creator.youtube && (
+                <TouchableOpacity
+                  style={[styles.socialBtn, { backgroundColor: theme.surfaceHigh }]}
+                  onPress={() => Linking.openURL(creator.youtube!)}
+                >
+                  <Ionicons name="logo-youtube" size={18} color={theme.textPrimary} />
+                </TouchableOpacity>
+              )}
+              {creator.instagram && (
+                <TouchableOpacity
+                  style={[styles.socialBtn, { backgroundColor: theme.surfaceHigh }]}
+                  onPress={() => Linking.openURL(creator.instagram!)}
+                >
+                  <Ionicons name="logo-instagram" size={18} color={theme.textPrimary} />
+                </TouchableOpacity>
+              )}
+              {creator.website && (
+                <TouchableOpacity
+                  style={[styles.socialBtn, { backgroundColor: theme.surfaceHigh }]}
+                  onPress={() => Linking.openURL(creator.website!)}
+                >
+                  <Ionicons name="globe-outline" size={18} color={theme.textPrimary} />
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
-        )}
 
-        {/* Lessons */}
-        <View style={styles.lessonsSection}>
-          <Text style={[styles.lessonsHeader, { color: theme.textPrimary }]}>
-            Lessons by {creator.displayName ?? 'Creator'}
-          </Text>
-          <View style={styles.lessonsGrid}>
-            {courses.map((c) => (
-              <TouchableOpacity
-                key={c.id}
-                style={[styles.courseCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
-                onPress={() => router.push(`/course/${c.id}` as any)}
-              >
-                <Text style={[styles.courseTitle, { color: theme.textPrimary }]} numberOfLines={2}>{c.title}</Text>
-                <Text style={[styles.courseSub, { color: theme.textSecondary }]}>{c.instrument_slug}</Text>
-              </TouchableOpacity>
-            ))}
-            {courses.length === 0 && (
-              <Text style={[styles.noLessons, { color: theme.textDisabled }]}>No lessons published yet</Text>
-            )}
-          </View>
-        </View>
-      </ScrollView>
+          {/* Lessons */}
+          <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Lessons</Text>
+          {lessons.length === 0 ? (
+            <Text style={[styles.emptyText, { color: theme.textSecondary }]}>No lessons yet</Text>
+          ) : (
+            lessons.map((lesson) => (
+              <LessonCard
+                key={lesson.id}
+                lesson={lesson}
+                size="regular"
+                onPress={() => router.push(`/lesson/${lesson.id}` as any)}
+              />
+            ))
+          )}
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  errorText: { fontSize: FontSize.md },
-  backBtn: { padding: Spacing.md },
-  hero: {
-    alignItems: 'center',
-    padding: Spacing.xl,
-    gap: Spacing.md,
-  },
-  avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: { fontSize: 28, fontWeight: '700' },
-  displayName: { fontSize: FontSize.xl, fontWeight: '700' },
-  verifiedBadge: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 4,
-    borderRadius: Radius.full,
-  },
-  verifiedText: { fontSize: FontSize.sm, fontWeight: '600' },
-  bio: { fontSize: FontSize.md, textAlign: 'center', lineHeight: 22 },
-  followBtn: {
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.md,
-    borderRadius: Radius.full,
-    marginTop: Spacing.sm,
-  },
-  followBtnText: { fontSize: FontSize.md, fontWeight: '600' },
-  statsRow: {
+  header: {
     flexDirection: 'row',
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
-    marginTop: Spacing.lg,
-  },
-  statCard: {
-    flex: 1,
-    padding: Spacing.md,
-    borderRadius: Radius.lg,
     alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  statValue: { fontSize: FontSize.xl, fontWeight: '700' },
-  statLabel: { fontSize: FontSize.xs, marginTop: 2 },
-  contactCard: {
-    margin: Spacing.lg,
+  backBtn: { width: 40 },
+  headerTitle: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: FontSize.md,
+    fontWeight: '600',
+  },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  scroll: { padding: Spacing.lg, paddingBottom: Spacing.xxxl },
+  profileCard: {
     borderRadius: Radius.lg,
     padding: Spacing.lg,
-    gap: Spacing.md,
+    alignItems: 'center',
+    marginBottom: Spacing.xl,
   },
-  contactRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
-  contactLabel: { fontSize: FontSize.md },
-  lessonsSection: { paddingHorizontal: Spacing.lg, marginTop: Spacing.lg },
-  lessonsHeader: { fontSize: FontSize.lg, fontWeight: '700', marginBottom: Spacing.md },
-  lessonsGrid: {
+  displayName: {
+    fontSize: FontSize.xl,
+    fontWeight: '700',
+    marginTop: Spacing.md,
+    marginBottom: Spacing.xs,
+  },
+  bio: {
+    fontSize: FontSize.sm,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: Spacing.md,
+  },
+  statsRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.md,
+    gap: Spacing.xl,
+    marginBottom: Spacing.md,
   },
-  courseCard: {
-    width: '47%',
-    padding: Spacing.md,
-    borderRadius: Radius.lg,
-    borderWidth: 1,
-    gap: Spacing.xs,
+  stat: { alignItems: 'center' },
+  statNum: { fontSize: FontSize.lg, fontWeight: '700' },
+  statLabel: { fontSize: FontSize.xs },
+  socialRow: { flexDirection: 'row', gap: Spacing.sm },
+  socialBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  sectionTitle: {
+    fontSize: FontSize.lg,
+    fontWeight: '700',
+    marginBottom: Spacing.md,
   },
-  courseTitle: { fontSize: FontSize.sm, fontWeight: '600' },
-  courseSub: { fontSize: FontSize.xs },
-  noLessons: { fontSize: FontSize.md },
+  emptyText: { fontSize: FontSize.md },
 });

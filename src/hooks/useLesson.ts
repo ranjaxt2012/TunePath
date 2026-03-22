@@ -1,32 +1,33 @@
-import { useState, useEffect, useCallback } from 'react';
-import { getLessonDetail } from '@/src/services/apiClient';
-import type { LessonDetail } from '@/src/types/models';
+import { useState, useEffect } from 'react';
+import { useAuth } from '@clerk/clerk-expo';
+import { api, setAuthToken } from '@/src/services/api';
+import type { Lesson } from '@/src/types/models';
 
-export function useLesson(lessonId: string | undefined) {
-  const [lesson, setLesson] = useState<LessonDetail | null>(null);
+export function useLesson(id: string | undefined) {
+  const { getToken } = useAuth();
+  const [lesson, setLesson] = useState<Lesson | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    if (!lessonId) {
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await getLessonDetail(lessonId);
-      setLesson(result);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Unknown error');
-    } finally {
-      setLoading(false);
-    }
-  }, [lessonId]);
-
   useEffect(() => {
-    load();
-  }, [load]);
+    if (!id) { setLoading(false); return; }
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const token = await getToken();
+        setAuthToken(token);
+        const data = await api.get<Lesson>(`/api/lessons/${id}`);
+        if (!cancelled) setLesson(data);
+      } catch (e: any) {
+        if (!cancelled) setError(e.message ?? 'Failed to load lesson');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [id, getToken]);
 
-  return { lesson, loading, error, refetch: load };
+  return { lesson, loading, error };
 }

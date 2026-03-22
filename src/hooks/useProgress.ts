@@ -1,18 +1,44 @@
-// TODO: load/save progress via src/services/progress, return { progress, saveProgress, loading, error }
-import type { UserProgress, SaveProgressPayload } from '@/src/types/models';
+import { useState, useEffect } from 'react';
+import { useAuth } from '@clerk/clerk-expo';
+import { api, setAuthToken } from '@/src/services/api';
 
-export type UseProgressResult = {
-  progress: UserProgress | null;
-  saveProgress: (_payload: SaveProgressPayload) => Promise<void>;
-  loading: boolean;
-  error: boolean;
-};
+interface ProgressSummary {
+  streak_days: number;
+  total_minutes: number;
+  lessons_completed: number;
+}
 
-export function useProgress(_courseId: string): UseProgressResult {
-  return {
-    progress: null,
-    saveProgress: async () => {},
-    loading: false,
-    error: false,
-  };
+interface InProgressLesson {
+  lesson_id: string;
+  title: string;
+  thumbnail_url: string | null;
+  instrument_slug?: string;
+  watch_percent: number;
+  last_position: number;
+}
+
+export function useProgress() {
+  const { getToken } = useAuth();
+  const [summary, setSummary] = useState<ProgressSummary | null>(null);
+  const [inProgress, setInProgress] = useState<InProgressLesson[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const token = await getToken();
+        setAuthToken(token);
+        const [s, p] = await Promise.allSettled([
+          api.get<ProgressSummary>('/api/progress/summary'),
+          api.get<InProgressLesson[]>('/api/progress/in-progress'),
+        ]);
+        if (s.status === 'fulfilled') setSummary(s.value);
+        if (p.status === 'fulfilled') setInProgress(p.value);
+      } catch { /* best-effort */ } finally {
+        setLoading(false);
+      }
+    })();
+  }, [getToken]);
+
+  return { summary, inProgress, loading };
 }

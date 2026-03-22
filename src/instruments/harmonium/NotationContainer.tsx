@@ -1,24 +1,19 @@
 import React, { memo, useEffect, useState, RefObject } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { useTheme } from '@/src/design';
 import { ScrollingNotation } from './ScrollingNotation';
-import { SargamPlayerEngine } from './SargamPlayerEngine';
-import type { Note } from '@/src/utils/notation';
+import { SargamPlayerEngine, type Note } from './SargamPlayerEngine';
 
 interface NotationContainerProps {
   engineRef: RefObject<SargamPlayerEngine | null>;
   notes: Note[];
   isTutor: boolean;
-  onNotesEdit: (notes: Note[]) => void;
+  onNotesEdit(notes: Note[]): void;
   isLandscape: boolean;
 }
 
-function NotationContainerComponent({
-  engineRef,
-  notes,
-  isTutor,
-  onNotesEdit,
-  isLandscape,
-}: NotationContainerProps) {
+function NotationContainerInner({ engineRef, notes, isTutor, onNotesEdit, isLandscape }: NotationContainerProps) {
+  const { theme } = useTheme();
   const [activeNoteIndex, setActiveNoteIndex] = useState(-1);
   const [noteProgress, setNoteProgress] = useState(0);
 
@@ -32,8 +27,8 @@ function NotationContainerComponent({
 
   if (notes.length === 0) {
     return (
-      <View style={styles.loadingWrap}>
-        <ActivityIndicator size="small" color="rgba(255,255,255,0.75)" />
+      <View style={styles.center}>
+        <ActivityIndicator color={theme.textSecondary} />
       </View>
     );
   }
@@ -52,21 +47,13 @@ function NotationContainerComponent({
   );
 }
 
-function areEqual(prev: NotationContainerProps, next: NotationContainerProps) {
-  return (
-    prev.notes === next.notes &&
-    prev.isTutor === next.isTutor &&
-    prev.isLandscape === next.isLandscape
-  );
+function arePropsEqual(p: NotationContainerProps, n: NotationContainerProps) {
+  return p.notes === n.notes && p.isLandscape === n.isLandscape;
 }
 
-export const NotationContainer = memo(NotationContainerComponent, areEqual);
+export const NotationContainer = memo(NotationContainerInner, arePropsEqual);
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  loadingWrap: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 });

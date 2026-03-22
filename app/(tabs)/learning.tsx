@@ -1,282 +1,299 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  Image,
-  StyleSheet,
-  Platform,
-} from 'react-native';
-import { WEB_CONTENT_MAX } from '@/src/utils/platform';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { useTheme, Spacing, Radius, FontSize } from '@/src/design';
-import { useProgressSummary } from '@/src/hooks/useProgressSummary';
-import { useInProgressLessons } from '@/src/hooks/useInProgressLessons';
+import { useTheme, Spacing, FontSize, Radius } from '@/src/design';
+import { useProgress } from '@/src/hooks/useProgress';
 import { useProgressStore } from '@/src/store/progressStore';
-import { useOrientation } from '@/src/hooks/useOrientation';
-import type { InProgressLesson } from '@/src/services/apiClient';
+import { useLessons } from '@/src/hooks/useLessons';
+import { SectionHeader } from '@/src/components/ui/SectionHeader';
+import { EmptyState } from '@/src/components/ui/EmptyState';
 
-function StatCard({ label, value, theme }: { label: string; value: string | number; theme: any }) {
-  return (
-    <View style={[styles.statCard, { backgroundColor: theme.surface }]}>
-      <Text style={[styles.statValue, { color: theme.textPrimary }]}>{value}</Text>
-      <Text style={[styles.statLabel, { color: theme.textSecondary }]}>{label}</Text>
-    </View>
-  );
-}
-
-function InProgressCard({ lesson, theme, onPress }: { lesson: InProgressLesson; theme: any; onPress: () => void }) {
-  const pct = lesson.watch_percent ?? 0;
-  return (
-    <TouchableOpacity style={[styles.inProgressCard, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={onPress} activeOpacity={0.8}>
-      <View style={[styles.inProgressThumb, { backgroundColor: theme.surfaceHigh }]}>
-        {lesson.thumbnail_url && (
-          <Image source={{ uri: lesson.thumbnail_url }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
-        )}
-      </View>
-      <View style={styles.inProgressInfo}>
-        <Text style={[styles.inProgressTitle, { color: theme.textPrimary }]} numberOfLines={2}>{lesson.title}</Text>
-        <View style={[styles.progressBar, { backgroundColor: theme.surfaceHigh }]}>
-          <View style={[styles.progressFill, { width: `${pct}%` as any, backgroundColor: theme.primary }]} />
-        </View>
-        <Text style={[styles.progressPct, { color: theme.textSecondary }]}>{pct}% done</Text>
-      </View>
-      <TouchableOpacity style={[styles.resumeBtn, { backgroundColor: theme.primary }]} onPress={onPress}>
-        <Text style={[styles.resumeBtnText, { color: theme.textOnPrimary }]}>Resume</Text>
-      </TouchableOpacity>
-    </TouchableOpacity>
-  );
-}
+const WEB_CONTENT_MAX = 960;
 
 export default function LearningScreen() {
   const { theme } = useTheme();
   const router = useRouter();
-  const { isLandscape } = useOrientation();
-  const { summary } = useProgressSummary();
-  const { lessons: inProgress, loading: inProgressLoading } = useInProgressLessons();
-  const favorites = useProgressStore((s) => s.favorites);
-  const completedLessons: string[] = (useProgressStore((s) => s as any).completedLessons) ?? [];
+  const { summary, inProgress, loading: progressLoading } = useProgress();
+  const { favorites, completedLessons } = useProgressStore();
+  const { lessons } = useLessons();
 
-  const streak = 0; // TODO: add streak tracking
-  const totalMinutes = summary ? Math.round(summary.total_practice_seconds / 60) : 0;
-  const completedCount = summary?.completed_lessons ?? 0;
+  const favoriteLessons = lessons.filter((l) => favorites.includes(l.id));
 
-  const isEmpty = !inProgressLoading && inProgress.length === 0 && favorites.length === 0;
+  const hasAnything =
+    (inProgress && inProgress.length > 0) ||
+    favorites.length > 0 ||
+    completedLessons.length > 0;
 
-  const content = (
-    <>
-      {/* Stats strip */}
-      <View style={styles.statsRow}>
-        <StatCard label="Day Streak" value={`🔥 ${streak}`} theme={theme} />
-        <StatCard label="Minutes" value={totalMinutes} theme={theme} />
-        <StatCard label="Completed" value={completedCount} theme={theme} />
-      </View>
+  const containerStyle = [
+    styles.container,
+    Platform.OS === 'web' && styles.webContainer,
+  ];
 
-      {isEmpty ? (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyEmoji}>🎵</Text>
-          <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>Start learning</Text>
-          <Text style={[styles.emptySub, { color: theme.textSecondary }]}>Find your first lesson on Discover</Text>
-          <TouchableOpacity
-            style={[styles.emptyBtn, { backgroundColor: theme.primary }]}
-            onPress={() => router.navigate('/(tabs)/discover')}
-          >
-            <Text style={[styles.emptyBtnText, { color: theme.textOnPrimary }]}>Go to Discover</Text>
-          </TouchableOpacity>
+  return (
+    <SafeAreaView style={[styles.flex, { backgroundColor: theme.background }]}>
+      <ScrollView
+        style={styles.flex}
+        contentContainerStyle={containerStyle}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header */}
+        <Text style={[styles.title, { color: theme.textPrimary }]}>My Learning</Text>
+
+        {/* Stats row */}
+        <View style={styles.statsRow}>
+          <View style={[styles.statCard, { backgroundColor: theme.surface, borderRadius: Radius.lg }]}>
+            <Text style={[styles.statValue, { color: theme.textPrimary }]}>
+              {summary?.streak_days ?? 0}
+            </Text>
+            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Streak 🔥</Text>
+          </View>
+          <View style={[styles.statCard, { backgroundColor: theme.surface, borderRadius: Radius.lg }]}>
+            <Text style={[styles.statValue, { color: theme.textPrimary }]}>
+              {summary?.total_minutes ?? 0}
+            </Text>
+            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Minutes</Text>
+          </View>
+          <View style={[styles.statCard, { backgroundColor: theme.surface, borderRadius: Radius.lg }]}>
+            <Text style={[styles.statValue, { color: theme.textPrimary }]}>
+              {summary?.lessons_completed ?? 0}
+            </Text>
+            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Lessons</Text>
+          </View>
         </View>
-      ) : (
-        <>
-          {/* Continue Learning */}
-          {inProgress.length > 0 && (
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Continue Learning</Text>
-              </View>
-              {inProgress.map((lesson) => (
-                <InProgressCard
-                  key={lesson.id}
-                  lesson={lesson}
-                  theme={theme}
-                  onPress={() => router.push(`/lesson/${lesson.id}` as any)}
-                />
-              ))}
-            </View>
-          )}
 
-          {/* Saved */}
-          {favorites.length > 0 && (
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Saved</Text>
-              </View>
-              <View style={styles.favGrid}>
-                {favorites.map((id) => (
+        {!hasAnything && !progressLoading ? (
+          <EmptyState
+            emoji="📚"
+            title="Start learning!"
+            subtitle="Discover lessons and track your progress"
+            actionLabel="Explore lessons"
+            onAction={() => router.push('/(tabs)/discover' as any)}
+          />
+        ) : (
+          <>
+            {/* Continue Learning */}
+            {inProgress && inProgress.length > 0 && (
+              <View style={styles.section}>
+                <SectionHeader title="Continue Learning" />
+                {inProgress.map((item) => (
                   <TouchableOpacity
-                    key={id}
-                    style={[styles.favCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
-                    onPress={() => router.push(`/lesson/${id}` as any)}
+                    key={item.lesson_id}
+                    style={[styles.inProgressItem, { backgroundColor: theme.surface, borderRadius: Radius.lg }]}
+                    onPress={() => router.push(`/lesson/${item.lesson_id}` as any)}
                   >
-                    <Ionicons name="heart" size={20} color="#EF4444" />
-                    <Text style={[styles.favId, { color: theme.textSecondary }]} numberOfLines={1}>{id}</Text>
+                    <View style={[styles.thumbnail, { backgroundColor: theme.surfaceHigh, borderRadius: Radius.md }]}>
+                      <Text style={[styles.thumbnailFallback, { color: theme.textDisabled }]}>▶</Text>
+                    </View>
+                    <View style={styles.inProgressInfo}>
+                      <Text
+                        style={[styles.inProgressTitle, { color: theme.textPrimary }]}
+                        numberOfLines={2}
+                      >
+                        {item.title}
+                      </Text>
+                      <View style={[styles.progressBarTrack, { backgroundColor: theme.border }]}>
+                        <View
+                          style={[
+                            styles.progressBarFill,
+                            { width: `${item.watch_percent}%`, backgroundColor: theme.primary },
+                          ]}
+                        />
+                      </View>
+                      <Text style={[styles.progressPercent, { color: theme.textSecondary }]}>
+                        {Math.round(item.watch_percent)}% watched
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      style={[styles.resumeButton, { backgroundColor: theme.primary, borderRadius: Radius.md }]}
+                      onPress={() => router.push(`/lesson/${item.lesson_id}` as any)}
+                    >
+                      <Text style={[styles.resumeText, { color: theme.textOnPrimary }]}>Resume</Text>
+                    </TouchableOpacity>
                   </TouchableOpacity>
                 ))}
               </View>
-            </View>
-          )}
+            )}
 
-          {/* Completed */}
-          {completedLessons.length > 0 && (
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Completed</Text>
-              </View>
-              {completedLessons.map((id) => (
-                <TouchableOpacity
-                  key={id}
-                  style={[styles.completedRow, { backgroundColor: theme.surface, borderColor: theme.border }]}
-                  onPress={() => router.push(`/lesson/${id}` as any)}
+            {/* Saved */}
+            {favorites.length > 0 && (
+              <View style={styles.section}>
+                <SectionHeader title="Saved" />
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.horizontalRow}
                 >
-                  <Ionicons name="checkmark-circle" size={24} color={theme.success} />
-                  <Text style={[styles.completedId, { color: theme.textPrimary }]} numberOfLines={1}>{id}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-        </>
-      )}
-    </>
-  );
+                  {favoriteLessons.map((lesson) => (
+                    <TouchableOpacity
+                      key={lesson.id}
+                      style={[styles.miniCard, { backgroundColor: theme.surface, borderRadius: Radius.lg }]}
+                      onPress={() => router.push(`/lesson/${lesson.id}` as any)}
+                    >
+                      <View style={[styles.miniThumbnail, { backgroundColor: theme.surfaceHigh, borderRadius: Radius.md }]}>
+                        <Text style={{ color: theme.textDisabled, fontSize: FontSize.xl }}>🎵</Text>
+                      </View>
+                      <Text
+                        style={[styles.miniTitle, { color: theme.textPrimary }]}
+                        numberOfLines={2}
+                      >
+                        {lesson.title}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
 
-  return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }, Platform.OS === 'web' && { maxWidth: WEB_CONTENT_MAX }]}>
-      <View style={[styles.header, { backgroundColor: theme.background }]}>
-        <Text style={[styles.headerTitle, { color: theme.textPrimary }]}>My Learning</Text>
-        <View style={[styles.streakBadge, { backgroundColor: theme.surface }]}>
-          <Text style={[styles.streakText, { color: theme.textPrimary }]}>🔥 {streak} days</Text>
-        </View>
-      </View>
-      {isLandscape ? (
-        <View style={styles.landscapeRow}>
-          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: Spacing.xxxl, paddingHorizontal: Spacing.lg }}>
-            {content}
-          </ScrollView>
-        </View>
-      ) : (
-        <ScrollView contentContainerStyle={{ paddingBottom: Spacing.xxxl, paddingHorizontal: Spacing.lg }}>
-          {content}
-        </ScrollView>
-      )}
+            {/* Completed */}
+            {completedLessons.length > 0 && (
+              <View style={styles.section}>
+                <SectionHeader title={`Completed (${completedLessons.length})`} />
+                {completedLessons.map((lessonId) => {
+                  const lesson = lessons.find((l) => l.id === lessonId);
+                  return (
+                    <TouchableOpacity
+                      key={lessonId}
+                      style={[styles.completedRow, { backgroundColor: theme.surface, borderRadius: Radius.md, borderColor: theme.border }]}
+                      onPress={() => router.push(`/lesson/${lessonId}` as any)}
+                    >
+                      <Text style={[styles.completedCheck, { color: theme.success }]}>✓</Text>
+                      <Text style={[styles.completedTitle, { color: theme.textPrimary }]} numberOfLines={1}>
+                        {lesson?.title ?? lessonId}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
+          </>
+        )}
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  flex: {
+    flex: 1,
+  },
+  container: {
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    paddingBottom: Spacing.xxxl,
   },
-  headerTitle: { fontSize: 24, fontWeight: '700' },
-  streakBadge: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 4,
-    borderRadius: Radius.full,
+  webContainer: {
+    maxWidth: WEB_CONTENT_MAX,
+    alignSelf: 'center',
+    width: '100%',
   },
-  streakText: { fontSize: FontSize.sm, fontWeight: '600' },
+  title: {
+    fontSize: FontSize.xl,
+    fontWeight: 'bold',
+    marginTop: Spacing.lg,
+    marginBottom: Spacing.lg,
+  },
   statsRow: {
     flexDirection: 'row',
     gap: Spacing.sm,
-    marginTop: Spacing.md,
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.xl,
   },
   statCard: {
     flex: 1,
     padding: Spacing.md,
-    borderRadius: Radius.lg,
     alignItems: 'center',
   },
-  statValue: { fontSize: FontSize.xl, fontWeight: '700' },
-  statLabel: { fontSize: FontSize.xs, marginTop: 2 },
-  landscapeRow: { flex: 1, flexDirection: 'row' },
-  section: { marginBottom: Spacing.xl },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: Spacing.sm,
+  statValue: {
+    fontSize: FontSize.xxl,
+    fontWeight: 'bold',
+    marginBottom: Spacing.xs,
   },
-  sectionTitle: { fontSize: FontSize.md, fontWeight: '700' },
-  inProgressCard: {
+  statLabel: {
+    fontSize: FontSize.xs,
+    textAlign: 'center',
+  },
+  section: {
+    marginBottom: Spacing.xl,
+  },
+  inProgressItem: {
     flexDirection: 'row',
-    borderRadius: Radius.lg,
-    borderWidth: 1,
-    marginBottom: Spacing.sm,
-    overflow: 'hidden',
     alignItems: 'center',
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
+    gap: Spacing.md,
   },
-  inProgressThumb: {
+  thumbnail: {
     width: 80,
     height: 60,
-    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexShrink: 0,
+  },
+  thumbnailFallback: {
+    fontSize: FontSize.xl,
   },
   inProgressInfo: {
     flex: 1,
-    paddingHorizontal: Spacing.sm,
-    gap: 4,
+    gap: Spacing.xs,
   },
-  inProgressTitle: { fontSize: FontSize.sm, fontWeight: '600' },
-  progressBar: { height: 4, borderRadius: 2, overflow: 'hidden' },
-  progressFill: { height: '100%', borderRadius: 2 },
-  progressPct: { fontSize: FontSize.xs },
-  resumeBtn: {
+  inProgressTitle: {
+    fontSize: FontSize.sm,
+    fontWeight: '600',
+  },
+  progressBarTrack: {
+    height: 3,
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: 3,
+    borderRadius: 2,
+  },
+  progressPercent: {
+    fontSize: FontSize.xs,
+  },
+  resumeButton: {
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
-    borderRadius: Radius.md,
-    marginRight: Spacing.sm,
+    flexShrink: 0,
   },
-  resumeBtnText: { fontSize: FontSize.xs, fontWeight: '700' },
-  favGrid: {
+  resumeText: {
+    fontSize: FontSize.sm,
+    fontWeight: '600',
+  },
+  horizontalRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    gap: Spacing.sm,
+    paddingRight: Spacing.lg,
+  },
+  miniCard: {
+    width: 130,
+    padding: Spacing.sm,
     gap: Spacing.sm,
   },
-  favCard: {
-    width: '47%',
-    padding: Spacing.md,
-    borderRadius: Radius.lg,
-    borderWidth: 1,
-    flexDirection: 'row',
+  miniThumbnail: {
+    width: '100%',
+    height: 80,
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: Spacing.sm,
   },
-  favId: { fontSize: FontSize.xs, flex: 1 },
+  miniTitle: {
+    fontSize: FontSize.xs,
+    fontWeight: '500',
+  },
   completedRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
     padding: Spacing.md,
-    borderRadius: Radius.lg,
-    borderWidth: 1,
     marginBottom: Spacing.sm,
-  },
-  completedId: { fontSize: FontSize.sm, flex: 1 },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: Spacing.xxxl,
+    borderWidth: 1,
     gap: Spacing.md,
   },
-  emptyEmoji: { fontSize: 56 },
-  emptyTitle: { fontSize: FontSize.xl, fontWeight: '700' },
-  emptySub: { fontSize: FontSize.md, textAlign: 'center' },
-  emptyBtn: {
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.md,
-    borderRadius: Radius.lg,
+  completedCheck: {
+    fontSize: FontSize.lg,
+    fontWeight: 'bold',
   },
-  emptyBtnText: { fontSize: FontSize.md, fontWeight: '600' },
+  completedTitle: {
+    flex: 1,
+    fontSize: FontSize.sm,
+  },
 });

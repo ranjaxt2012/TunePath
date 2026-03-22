@@ -1,5 +1,5 @@
 import { ScrollViewStyleReset } from 'expo-router/html';
-import { type PropsWithChildren } from 'react';
+import type { PropsWithChildren } from 'react';
 
 export default function Root({ children }: PropsWithChildren) {
   return (
@@ -12,22 +12,11 @@ export default function Root({ children }: PropsWithChildren) {
         <ScrollViewStyleReset />
         <style dangerouslySetInnerHTML={{
           __html: `
-            body {
-              background: #0A0A0F;
-              margin: 0;
-              padding: 0;
-            }
+            body { background: #0A0A0F; margin: 0; padding: 0; }
             * { box-sizing: border-box; }
-            ::-webkit-scrollbar {
-              width: 6px;
-            }
-            ::-webkit-scrollbar-track {
-              background: transparent;
-            }
-            ::-webkit-scrollbar-thumb {
-              background: rgba(255,255,255,0.15);
-              border-radius: 3px;
-            }
+            ::-webkit-scrollbar { width: 6px; }
+            ::-webkit-scrollbar-track { background: transparent; }
+            ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
           `
         }} />
       </head>

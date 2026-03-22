@@ -1,15 +1,5 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  StyleSheet,
-  Modal,
-  Pressable,
-  Platform,
-} from 'react-native';
-import { WEB_CONTENT_MAX } from '@/src/utils/platform';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Modal, Pressable, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@clerk/clerk-expo';
@@ -17,16 +7,19 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   useTheme,
-  STANDARD_THEMES,
-  SEASONAL_THEMES,
-  THEMES,
-  ThemeId,
   Spacing,
   Radius,
   FontSize,
+  THEMES,
+  STANDARD_THEMES,
+  SEASONAL_THEMES,
+  ThemeId,
+  HoliGradient,
 } from '@/src/design';
 import { useAuthStore } from '@/src/store/authStore';
-import { HoliGradient } from '@/src/design';
+import { Avatar } from '@/src/components/ui/Avatar';
+
+const WEB_CONTENT_MAX = 960;
 
 const CUSTOM_COLORS = [
   '#EF4444', '#F97316', '#EAB308',
@@ -38,194 +31,243 @@ const CUSTOM_COLORS = [
 ];
 
 export default function ProfileScreen() {
-  const { theme, setTheme, themeId } = useTheme();
+  const { theme, themeId, setTheme } = useTheme();
   const router = useRouter();
   const { signOut } = useAuth();
-  const user = useAuthStore((s) => s.user);
-  const trustTier = useAuthStore((s) => s.trustTier);
-  const isAdmin = useAuthStore((s) => s.isAdmin);
-  const [showColorModal, setShowColorModal] = useState(false);
+  const {
+    user,
+    trustTier,
+    isAdmin,
+    clearUser,
+  } = useAuthStore();
 
-  const displayName = user?.displayName ?? user?.email ?? 'User';
-  const initials = displayName.slice(0, 2).toUpperCase();
+  const selectedTheme = themeId;
 
-  const totalMinutes = 0; // TODO: from progressSummary
-  const streak = 0;
-  const following = 0;
-  const lessonsCount = 0;
+  const [colorModalVisible, setColorModalVisible] = useState(false);
+
+  const displayName =
+    user?.firstName && user?.lastName
+      ? `${user.firstName} ${user.lastName}`
+      : user?.firstName ?? user?.email ?? 'User';
+
+  const initials =
+    user?.firstName && user?.lastName
+      ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase()
+      : (user?.firstName?.[0] ?? user?.email?.[0] ?? 'U').toUpperCase();
 
   const handleSignOut = async () => {
-    try {
-      await signOut();
-      router.replace('/(auth)/sign-in');
-    } catch { /* ignore */ }
+    await signOut();
+    clearUser();
+    router.replace('/(auth)/sign-in' as any);
   };
 
-  return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }, Platform.OS === 'web' && { maxWidth: WEB_CONTENT_MAX }]}>
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+  const containerStyle = [
+    styles.container,
+    Platform.OS === 'web' && styles.webContainer,
+  ];
 
-        {/* User header */}
-        <View style={[styles.userHeader, { backgroundColor: theme.surface }]}>
-          <View style={[styles.avatar, { backgroundColor: theme.primary }]}>
-            <Text style={[styles.avatarText, { color: theme.textOnPrimary }]}>{initials}</Text>
+  return (
+    <SafeAreaView style={[styles.flex, { backgroundColor: theme.background }]}>
+      <ScrollView
+        style={styles.flex}
+        contentContainerStyle={containerStyle}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Avatar + identity */}
+        <View style={styles.profileHeader}>
+          <Avatar name={initials} size={72} />
+          <View style={styles.profileInfo}>
+            <Text style={[styles.displayName, { color: theme.textPrimary }]}>{displayName}</Text>
+            {trustTier === 'verified' && (
+              <View style={[styles.tierBadge, { backgroundColor: theme.primary, borderRadius: Radius.full }]}>
+                <Text style={[styles.tierText, { color: theme.textOnPrimary }]}>✓ Verified</Text>
+              </View>
+            )}
+            {trustTier === 'trusted' && (
+              <View style={[styles.tierBadge, { backgroundColor: theme.surface, borderRadius: Radius.full, borderWidth: 1, borderColor: theme.border }]}>
+                <Text style={[styles.tierText, { color: theme.textSecondary }]}>Creator</Text>
+              </View>
+            )}
           </View>
-          <Text style={[styles.displayName, { color: theme.textPrimary }]}>{displayName}</Text>
-          {trustTier !== 'new' && (
-            <View style={[
-              styles.tierBadge,
-              { backgroundColor: trustTier === 'verified' ? theme.primary : theme.surface, borderColor: theme.border, borderWidth: 1 }
-            ]}>
-              <Text style={[styles.tierText, { color: trustTier === 'verified' ? theme.textOnPrimary : theme.textSecondary }]}>
-                {trustTier === 'verified' ? '✓ Verified' : 'Creator'}
-              </Text>
-            </View>
-          )}
-          <Text style={[styles.streakText, { color: theme.textSecondary }]}>🔥 {streak} days</Text>
         </View>
 
-        {/* Stats */}
+        {/* Stats row */}
         <View style={styles.statsRow}>
           {[
-            { label: 'Lessons', value: lessonsCount },
-            { label: 'Minutes', value: totalMinutes },
-            { label: 'Streak', value: streak },
-            { label: 'Following', value: following },
-          ].map((s) => (
-            <View key={s.label} style={[styles.statCard, { backgroundColor: theme.surface }]}>
-              <Text style={[styles.statValue, { color: theme.textPrimary }]}>{s.value}</Text>
-              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>{s.label}</Text>
+            { label: 'Lessons', value: '0' },
+            { label: 'Minutes', value: '0' },
+            { label: 'Streak', value: '0' },
+            { label: 'Following', value: '0' },
+          ].map((stat) => (
+            <View key={stat.label} style={[styles.statCard, { backgroundColor: theme.surface, borderRadius: Radius.lg }]}>
+              <Text style={[styles.statValue, { color: theme.textPrimary }]}>{stat.value}</Text>
+              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>{stat.label}</Text>
             </View>
           ))}
         </View>
 
         {/* Theme section */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>THEME</Text>
+        <View style={[styles.section, { backgroundColor: theme.surface, borderRadius: Radius.lg }]}>
+          <Text style={[styles.sectionLabel, { color: theme.textDisabled }]}>THEME</Text>
 
           {/* Standard swatches */}
           <View style={styles.swatchRow}>
             {STANDARD_THEMES.map((t) => (
               <TouchableOpacity
                 key={t.id}
-                onPress={() => setTheme(t.id as ThemeId)}
+                onPress={() => setTheme(t.id)}
                 style={[
                   styles.swatch,
-                  { backgroundColor: t.primary },
-                  themeId === t.id && styles.swatchSelected,
+                  { backgroundColor: t.primary, borderRadius: 22 },
+                  selectedTheme === t.id && {
+                    borderWidth: 3,
+                    borderColor: theme.textPrimary,
+                    transform: [{ scale: 1.15 }],
+                  },
                 ]}
               />
             ))}
-            {/* Custom color */}
             <TouchableOpacity
-              onPress={() => setShowColorModal(true)}
-              style={[styles.swatch, { backgroundColor: theme.surfaceHigh, borderColor: theme.border, borderWidth: 1 }]}
+              onPress={() => setColorModalVisible(true)}
+              style={[
+                styles.swatch,
+                {
+                  backgroundColor: theme.surfaceHigh,
+                  borderRadius: 22,
+                  borderWidth: 1,
+                  borderColor: theme.border,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                },
+                selectedTheme === 'custom' && {
+                  borderWidth: 3,
+                  borderColor: theme.textPrimary,
+                  transform: [{ scale: 1.15 }],
+                },
+              ]}
             >
-              <Ionicons name="color-palette-outline" size={16} color={theme.textSecondary} />
+              <Ionicons name="color-palette-outline" size={18} color={theme.textSecondary} />
             </TouchableOpacity>
           </View>
 
-          {/* Seasonal */}
-          {SEASONAL_THEMES.length > 0 && (
-            <>
-              <Text style={[styles.seasonalLabel, { color: theme.textSecondary }]}>SEASONAL 🎉</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.seasonalRow}>
-                {SEASONAL_THEMES.map((t) => (
-                  <TouchableOpacity
-                    key={t.id}
-                    onPress={() => setTheme(t.id as ThemeId)}
-                    style={[
-                      styles.seasonalCard,
-                      { borderColor: themeId === t.id ? theme.primary : 'transparent', borderWidth: 2 }
-                    ]}
-                  >
-                    <View style={[styles.seasonalSwatch, { overflow: 'hidden' }]}>
-                      {t.id === 'holi' ? (
-                        <HoliGradient />
-                      ) : (
-                        <LinearGradient
-                          colors={t.gradient}
-                          style={StyleSheet.absoluteFillObject}
-                          start={{ x: 0, y: 0 }}
-                          end={{ x: 1, y: 1 }}
-                        />
-                      )}
-                    </View>
-                    <Text style={[styles.seasonalEmoji]}>{t.seasonalEmoji ?? '🎉'}</Text>
-                    <Text style={[styles.seasonalCardLabel, { color: theme.textSecondary }]}>{t.label}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </>
-          )}
-        </View>
-
-        {/* Preferences */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>PREFERENCES</Text>
-          <View style={[styles.listCard, { backgroundColor: theme.surface }]}>
-            <TouchableOpacity
-              style={styles.listRow}
-              onPress={() => router.push('/select/instrument' as any)}
-            >
-              <Text style={[styles.listRowLabel, { color: theme.textPrimary }]}>Instrument</Text>
-              <Ionicons name="chevron-forward" size={18} color={theme.textDisabled} />
-            </TouchableOpacity>
-            <View style={[styles.listDivider, { backgroundColor: theme.border }]} />
-            <TouchableOpacity
-              style={styles.listRow}
-              onPress={() => router.push('/select/level' as any)}
-            >
-              <Text style={[styles.listRowLabel, { color: theme.textPrimary }]}>Level</Text>
-              <Ionicons name="chevron-forward" size={18} color={theme.textDisabled} />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Account */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>ACCOUNT</Text>
-          <View style={[styles.listCard, { backgroundColor: theme.surface }]}>
-            {isAdmin && (
-              <>
+          {/* Seasonal themes */}
+          <Text style={[styles.seasonalLabel, { color: theme.textDisabled }]}>SEASONAL 🎉</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.seasonalRow}
+          >
+            {SEASONAL_THEMES.map((t) => {
+              const isActive = selectedTheme === t.id;
+              return (
                 <TouchableOpacity
-                  style={styles.listRow}
-                  onPress={() => router.push('/admin' as any)}
+                  key={t.id}
+                  onPress={() => setTheme(t.id)}
+                  style={[
+                    styles.seasonalCard,
+                    {
+                      borderRadius: Radius.lg,
+                      borderWidth: isActive ? 2 : 1,
+                      borderColor: isActive ? theme.textPrimary : theme.border,
+                      overflow: 'hidden',
+                    },
+                  ]}
                 >
-                  <Text style={[styles.listRowLabel, { color: theme.textPrimary }]}>Admin Dashboard</Text>
-                  <Ionicons name="chevron-forward" size={18} color={theme.textDisabled} />
+                  {t.id === 'holi' ? (
+                    <HoliGradient style={styles.seasonalGradient}>
+                      <Text style={styles.seasonalEmoji}>{t.seasonalEmoji}</Text>
+                      <Text style={[styles.seasonalCardLabel, { color: '#FFFFFF' }]}>{t.label}</Text>
+                    </HoliGradient>
+                  ) : (
+                    <LinearGradient
+                      colors={[t.gradient[0], t.gradient[2]]}
+                      style={styles.seasonalGradient}
+                    >
+                      <Text style={styles.seasonalEmoji}>{t.seasonalEmoji}</Text>
+                      <Text style={[styles.seasonalCardLabel, { color: '#FFFFFF' }]}>{t.label}</Text>
+                    </LinearGradient>
+                  )}
                 </TouchableOpacity>
-                <View style={[styles.listDivider, { backgroundColor: theme.border }]} />
-              </>
-            )}
-            <TouchableOpacity style={styles.listRow} onPress={handleSignOut}>
-              <Text style={[styles.listRowLabel, { color: theme.error }]}>Sign Out</Text>
+              );
+            })}
+          </ScrollView>
+        </View>
+
+        {/* Preferences section */}
+        <View style={[styles.section, { backgroundColor: theme.surface, borderRadius: Radius.lg }]}>
+          <Text style={[styles.sectionLabel, { color: theme.textDisabled }]}>PREFERENCES</Text>
+          <TouchableOpacity
+            style={[styles.prefRow, { borderBottomColor: theme.border }]}
+            onPress={() => router.push('/select/instrument' as any)}
+          >
+            <Text style={[styles.prefLabel, { color: theme.textPrimary }]}>Instrument</Text>
+            <Ionicons name="chevron-forward" size={18} color={theme.textDisabled} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.prefRow}
+            onPress={() => router.push('/select/level' as any)}
+          >
+            <Text style={[styles.prefLabel, { color: theme.textPrimary }]}>Level</Text>
+            <Ionicons name="chevron-forward" size={18} color={theme.textDisabled} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Account section */}
+        <View style={[styles.section, { backgroundColor: theme.surface, borderRadius: Radius.lg }]}>
+          <Text style={[styles.sectionLabel, { color: theme.textDisabled }]}>ACCOUNT</Text>
+          {isAdmin && (
+            <TouchableOpacity
+              style={[styles.prefRow, { borderBottomColor: theme.border }]}
+              onPress={() => router.push('/admin' as any)}
+            >
+              <Text style={[styles.prefLabel, { color: theme.textPrimary }]}>Admin Dashboard</Text>
+              <Ionicons name="chevron-forward" size={18} color={theme.textDisabled} />
             </TouchableOpacity>
-          </View>
+          )}
+          <TouchableOpacity style={styles.prefRow} onPress={handleSignOut}>
+            <Text style={[styles.prefLabel, { color: theme.error }]}>Sign Out</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
 
       {/* Custom color modal */}
-      <Modal visible={showColorModal} transparent animationType="slide" onRequestClose={() => setShowColorModal(false)}>
-        <Pressable style={styles.colorModalBg} onPress={() => setShowColorModal(false)}>
-          <View style={[styles.colorSheet, { backgroundColor: theme.modalBg }]}>
-            <Text style={[styles.colorSheetTitle, { color: theme.textPrimary }]}>Choose Your Color</Text>
+      <Modal
+        visible={colorModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setColorModalVisible(false)}
+      >
+        <Pressable
+          style={[styles.colorModalOverlay, { backgroundColor: theme.overlay }]}
+          onPress={() => setColorModalVisible(false)}
+        >
+          <Pressable
+            style={[styles.colorModalSheet, { backgroundColor: theme.modalBg, borderRadius: Radius.xl }]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <Text style={[styles.colorModalTitle, { color: theme.textPrimary }]}>Custom Color</Text>
             <View style={styles.colorGrid}>
               {CUSTOM_COLORS.map((color) => (
                 <TouchableOpacity
                   key={color}
-                  style={[styles.colorDot, { backgroundColor: color }]}
+                  style={[
+                    styles.colorSwatch,
+                    { backgroundColor: color, borderRadius: Radius.md },
+                    THEMES.custom.primary === color &&
+                      selectedTheme === 'custom' && {
+                        borderWidth: 3,
+                        borderColor: theme.textPrimary,
+                      },
+                  ]}
                   onPress={() => {
-                    setTheme('custom', { primary: color, primaryLight: color, primaryDark: color });
-                    setShowColorModal(false);
+                    // In a real impl, we'd mutate the custom theme primary color here
+                    setTheme('custom');
+                    setColorModalVisible(false);
                   }}
                 />
               ))}
             </View>
-            <TouchableOpacity onPress={() => setShowColorModal(false)}>
-              <Text style={[styles.colorCancel, { color: theme.textSecondary }]}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
+          </Pressable>
         </Pressable>
       </Modal>
     </SafeAreaView>
@@ -233,132 +275,141 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  scroll: { paddingBottom: 100 },
-  userHeader: {
-    alignItems: 'center',
-    paddingVertical: Spacing.xl,
+  flex: {
+    flex: 1,
+  },
+  container: {
     paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.xxxl,
+    gap: Spacing.lg,
+  },
+  webContainer: {
+    maxWidth: WEB_CONTENT_MAX,
+    alignSelf: 'center',
+    width: '100%',
+  },
+  profileHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.lg,
+    paddingTop: Spacing.lg,
+  },
+  profileInfo: {
+    flex: 1,
     gap: Spacing.sm,
   },
-  avatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
+  displayName: {
+    fontSize: FontSize.xl,
+    fontWeight: 'bold',
   },
-  avatarText: { fontSize: 22, fontWeight: '700' },
-  displayName: { fontSize: FontSize.lg, fontWeight: '700' },
   tierBadge: {
+    alignSelf: 'flex-start',
     paddingHorizontal: Spacing.md,
-    paddingVertical: 3,
-    borderRadius: Radius.full,
+    paddingVertical: Spacing.xs,
   },
-  tierText: { fontSize: FontSize.xs, fontWeight: '600' },
-  streakText: { fontSize: FontSize.sm },
+  tierText: {
+    fontSize: FontSize.xs,
+    fontWeight: '700',
+  },
   statsRow: {
     flexDirection: 'row',
-    paddingHorizontal: Spacing.lg,
     gap: Spacing.sm,
-    marginTop: Spacing.lg,
   },
   statCard: {
     flex: 1,
-    padding: Spacing.sm,
-    borderRadius: Radius.lg,
+    padding: Spacing.md,
     alignItems: 'center',
-    gap: 2,
+    gap: Spacing.xs,
   },
-  statValue: { fontSize: FontSize.lg, fontWeight: '700' },
-  statLabel: { fontSize: FontSize.xs },
+  statValue: {
+    fontSize: FontSize.xl,
+    fontWeight: 'bold',
+  },
+  statLabel: {
+    fontSize: FontSize.xs,
+  },
   section: {
-    paddingHorizontal: Spacing.lg,
-    marginTop: Spacing.xl,
+    padding: Spacing.lg,
+    gap: Spacing.md,
   },
   sectionLabel: {
     fontSize: FontSize.xs,
-    fontWeight: '700',
     letterSpacing: 1,
-    marginBottom: Spacing.md,
+    textTransform: 'uppercase',
+    fontWeight: '600',
   },
   swatchRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.md,
-    marginBottom: Spacing.md,
+    gap: Spacing.sm,
   },
   swatch: {
     width: 44,
     height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  swatchSelected: {
-    borderWidth: 3,
-    borderColor: '#FFFFFF',
-    transform: [{ scale: 1.15 }],
   },
   seasonalLabel: {
     fontSize: FontSize.xs,
-    fontWeight: '700',
     letterSpacing: 1,
-    marginBottom: Spacing.sm,
+    textTransform: 'uppercase',
+    fontWeight: '600',
+    marginTop: Spacing.sm,
   },
   seasonalRow: {
-    gap: Spacing.md,
-    paddingVertical: Spacing.xs,
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    paddingRight: Spacing.lg,
   },
   seasonalCard: {
     width: 80,
-    alignItems: 'center',
-    gap: 4,
-    borderRadius: Radius.md,
-    padding: 4,
-  },
-  seasonalSwatch: {
-    width: 60,
-    height: 40,
-    borderRadius: Radius.sm,
-  },
-  seasonalEmoji: { fontSize: 16 },
-  seasonalCardLabel: { fontSize: FontSize.xs, textAlign: 'center' },
-  listCard: {
-    borderRadius: Radius.lg,
+    height: 80,
     overflow: 'hidden',
   },
-  listRow: {
+  seasonalGradient: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  seasonalEmoji: {
+    fontSize: FontSize.xl,
+  },
+  seasonalCardLabel: {
+    fontSize: FontSize.xs,
+    fontWeight: '600',
+  },
+  prefRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 0,
   },
-  listRowLabel: { fontSize: FontSize.md },
-  listDivider: { height: 0.5, marginLeft: Spacing.lg },
-  colorModalBg: {
+  prefLabel: {
+    fontSize: FontSize.md,
+  },
+  colorModalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.xl,
   },
-  colorSheet: {
-    borderTopLeftRadius: Radius.xl,
-    borderTopRightRadius: Radius.xl,
+  colorModalSheet: {
+    width: '100%',
+    maxWidth: 360,
     padding: Spacing.xl,
     gap: Spacing.lg,
-    alignItems: 'center',
   },
-  colorSheetTitle: { fontSize: FontSize.lg, fontWeight: '700' },
+  colorModalTitle: {
+    fontSize: FontSize.xl,
+    fontWeight: 'bold',
+  },
   colorGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.md,
-    justifyContent: 'center',
   },
-  colorDot: {
+  colorSwatch: {
     width: 44,
     height: 44,
-    borderRadius: 22,
   },
-  colorCancel: { fontSize: FontSize.md, paddingVertical: Spacing.sm },
 });
