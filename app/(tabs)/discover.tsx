@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTheme, Spacing, FontSize } from '@/src/design';
 import { useLessons } from '@/src/hooks/useLessons';
+import { BASE_URL } from '@/src/services/api';
 import { useOrientation } from '@/src/hooks/useOrientation';
 import { LessonCard } from '@/src/components/ui/LessonCard';
 import { TagChip } from '@/src/components/ui/TagChip';
@@ -23,19 +24,21 @@ export default function DiscoverScreen() {
   const [activeTag, setActiveTag] = useState('All');
 
   const instrument = activeTag === 'All' ? undefined : activeTag.toLowerCase();
-  const { lessons, loading, error } = useLessons({ instrument });
+  const { lessons, loading, error, refetch } = useLessons({ instrument });
 
   const showEmpty = !loading && (error !== null || lessons.length === 0);
+  const showError = !loading && error !== null;
 
   useEffect(() => {
     Log.ui('discover mounted');
+    Log.api('fetching lessons', { BASE_URL });
   }, []);
 
   useEffect(() => {
     if (!loading) {
-      Log.api('lessons loaded', { count: lessons.length });
+      Log.api('lessons result', { count: lessons?.length ?? 0, error });
     }
-  }, [loading, lessons.length]);
+  }, [loading, lessons?.length, error]);
 
   const headerAndSearch = (
     <View>
@@ -64,13 +67,23 @@ export default function DiscoverScreen() {
   );
 
   const content = showEmpty ? (
-    <EmptyState
-      emoji="🎵"
-      title="No lessons yet"
-      subtitle="Check back soon!"
-      actionLabel="Create one"
-      onAction={() => router.push('/(tabs)/create' as any)}
-    />
+    showError ? (
+      <EmptyState
+        emoji="⚠️"
+        title="Something went wrong"
+        subtitle={error ?? 'Failed to load lessons'}
+        actionLabel="Retry"
+        onAction={refetch}
+      />
+    ) : (
+      <EmptyState
+        emoji="🎵"
+        title="No lessons yet"
+        subtitle="Check back soon!"
+        actionLabel="Create one"
+        onAction={() => router.push('/(tabs)/create' as any)}
+      />
+    )
   ) : (
     <View>
       {/* Featured hero */}

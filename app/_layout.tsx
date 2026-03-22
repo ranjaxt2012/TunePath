@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
 import { Slot, useRouter, useSegments } from 'expo-router';
 import { ClerkProvider, useAuth } from '@clerk/clerk-expo';
@@ -17,6 +17,8 @@ function AuthGuard() {
   const router = useRouter();
   const segments = useSegments();
   const hasOnboarded = useAuthStore((s) => s.hasOnboarded);
+  const hasRedirected = useRef(false);
+  const prevAuthRef = useRef({ isSignedIn, hasOnboarded });
 
   // Sync token to api layer
   useEffect(() => {
@@ -25,27 +27,35 @@ function AuthGuard() {
   }, [isSignedIn, getToken]);
 
   useEffect(() => {
-    Log.auth('isLoaded', { isLoaded });
-    Log.auth('isSignedIn', { isSignedIn });
-    Log.auth('hasOnboarded', { hasOnboarded });
     if (!isLoaded) return;
+    // Reset redirect guard when auth state changes (e.g. sign out -> redirect to sign-in)
+    if (prevAuthRef.current.isSignedIn !== isSignedIn || prevAuthRef.current.hasOnboarded !== hasOnboarded) {
+      prevAuthRef.current = { isSignedIn, hasOnboarded };
+      hasRedirected.current = false;
+    }
+    if (hasRedirected.current) return;
+
     const inAuth = segments[0] === '(auth)';
     const inOnboarding = segments[0] === 'onboarding';
-    const inTabs = segments[0] === '(tabs)';
 
     if (!isSignedIn && !inAuth) {
       // Dev guest bypass: setHasOnboarded(true) without signing in
       if (__DEV__ && hasOnboarded) return;
+      hasRedirected.current = true;
       Log.nav('redirecting to', { target: '/(auth)/sign-in' });
       router.replace('/(auth)/sign-in' as any);
       return;
     }
+
     if (isSignedIn && !hasOnboarded && !inOnboarding) {
+      hasRedirected.current = true;
       Log.nav('redirecting to', { target: '/onboarding' });
       router.replace('/onboarding' as any);
       return;
     }
+
     if (isSignedIn && hasOnboarded && (inAuth || inOnboarding)) {
+      hasRedirected.current = true;
       Log.nav('redirecting to', { target: '/(tabs)/discover' });
       router.replace('/(tabs)/discover' as any);
       return;

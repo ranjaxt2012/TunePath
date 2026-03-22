@@ -1,7 +1,7 @@
 import { Platform } from 'react-native';
 import { Log } from '@/src/utils/log';
 
-const BASE_URL =
+export const BASE_URL =
   Platform.OS === 'web'
     ? (process.env.EXPO_PUBLIC_API_URL_WEB ?? 'https://api.tune-path.com')
     : (process.env.EXPO_PUBLIC_API_URL ?? 'https://api.tune-path.com');
