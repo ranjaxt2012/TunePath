@@ -10,6 +10,8 @@ import * as WebBrowser from 'expo-web-browser';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme, Spacing, FontSize, Radius, THEMES } from '@/src/design';
+import { useAuthStore } from '@/src/store/authStore';
+import { Log } from '@/src/utils/log';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -17,7 +19,9 @@ export default function SignInScreen() {
   const { theme } = useTheme();
   const router = useRouter();
   const { signIn, setActive, isLoaded } = useSignIn();
-  const { startOAuthFlow } = useOAuth({ strategy: 'oauth_google' });
+  const { startOAuthFlow: googleOAuth } = useOAuth({ strategy: 'oauth_google' });
+  const { startOAuthFlow: appleOAuth } = useOAuth({ strategy: 'oauth_apple' });
+  const { startOAuthFlow: facebookOAuth } = useOAuth({ strategy: 'oauth_facebook' });
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -25,6 +29,26 @@ export default function SignInScreen() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState(false);
+
+  const handleOAuth = useCallback(
+    async (startFlow: () => Promise<any>) => {
+      setError('');
+      setOauthLoading(true);
+      try {
+        const { createdSessionId, setActive: sa } = await startFlow();
+        if (createdSessionId && sa) {
+          await sa({ session: createdSessionId });
+          router.replace('/(tabs)/discover' as any);
+        }
+      } catch (err) {
+        Log.auth('OAuth error', err);
+        setError('Sign in failed. Try again.');
+      } finally {
+        setOauthLoading(false);
+      }
+    },
+    [router]
+  );
 
   const handleSignIn = useCallback(async () => {
     if (!isLoaded || !signIn) return;
@@ -43,28 +67,16 @@ export default function SignInScreen() {
     }
   }, [isLoaded, signIn, email, password, setActive, router]);
 
-  const handleGoogleOAuth = useCallback(async () => {
-    setError('');
-    setOauthLoading(true);
-    try {
-      const { createdSessionId, setActive: sa } = await startOAuthFlow();
-      if (createdSessionId && sa) {
-        await sa({ session: createdSessionId });
-        router.replace('/(tabs)/discover' as any);
-      }
-    } catch (err: any) {
-      setError(err?.errors?.[0]?.message ?? 'Google sign in failed. Please try again.');
-    } finally {
-      setOauthLoading(false);
-    }
-  }, [startOAuthFlow, router]);
+  const isWeb = Platform.OS === 'web';
+  const textColor = isWeb ? theme.textPrimary : '#FFFFFF';
+  const subtitleColor = isWeb ? theme.textSecondary : 'rgba(255,255,255,0.7)';
 
   const formContent = (
     <View style={styles.form}>
       <Text style={styles.emoji}>🎵</Text>
-      <Text style={[styles.appTitle, { color: Platform.OS === 'web' ? theme.textPrimary : '#FFFFFF' }]}>TunePath</Text>
-      <Text style={[styles.heading, { color: Platform.OS === 'web' ? theme.textPrimary : '#FFFFFF' }]}>Welcome back</Text>
-      <Text style={[styles.subtitle, { color: Platform.OS === 'web' ? theme.textSecondary : 'rgba(255,255,255,0.7)' }]}>Sign in to continue learning</Text>
+      <Text style={[styles.appTitle, { color: textColor }]}>TunePath</Text>
+      <Text style={[styles.heading, { color: textColor }]}>Welcome back</Text>
+      <Text style={[styles.subtitle, { color: subtitleColor }]}>Sign in to continue learning</Text>
 
       <TextInput
         style={[styles.input, { backgroundColor: theme.surfaceHigh, borderColor: theme.border, color: theme.textPrimary }]}
@@ -113,26 +125,58 @@ export default function SignInScreen() {
         <View style={[styles.dividerLine, { backgroundColor: theme.border }]} />
       </View>
 
+      {/* Google */}
       <TouchableOpacity
-        style={[styles.oauthBtn, { backgroundColor: theme.surface, borderColor: theme.border }]}
-        onPress={handleGoogleOAuth}
+        style={[styles.oauthBtn, { backgroundColor: theme.primary }]}
+        onPress={() => handleOAuth(googleOAuth)}
         disabled={oauthLoading}
         activeOpacity={0.85}
       >
-        {oauthLoading
-          ? <ActivityIndicator color={theme.textPrimary} />
-          : (
-            <>
-              <Ionicons name="logo-google" size={18} color={theme.textPrimary} />
-              <Text style={[styles.oauthBtnText, { color: theme.textPrimary }]}>Continue with Google</Text>
-            </>
-          )
-        }
+        <Ionicons name="logo-google" size={20} color={theme.textOnPrimary} style={styles.oauthIcon} />
+        <Text style={[styles.oauthText, { color: theme.textOnPrimary }]}>Continue with Google</Text>
+      </TouchableOpacity>
+
+      {/* Apple — iOS + web (not Android) */}
+      {Platform.OS !== 'android' && (
+        <TouchableOpacity
+          style={[styles.oauthBtn, { backgroundColor: theme.primary }]}
+          onPress={() => handleOAuth(appleOAuth)}
+          disabled={oauthLoading}
+          activeOpacity={0.85}
+        >
+          <Ionicons name="logo-apple" size={22} color={theme.textOnPrimary} style={styles.oauthIcon} />
+          <Text style={[styles.oauthText, { color: theme.textOnPrimary }]}>Continue with Apple</Text>
+        </TouchableOpacity>
+      )}
+
+      {/* Facebook */}
+      <TouchableOpacity
+        style={[styles.oauthBtn, { backgroundColor: theme.primary }]}
+        onPress={() => handleOAuth(facebookOAuth)}
+        disabled={oauthLoading}
+        activeOpacity={0.85}
+      >
+        <Ionicons name="logo-facebook" size={22} color={theme.textOnPrimary} style={styles.oauthIcon} />
+        <Text style={[styles.oauthText, { color: theme.textOnPrimary }]}>Continue with Facebook</Text>
       </TouchableOpacity>
 
       <TouchableOpacity onPress={() => router.push('/(auth)/sign-up' as any)} style={styles.linkBtn}>
         <Text style={[styles.linkText, { color: theme.primary }]}>Don't have an account? Sign up →</Text>
       </TouchableOpacity>
+
+      {__DEV__ && (
+        <TouchableOpacity
+          style={[styles.guestBtn, { borderColor: theme.border }]}
+          onPress={() => {
+            useAuthStore.getState().setHasOnboarded(true);
+            router.replace('/(tabs)/discover' as any);
+          }}
+        >
+          <Text style={[styles.guestText, { color: theme.textDisabled }]}>
+            Skip login (dev only)
+          </Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 
@@ -181,8 +225,31 @@ const styles = StyleSheet.create({
   dividerRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, marginVertical: Spacing.xs },
   dividerLine: { flex: 1, height: 0.5 },
   dividerText: { fontSize: FontSize.sm },
-  oauthBtn: { height: 48, borderRadius: Radius.lg, borderWidth: 0.5, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm },
-  oauthBtnText: { fontSize: FontSize.md, fontWeight: '500' },
+  oauthBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 48,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: Radius.lg,
+    marginBottom: Spacing.xs,
+  },
+  oauthIcon: {
+    width: 28,
+  },
+  oauthText: {
+    fontSize: FontSize.md,
+    fontWeight: '600',
+    flex: 1,
+    textAlign: 'center',
+  },
   linkBtn: { alignItems: 'center', paddingVertical: Spacing.sm },
   linkText: { fontSize: FontSize.sm, fontWeight: '500' },
+  guestBtn: {
+    paddingVertical: Spacing.md,
+    alignItems: 'center',
+    marginTop: Spacing.sm,
+  },
+  guestText: {
+    fontSize: FontSize.sm,
+  },
 });

@@ -34,6 +34,8 @@ function AuthGuard() {
     const inTabs = segments[0] === '(tabs)';
 
     if (!isSignedIn && !inAuth) {
+      // Dev guest bypass: setHasOnboarded(true) without signing in
+      if (__DEV__ && hasOnboarded) return;
       Log.nav('redirecting to', { target: '/(auth)/sign-in' });
       router.replace('/(auth)/sign-in' as any);
       return;
