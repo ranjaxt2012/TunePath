@@ -15,7 +15,7 @@ function WebSidebar() {
   const { theme } = useTheme();
   const router = useRouter();
   const segments = useSegments();
-  const activeSegment = segments[1] ?? 'discover';
+  const activeSegment = (segments as string[])[1] ?? 'discover';
 
   return (
     <View style={[styles.sidebar, { backgroundColor: theme.background, borderRightColor: theme.border }]}>
