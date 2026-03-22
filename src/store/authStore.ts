@@ -12,6 +12,7 @@ interface AuthState {
   trustTier: 'new' | 'trusted' | 'verified';
   uploadCount: number;
   isAdmin: boolean;
+  tourSeen: boolean;
   setUser: (user: TunePathUser | null) => void;
   setActiveMode: (mode: ActiveMode) => void;
   setSelectedInstrument: (slug: string) => void;
@@ -22,6 +23,7 @@ interface AuthState {
   setTrustTier: (t: 'new' | 'trusted' | 'verified') => void;
   setUploadCount: (n: number) => void;
   setIsAdmin: (v: boolean) => void;
+  setTourSeen: (v: boolean) => void;
   clearAuth: () => void;
 }
 
@@ -36,6 +38,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   trustTier: 'new',
   uploadCount: 0,
   isAdmin: false,
+  tourSeen: false,
   setUser: (user) => set({ user }),
   setActiveMode: (mode) => set({ activeMode: mode }),
   setSelectedInstrument: (slug) => set({ selectedInstrumentSlug: slug }),
@@ -46,6 +49,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   setTrustTier: (t) => set({ trustTier: t }),
   setUploadCount: (n) => set({ uploadCount: n }),
   setIsAdmin: (v) => set({ isAdmin: v }),
+  setTourSeen: (v) => set({ tourSeen: v }),
   clearAuth: () => set({
     user: null,
     activeMode: 'learner',

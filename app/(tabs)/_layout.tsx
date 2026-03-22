@@ -9,6 +9,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/src/design';
 import { useOrientation } from '@/src/hooks/useOrientation';
+import { SupportBot } from '@/src/components/SupportBot';
+import { AppTour } from '@/src/components/AppTour';
 
 const TABS = [
   {
@@ -151,14 +153,18 @@ const styles = StyleSheet.create({
 
 export default function TabLayout() {
   return (
-    <Tabs
-      screenOptions={{ headerShown: false }}
-      tabBar={(props) => <CustomTabBar {...props} />}
-    >
-      <Tabs.Screen name="discover" />
-      <Tabs.Screen name="learning" />
-      <Tabs.Screen name="create" />
-      <Tabs.Screen name="profile" />
-    </Tabs>
+    <View style={{ flex: 1 }}>
+      <Tabs
+        screenOptions={{ headerShown: false }}
+        tabBar={(props) => <CustomTabBar {...props} />}
+      >
+        <Tabs.Screen name="discover" />
+        <Tabs.Screen name="learning" />
+        <Tabs.Screen name="create" />
+        <Tabs.Screen name="profile" />
+      </Tabs>
+      <SupportBot />
+      <AppTour />
+    </View>
   );
 }

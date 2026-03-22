@@ -1,6 +1,7 @@
 import { ClerkProvider, useAuth } from '@clerk/clerk-expo';
 import { tokenCache } from '@/src/utils/tokenCache';
 import { ThemeProvider } from '@/src/design';
+import { TokenProvider } from '@/src/components/auth/TokenProvider';
 import { useAuthStore } from '@/src/store/authStore';
 import { Slot, useRouter, useSegments } from 'expo-router';
 import { useEffect } from 'react';
@@ -14,14 +15,13 @@ function AuthGuard() {
   const { isSignedIn, isLoaded } = useAuth();
   const segments = useSegments();
   const router = useRouter();
-  const hasOnboarded = useAuthStore(s => s.hasOnboarded);
+  const hasOnboarded = useAuthStore((s) => s.hasOnboarded);
 
   useEffect(() => {
     if (!isLoaded) return;
 
     const inAuth = segments[0] === '(auth)';
     const inOnboarding = segments[0] === 'onboarding';
-    const inTabs = segments[0] === '(tabs)';
 
     if (!isSignedIn && !inAuth) {
       router.replace('/(auth)/sign-in');
@@ -39,6 +39,8 @@ function AuthGuard() {
     }
   }, [isSignedIn, isLoaded, hasOnboarded, segments]);
 
+  if (!isLoaded) return null;
+
   return <Slot />;
 }
 
@@ -51,7 +53,9 @@ export default function RootLayout() {
           tokenCache={tokenCache}
         >
           <ThemeProvider>
-            <AuthGuard />
+            <TokenProvider>
+              <AuthGuard />
+            </TokenProvider>
           </ThemeProvider>
         </ClerkProvider>
       </SafeAreaProvider>
