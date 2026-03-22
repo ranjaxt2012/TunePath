@@ -18,11 +18,24 @@ function NotationContainerInner({ engineRef, notes, isTutor, onNotesEdit, isLand
   const [noteProgress, setNoteProgress] = useState(0);
 
   useEffect(() => {
-    const engine = engineRef.current;
-    if (!engine) return;
-    engine.onIndexChange = setActiveNoteIndex;
-    engine.onNoteProgress = setNoteProgress;
-    engine.onComplete = () => setActiveNoteIndex(-1);
+    // Engine may not be ready on first render
+    // Check every 100ms until it's available
+    const attach = () => {
+      const engine = engineRef.current;
+      if (!engine) return false;
+      engine.onIndexChange = setActiveNoteIndex;
+      engine.onNoteProgress = setNoteProgress;
+      engine.onComplete = () => setActiveNoteIndex(-1);
+      return true;
+    };
+
+    if (attach()) return;
+
+    const interval = setInterval(() => {
+      if (attach()) clearInterval(interval);
+    }, 100);
+
+    return () => clearInterval(interval);
   }, [engineRef]);
 
   if (notes.length === 0) {
