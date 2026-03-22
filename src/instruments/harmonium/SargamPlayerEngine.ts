@@ -16,6 +16,11 @@ export class SargamPlayerEngine {
   private players: Map<string, AudioPlayer> = new Map();
   private lastIndex = -1;
   private lastProgress = -1;
+  private _soundEnabled = true;
+
+  setSoundEnabled(enabled: boolean): void {
+    this._soundEnabled = enabled;
+  }
 
   load(notes: Note[], sampleMap: Record<string, any>): void {
     this.notes = notes;
@@ -44,14 +49,16 @@ export class SargamPlayerEngine {
       this.lastIndex = idx;
       this.onIndexChange?.(idx);
 
-      // Play the note
-      const noteName = this.notes[idx].note;
-      const player = this.players.get(noteName);
-      if (player) {
-        try {
-          player.seekTo(0);
-          player.play();
-        } catch { /* ignore */ }
+      // Play the note (if sound enabled)
+      if (this._soundEnabled) {
+        const noteName = this.notes[idx].note;
+        const player = this.players.get(noteName);
+        if (player) {
+          try {
+            player.seekTo(0);
+            player.play();
+          } catch { /* ignore */ }
+        }
       }
     }
 

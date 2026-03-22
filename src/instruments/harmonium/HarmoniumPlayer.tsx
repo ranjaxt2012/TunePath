@@ -11,6 +11,7 @@ import { NotationContainer } from './NotationContainer';
 import { SargamPlayerEngine } from './SargamPlayerEngine';
 import { HARMONIUM_SAMPLE_MAP } from './sampleMap';
 import type { Lesson } from '@/src/types/models';
+import { api } from '@/src/services/api';
 import type { AVPlaybackStatus } from 'expo-av';
 import { useOrientation } from '@/src/hooks/useOrientation';
 import { Log } from '@/src/utils/log';
@@ -35,6 +36,7 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
 
   const [playbackSpeed, setPlaybackSpeed] = useState(1.0);
   const [videoStarted, setVideoStarted] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(true);
   const [localNotes, setLocalNotes] = useState<Note[]>(notes);
 
   useEffect(() => {
@@ -147,10 +149,22 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
     [lesson.id, playbackSpeed, savePosition]
   );
 
-  const handleNotesEdit = useCallback((updatedNotes: Note[]) => {
-    setLocalNotes(updatedNotes);
-    engineRef.current?.load(updatedNotes, HARMONIUM_SAMPLE_MAP);
-  }, []);
+  const handleNotesEdit = useCallback(
+    async (updatedNotes: Note[]) => {
+      setLocalNotes(updatedNotes);
+      engineRef.current?.load(updatedNotes, HARMONIUM_SAMPLE_MAP);
+
+      try {
+        await api.patch(`/api/tutor/lessons/${lesson.id}/notation`, {
+          notes: updatedNotes,
+        });
+        Log.player('notation saved');
+      } catch (err) {
+        Log.apiError('notation save failed', err);
+      }
+    },
+    [lesson.id]
+  );
 
   const speedLabel = playbackSpeed.toFixed(2).replace(/\.?0+$/, '') + 'x';
 
@@ -170,6 +184,26 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
       />
       <Text style={styles.sliderEmoji}>🐇</Text>
       <Text style={[styles.speedLabel, { color: theme.textSecondary }]}>{speedLabel}</Text>
+      <TouchableOpacity
+        onPress={() => {
+          const next = !soundEnabled;
+          setSoundEnabled(next);
+          engineRef.current?.setSoundEnabled(next);
+        }}
+        style={[
+          styles.soundBtn,
+          {
+            backgroundColor: soundEnabled ? theme.primary : theme.surface,
+            borderColor: theme.border,
+          },
+        ]}
+      >
+        <Ionicons
+          name={soundEnabled ? 'musical-notes' : 'musical-notes-outline'}
+          size={18}
+          color={soundEnabled ? theme.textOnPrimary : theme.textSecondary}
+        />
+      </TouchableOpacity>
     </View>
   );
 
@@ -297,5 +331,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     minWidth: 36,
     textAlign: 'right',
+  },
+  soundBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
