@@ -137,7 +137,7 @@ export default function SignInScreen() {
       </TouchableOpacity>
 
       {/* Apple — iOS + web (not Android) */}
-      {Platform.OS !== 'android' && (
+      {Platform.OS === 'ios' && (
         <TouchableOpacity
           style={[styles.oauthBtn, { backgroundColor: theme.primary }]}
           onPress={() => handleOAuth(appleOAuth)}
