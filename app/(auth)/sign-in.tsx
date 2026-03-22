@@ -127,37 +127,37 @@ export default function SignInScreen() {
 
       {/* Google */}
       <TouchableOpacity
-        style={[styles.oauthBtn, { backgroundColor: theme.surface, borderColor: theme.border }]}
+        style={[styles.oauthBtn, { backgroundColor: theme.primary }]}
         onPress={() => handleOAuth(googleOAuth)}
         disabled={oauthLoading}
         activeOpacity={0.85}
       >
-        <Text style={styles.oauthIcon}>🔵</Text>
-        <Text style={[styles.oauthText, { color: theme.textPrimary }]}>Continue with Google</Text>
+        <Ionicons name="logo-google" size={20} color={theme.textOnPrimary} style={styles.oauthIcon} />
+        <Text style={[styles.oauthText, { color: theme.textOnPrimary }]}>Continue with Google</Text>
       </TouchableOpacity>
 
-      {/* Apple - iOS only */}
-      {Platform.OS !== 'web' && (
+      {/* Apple — iOS only */}
+      {Platform.OS === 'ios' && (
         <TouchableOpacity
-          style={[styles.oauthBtn, { backgroundColor: '#000', borderColor: theme.border }]}
+          style={[styles.oauthBtn, { backgroundColor: theme.primary }]}
           onPress={() => handleOAuth(appleOAuth)}
           disabled={oauthLoading}
           activeOpacity={0.85}
         >
-          <Text style={styles.oauthIcon}>🍎</Text>
-          <Text style={[styles.oauthText, { color: '#fff' }]}>Continue with Apple</Text>
+          <Ionicons name="logo-apple" size={22} color={theme.textOnPrimary} style={styles.oauthIcon} />
+          <Text style={[styles.oauthText, { color: theme.textOnPrimary }]}>Continue with Apple</Text>
         </TouchableOpacity>
       )}
 
       {/* Facebook */}
       <TouchableOpacity
-        style={[styles.oauthBtn, { backgroundColor: '#1877F2', borderColor: '#1877F2' }]}
+        style={[styles.oauthBtn, { backgroundColor: theme.primary }]}
         onPress={() => handleOAuth(facebookOAuth)}
         disabled={oauthLoading}
         activeOpacity={0.85}
       >
-        <Text style={styles.oauthIcon}>f</Text>
-        <Text style={[styles.oauthText, { color: '#fff' }]}>Continue with Facebook</Text>
+        <Ionicons name="logo-facebook" size={22} color={theme.textOnPrimary} style={styles.oauthIcon} />
+        <Text style={[styles.oauthText, { color: theme.textOnPrimary }]}>Continue with Facebook</Text>
       </TouchableOpacity>
 
       <TouchableOpacity onPress={() => router.push('/(auth)/sign-up' as any)} style={styles.linkBtn}>
@@ -228,21 +228,17 @@ const styles = StyleSheet.create({
   oauthBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
-    paddingVertical: Spacing.md,
+    height: 48,
     paddingHorizontal: Spacing.lg,
     borderRadius: Radius.lg,
-    borderWidth: 0.5,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   oauthIcon: {
-    fontSize: 18,
-    width: 24,
-    textAlign: 'center',
+    width: 28,
   },
   oauthText: {
     fontSize: FontSize.md,
-    fontWeight: '500',
+    fontWeight: '600',
     flex: 1,
     textAlign: 'center',
   },
