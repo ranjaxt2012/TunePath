@@ -31,11 +31,13 @@ function NotationContainerInner({ engineRef, notes, isTutor, onNotesEdit, isLand
     rowIndex: number;
     notes: Note[];
   } | null>(null);
-  const [timeStrings, setTimeStrings] = useState<string[]>([]);
+  const [startStrings, setStartStrings] = useState<string[]>([]);
+  const [endStrings, setEndStrings] = useState<string[]>([]);
 
   useEffect(() => {
     if (editingRow) {
-      setTimeStrings(editingRow.notes.map((n) => String(n.time)));
+      setStartStrings(editingRow.notes.map((n) => String(n.time)));
+      setEndStrings(editingRow.notes.map((n) => String(n.time + n.duration)));
     }
   }, [editingRow?.rowIndex]);
 
@@ -122,12 +124,26 @@ function NotationContainerInner({ engineRef, notes, isTutor, onNotesEdit, isLand
               Edit Row {(editingRow?.rowIndex ?? 0) + 1}
             </Text>
 
+            <Text
+              style={[
+                styles.rowLabel,
+                { color: theme.textDisabled, fontSize: FontSize.sm },
+              ]}
+            >
+              Note   Start    End
+            </Text>
             <ScrollView style={{ maxHeight: 300 }}>
               {editingRow?.notes.map((note, idx) => (
-                <View key={idx} style={styles.noteEditRow}>
+                <View
+                  key={idx}
+                  style={[
+                    styles.noteEditRow,
+                    { borderBottomColor: theme.border },
+                  ]}
+                >
                   <TextInput
                     style={[
-                      styles.noteInput,
+                      styles.notePill,
                       {
                         color: theme.textPrimary,
                         borderColor: theme.border,
@@ -161,18 +177,62 @@ function NotationContainerInner({ engineRef, notes, isTutor, onNotesEdit, isLand
                         backgroundColor: theme.surface,
                       },
                     ]}
-                    value={timeStrings[idx] ?? String(note.time)}
+                    value={startStrings[idx] ?? String(note.time)}
                     onChangeText={(text) => {
-                      const updated = [...timeStrings];
+                      const updated = [...startStrings];
                       updated[idx] = text;
-                      setTimeStrings(updated);
+                      setStartStrings(updated);
 
                       const parsed = parseFloat(text);
                       if (!isNaN(parsed)) {
+                        const n = editingRow!.notes[idx];
+                        const endTime = n.time + n.duration;
                         const updatedNotes = [...editingRow!.notes];
                         updatedNotes[idx] = {
                           ...updatedNotes[idx],
                           time: parsed,
+                          duration: endTime - parsed,
+                        };
+                        setEditingRow({
+                          ...editingRow!,
+                          notes: updatedNotes,
+                        });
+                      }
+                    }}
+                    placeholder="0.00"
+                    placeholderTextColor={theme.textDisabled}
+                    keyboardType="decimal-pad"
+                  />
+                  <Text
+                    style={{
+                      color: theme.textSecondary,
+                      fontSize: FontSize.md,
+                    }}
+                  >
+                    →
+                  </Text>
+                  <TextInput
+                    style={[
+                      styles.timeInput,
+                      {
+                        color: theme.textPrimary,
+                        borderColor: theme.border,
+                        backgroundColor: theme.surface,
+                      },
+                    ]}
+                    value={endStrings[idx] ?? String(note.time + note.duration)}
+                    onChangeText={(text) => {
+                      const updated = [...endStrings];
+                      updated[idx] = text;
+                      setEndStrings(updated);
+
+                      const parsed = parseFloat(text);
+                      if (!isNaN(parsed)) {
+                        const n = editingRow!.notes[idx];
+                        const updatedNotes = [...editingRow!.notes];
+                        updatedNotes[idx] = {
+                          ...updatedNotes[idx],
+                          duration: parsed - n.time,
                         };
                         setEditingRow({
                           ...editingRow!,
@@ -262,11 +322,25 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginBottom: Spacing.lg,
   },
+  rowLabel: {
+    marginBottom: Spacing.sm,
+  },
   noteEditRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
-    marginBottom: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    borderBottomWidth: 0.5,
+  },
+  notePill: {
+    width: 52,
+    height: 40,
+    borderRadius: Radius.sm,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    paddingHorizontal: Spacing.sm,
+    fontSize: FontSize.md,
+    textAlign: 'center',
   },
   noteInput: {
     width: 64,
@@ -279,7 +353,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   timeInput: {
-    width: 72,
+    width: 64,
     height: 40,
     borderRadius: Radius.sm,
     borderWidth: 1,
