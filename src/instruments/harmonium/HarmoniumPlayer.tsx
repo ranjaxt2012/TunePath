@@ -119,7 +119,7 @@ export function HarmoniumPlayer({ lesson, notes = [], onComplete }: HarmoniumPla
         onValueChange={setPlaybackSpeed}
         minimumTrackTintColor={theme.primary}
         maximumTrackTintColor={theme.border}
-        thumbTintColor="#FFFFFF"
+        thumbTintColor={theme.textPrimary}
       />
       <Text style={styles.sliderEmoji}>🐇</Text>
       <Text style={[styles.speedLabel, { color: theme.textSecondary }]}>{speedLabel}</Text>

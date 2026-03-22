@@ -25,7 +25,15 @@ export function LessonCard({ lesson, size, onPress, width = 140, thumbHeight = 9
   if (size === 'mini') {
     return (
       <TouchableOpacity
-        style={[styles.miniCard, { backgroundColor: theme.surface, width }]}
+        style={[styles.miniCard, {
+          backgroundColor: theme.surface,
+          width,
+          shadowColor: theme.cardShadow,
+          shadowOpacity: theme.isDark ? 0 : 1,
+          shadowOffset: { width: 0, height: 2 },
+          shadowRadius: 8,
+          elevation: theme.isDark ? 0 : 3,
+        }]}
         onPress={onPress}
         activeOpacity={0.8}
       >
@@ -66,7 +74,14 @@ export function LessonCard({ lesson, size, onPress, width = 140, thumbHeight = 9
   if (size === 'regular') {
     return (
       <TouchableOpacity
-        style={[styles.regularCard, { backgroundColor: theme.surface }]}
+        style={[styles.regularCard, {
+          backgroundColor: theme.surface,
+          shadowColor: theme.cardShadow,
+          shadowOpacity: theme.isDark ? 0 : 1,
+          shadowOffset: { width: 0, height: 2 },
+          shadowRadius: 8,
+          elevation: theme.isDark ? 0 : 3,
+        }]}
         onPress={onPress}
         activeOpacity={0.8}
       >
