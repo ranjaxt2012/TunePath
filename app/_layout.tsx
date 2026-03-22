@@ -7,6 +7,7 @@ import { ThemeProvider } from '@/src/design';
 import { tokenCache } from '@/src/utils/tokenCache';
 import { setAuthToken } from '@/src/services/api';
 import { useAuthStore } from '@/src/store/authStore';
+import { Log } from '@/src/utils/log';
 
 const CLERK_KEY = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY ?? '';
 
@@ -23,20 +24,26 @@ function AuthGuard() {
   }, [isSignedIn, getToken]);
 
   useEffect(() => {
+    Log.auth('isLoaded', { isLoaded });
+    Log.auth('isSignedIn', { isSignedIn });
+    Log.auth('hasOnboarded', { hasOnboarded });
     if (!isLoaded) return;
     const inAuth = segments[0] === '(auth)';
     const inOnboarding = segments[0] === 'onboarding';
     const inTabs = segments[0] === '(tabs)';
 
     if (!isSignedIn && !inAuth) {
+      Log.nav('redirecting to', { target: '/(auth)/sign-in' });
       router.replace('/(auth)/sign-in' as any);
       return;
     }
     if (isSignedIn && !hasOnboarded && !inOnboarding) {
+      Log.nav('redirecting to', { target: '/onboarding' });
       router.replace('/onboarding' as any);
       return;
     }
     if (isSignedIn && hasOnboarded && (inAuth || inOnboarding)) {
+      Log.nav('redirecting to', { target: '/(tabs)/discover' });
       router.replace('/(tabs)/discover' as any);
       return;
     }

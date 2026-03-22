@@ -10,6 +10,7 @@ import { HARMONIUM_SAMPLE_MAP } from './sampleMap';
 import type { Lesson } from '@/src/types/models';
 import type { AVPlaybackStatus } from 'expo-av';
 import { useOrientation } from '@/src/hooks/useOrientation';
+import { Log } from '@/src/utils/log';
 
 interface HarmoniumPlayerProps {
   lesson: Lesson;
@@ -65,6 +66,7 @@ export function HarmoniumPlayer({ lesson, notes = [], onComplete }: HarmoniumPla
 
   const handleVideoStarted = useCallback(() => {
     setVideoStarted(true);
+    Log.player('video started');
     // Restore saved position — videoRef would seek here if exposed
     const savedPosition = getPosition(lesson.id);
     // Position restore is handled via native controls once video is playing
@@ -82,12 +84,17 @@ export function HarmoniumPlayer({ lesson, notes = [], onComplete }: HarmoniumPla
       if (now - lastSyncRef.current >= 100) {
         lastSyncRef.current = now;
         engineRef.current?.syncToTime(positionSecs, playbackSpeed);
+        Log.player('position', { currentTime: positionSecs });
       }
 
       // Save position every ~10s
       if (now - lastSaveRef.current >= 10_000) {
         lastSaveRef.current = now;
         savePosition(lesson.id, positionSecs);
+      }
+
+      if (!status.isPlaying && videoStarted) {
+        Log.playerWarn('unexpected pause');
       }
     },
     [lesson.id, playbackSpeed, savePosition]

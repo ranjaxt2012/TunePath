@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { Log } from '@/src/utils/log';
 
 const BASE_URL =
   Platform.OS === 'web'
@@ -19,11 +20,14 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   if (authToken) {
     headers['Authorization'] = `Bearer ${authToken}`;
   }
+  Log.api(`${options.method ?? 'GET'} ${path}`);
   const res = await fetch(`${BASE_URL}${path}`, { ...options, headers });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
+    Log.apiError(`❌ ${path}`, { status: res.status, error: err });
     throw new Error((err as any).detail ?? `HTTP ${res.status}`);
   }
+  Log.api(`✅ ${path}`, { status: res.status });
   return res.json() as Promise<T>;
 }
 

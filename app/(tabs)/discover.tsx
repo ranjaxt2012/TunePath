@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -10,6 +10,7 @@ import { TagChip } from '@/src/components/ui/TagChip';
 import { SectionHeader } from '@/src/components/ui/SectionHeader';
 import { EmptyState } from '@/src/components/ui/EmptyState';
 import { LoadingCard } from '@/src/components/ui/LoadingCard';
+import { Log } from '@/src/utils/log';
 
 const WEB_CONTENT_MAX = 960;
 
@@ -25,6 +26,16 @@ export default function DiscoverScreen() {
   const { lessons, loading, error } = useLessons({ instrument });
 
   const showEmpty = !loading && (error !== null || lessons.length === 0);
+
+  useEffect(() => {
+    Log.ui('discover mounted');
+  }, []);
+
+  useEffect(() => {
+    if (!loading) {
+      Log.api('lessons loaded', { count: lessons.length });
+    }
+  }, [loading, lessons.length]);
 
   const headerAndSearch = (
     <View>

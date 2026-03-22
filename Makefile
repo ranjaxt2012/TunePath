@@ -73,7 +73,10 @@ debug:
 # Watch only player/engine logs
 dev-debug:
 	@mkdir -p logs
-	npx expo start --clear 2>&1 | tee logs/player.log
+	npx expo start --clear 2>&1 | \
+	tee logs/player.log | \
+	grep --line-buffered -E \
+	"AUTH|API|PLAYER|NAV|STORE|ERROR|warn"
 
 # Install dependencies
 install:

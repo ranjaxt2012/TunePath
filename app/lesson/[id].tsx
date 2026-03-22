@@ -6,11 +6,22 @@ import { useTheme } from '@/src/design';
 import { useLesson } from '@/src/hooks/useLesson';
 import { useProgressStore } from '@/src/store/progressStore';
 import { getPlayer } from '@/src/instruments/registry';
+import { Log } from '@/src/utils/log';
 
 export default function LessonPlayerScreen() {
   const { theme } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { lesson, loading, error } = useLesson(id);
+
+  useEffect(() => {
+    Log.nav('opening lesson', { id });
+  }, [id]);
+
+  useEffect(() => {
+    if (lesson) {
+      Log.player('lesson loaded', { title: lesson.title });
+    }
+  }, [lesson]);
 
   useEffect(() => {
     if (Platform.OS === 'web') return;
