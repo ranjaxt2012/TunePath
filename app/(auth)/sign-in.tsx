@@ -10,7 +10,6 @@ import * as WebBrowser from 'expo-web-browser';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme, Spacing, FontSize, Radius, THEMES } from '@/src/design';
-import { useAuthStore } from '@/src/store/authStore';
 import { Log } from '@/src/utils/log';
 
 WebBrowser.maybeCompleteAuthSession();
@@ -164,19 +163,6 @@ export default function SignInScreen() {
         <Text style={[styles.linkText, { color: theme.primary }]}>Don't have an account? Sign up →</Text>
       </TouchableOpacity>
 
-      {__DEV__ && (
-        <TouchableOpacity
-          style={[styles.guestBtn, { borderColor: theme.border }]}
-          onPress={() => {
-            useAuthStore.getState().setHasOnboarded(true);
-            router.replace('/(tabs)/discover' as any);
-          }}
-        >
-          <Text style={[styles.guestText, { color: theme.textDisabled }]}>
-            Skip login (dev only)
-          </Text>
-        </TouchableOpacity>
-      )}
     </View>
   );
 
@@ -244,12 +230,4 @@ const styles = StyleSheet.create({
   },
   linkBtn: { alignItems: 'center', paddingVertical: Spacing.sm },
   linkText: { fontSize: FontSize.sm, fontWeight: '500' },
-  guestBtn: {
-    paddingVertical: Spacing.md,
-    alignItems: 'center',
-    marginTop: Spacing.sm,
-  },
-  guestText: {
-    fontSize: FontSize.sm,
-  },
 });

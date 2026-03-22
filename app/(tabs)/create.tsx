@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -30,7 +30,34 @@ export default function CreateScreen() {
   const [ytConfirmed, setYtConfirmed] = useState(false);
   const [ytLoading, setYtLoading] = useState(false);
   const [processing, setProcessing] = useState(false);
+  const [processingLessonId, setProcessingLessonId] = useState<string | null>(null);
   const [ytPreview, setYtPreview] = useState<{ title: string; duration: string } | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Poll lesson status every 5s while processing
+  useEffect(() => {
+    if (!processingLessonId) return;
+    pollRef.current = setInterval(async () => {
+      try {
+        const data = await api.get<{ status: string }>(`/api/lessons/${processingLessonId}/status`);
+        if (data.status === 'ready' || data.status === 'failed') {
+          clearInterval(pollRef.current!);
+          pollRef.current = null;
+          setProcessing(false);
+          setProcessingLessonId(null);
+          setYtModalVisible(false);
+          if (data.status === 'ready') {
+            Alert.alert('Done!', 'Your lesson is ready.');
+          } else {
+            Alert.alert('Processing failed', 'Something went wrong processing your video.');
+          }
+        }
+      } catch { /* ignore */ }
+    }, 5000);
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, [processingLessonId]);
 
   const containerStyle = [
     styles.container,
@@ -56,7 +83,7 @@ export default function CreateScreen() {
       const token = await getToken();
       setAuthToken(token);
       const data = await api.get<{ title: string; duration: string }>(
-        `/api/lessons/yt-preview?url=${encodeURIComponent(url)}`
+        `/api/tutor/youtube/preview?url=${encodeURIComponent(url)}`
       );
       setYtPreview(data);
     } catch {
@@ -72,12 +99,10 @@ export default function CreateScreen() {
     try {
       const token = await getToken();
       setAuthToken(token);
-      await api.post('/api/lessons/import-youtube', { url: ytUrl });
-      setYtModalVisible(false);
-      Alert.alert('Processing', 'Your lesson is being processed. It will appear in your uploads shortly.');
+      const result = await api.post<{ id: string }>('/api/tutor/lessons/upload-youtube', { url: ytUrl });
+      setProcessingLessonId(result.id);
     } catch (e: any) {
       Alert.alert('Import failed', e.message ?? 'Something went wrong');
-    } finally {
       setProcessing(false);
     }
   };

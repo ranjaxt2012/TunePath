@@ -6,7 +6,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ThemeProvider } from '@/src/design';
 import { tokenCache } from '@/src/utils/tokenCache';
-import { setAuthToken } from '@/src/services/api';
+import { setAuthToken, api } from '@/src/services/api';
 import { useAuthStore } from '@/src/store/authStore';
 import { Log } from '@/src/utils/log';
 
@@ -29,7 +29,9 @@ function AuthGuard() {
     let cancelled = false;
     getToken()
       .then((token) => {
-        if (!cancelled) setAuthToken(token);
+        if (cancelled) return;
+        setAuthToken(token);
+        return api.post('/api/auth/sync', {});
       })
       .catch(() => {});
     return () => {
@@ -51,8 +53,6 @@ function AuthGuard() {
     const inOnboarding = segments[0] === 'onboarding';
 
     if (!isSignedIn && !inAuth) {
-      // Dev guest bypass: setHasOnboarded(true) without signing in
-      if (__DEV__ && hasOnboarded) return;
       hasRedirected.current = true;
       Log.nav('redirecting to', { target: '/(auth)/sign-in' });
       router.replace('/(auth)/sign-in' as any);
