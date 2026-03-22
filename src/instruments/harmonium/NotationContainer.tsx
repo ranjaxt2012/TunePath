@@ -6,6 +6,7 @@ import {
   Modal,
   TextInput,
   TouchableOpacity,
+  ScrollView,
 } from 'react-native';
 import { useTheme, FontSize, Spacing, Radius } from '@/src/design';
 import type { Note } from '@/src/hooks/useLesson';
@@ -114,38 +115,64 @@ function NotationContainerInner({ engineRef, notes, isTutor, onNotesEdit, isLand
               Edit Row {(editingRow?.rowIndex ?? 0) + 1}
             </Text>
 
-            <View style={styles.noteChipsWrap}>
+            <ScrollView style={{ maxHeight: 300 }}>
               {editingRow?.notes.map((note, idx) => (
-                <TextInput
-                  key={idx}
-                  style={[
-                    styles.noteChip,
-                    {
-                      color: theme.textPrimary,
-                      borderColor: theme.primary,
-                      backgroundColor: theme.surface,
-                    },
-                  ]}
-                  value={note.note}
-                  onChangeText={(text) => {
-                    const updated = [...editingRow.notes];
-                    updated[idx] = {
-                      ...updated[idx],
-                      note: text.trim(),
-                      lyric: text.trim(),
-                    };
-                    setEditingRow({
-                      ...editingRow,
-                      notes: updated,
-                    });
-                  }}
-                  placeholder="Sa"
-                  placeholderTextColor={theme.textDisabled}
-                  autoCapitalize="words"
-                  autoCorrect={false}
-                />
+                <View key={idx} style={styles.noteEditRow}>
+                  <TextInput
+                    style={[
+                      styles.noteInput,
+                      {
+                        color: theme.textPrimary,
+                        borderColor: theme.border,
+                        backgroundColor: theme.surface,
+                      },
+                    ]}
+                    value={note.note}
+                    onChangeText={(text) => {
+                      const updated = [...editingRow.notes];
+                      updated[idx] = {
+                        ...updated[idx],
+                        note: text.trim(),
+                        lyric: text.trim(),
+                      };
+                      setEditingRow({
+                        ...editingRow,
+                        notes: updated,
+                      });
+                    }}
+                    placeholder="Sa"
+                    placeholderTextColor={theme.textDisabled}
+                    autoCapitalize="words"
+                    autoCorrect={false}
+                  />
+                  <TextInput
+                    style={[
+                      styles.timeInput,
+                      {
+                        color: theme.textPrimary,
+                        borderColor: theme.border,
+                        backgroundColor: theme.surface,
+                      },
+                    ]}
+                    value={String(note.time)}
+                    onChangeText={(text) => {
+                      const updated = [...editingRow.notes];
+                      updated[idx] = {
+                        ...updated[idx],
+                        time: parseFloat(text) || 0,
+                      };
+                      setEditingRow({
+                        ...editingRow,
+                        notes: updated,
+                      });
+                    }}
+                    placeholder="0.00"
+                    placeholderTextColor={theme.textDisabled}
+                    keyboardType="decimal-pad"
+                  />
+                </View>
               ))}
-            </View>
+            </ScrollView>
 
             <View style={styles.modalBtns}>
               <TouchableOpacity
@@ -221,20 +248,31 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginBottom: Spacing.lg,
   },
-  noteChipsWrap: {
+  noteEditRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    alignItems: 'center',
     gap: Spacing.sm,
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.sm,
   },
-  noteChip: {
-    width: 52,
-    height: 44,
-    borderRadius: Radius.md,
-    borderWidth: 1.5,
-    textAlign: 'center',
+  noteInput: {
+    width: 64,
+    height: 40,
+    borderRadius: Radius.sm,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    paddingHorizontal: Spacing.sm,
     fontSize: FontSize.md,
-    fontWeight: '700',
+    textAlign: 'center',
+  },
+  timeInput: {
+    width: 72,
+    height: 40,
+    borderRadius: Radius.sm,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    paddingHorizontal: Spacing.sm,
+    fontSize: FontSize.md,
+    textAlign: 'center',
   },
   modalBtns: {
     flexDirection: 'row',
