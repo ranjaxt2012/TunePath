@@ -11,7 +11,9 @@ import {
   Alert,
   ActivityIndicator,
   StyleSheet,
+  Platform,
 } from 'react-native';
+import { WEB_CONTENT_MAX } from '@/src/utils/platform';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -195,7 +197,7 @@ export default function LessonPlayerScreen() {
   return (
     <ScreenGradient style={lessonPlayerStyles.safeAreaContainer}>
       <SafeAreaView edges={['top']} style={{ flex: 1 }}>
-        <View style={lessonPlayerStyles.container}>
+        <View style={[lessonPlayerStyles.container, Platform.OS === 'web' && { maxWidth: WEB_CONTENT_MAX, alignSelf: 'center', width: '100%' }]}>
           {/* Header */}
           <View style={lessonPlayerStyles.header}>
             <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>

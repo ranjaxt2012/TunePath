@@ -4,6 +4,7 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,6 +12,7 @@ import { useTheme } from '@/src/design';
 import { useOrientation } from '@/src/hooks/useOrientation';
 import { SupportBot } from '@/src/components/SupportBot';
 import { AppTour } from '@/src/components/AppTour';
+import { WebLayout } from '@/src/components/layout/WebLayout';
 
 const TABS = [
   {
@@ -46,6 +48,7 @@ interface TabBarProps {
 }
 
 function CustomTabBar({ state, navigation }: TabBarProps) {
+  if (Platform.OS === 'web') return null;
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const { isLandscape } = useOrientation();
@@ -153,18 +156,20 @@ const styles = StyleSheet.create({
 
 export default function TabLayout() {
   return (
-    <View style={{ flex: 1 }}>
-      <Tabs
-        screenOptions={{ headerShown: false }}
-        tabBar={(props) => <CustomTabBar {...props} />}
-      >
-        <Tabs.Screen name="discover" />
-        <Tabs.Screen name="learning" />
-        <Tabs.Screen name="create" />
-        <Tabs.Screen name="profile" />
-      </Tabs>
-      <SupportBot />
-      <AppTour />
-    </View>
+    <WebLayout>
+      <View style={{ flex: 1 }}>
+        <Tabs
+          screenOptions={{ headerShown: false }}
+          tabBar={(props) => <CustomTabBar {...props} />}
+        >
+          <Tabs.Screen name="discover" />
+          <Tabs.Screen name="learning" />
+          <Tabs.Screen name="create" />
+          <Tabs.Screen name="profile" />
+        </Tabs>
+        {Platform.OS !== 'web' && <SupportBot />}
+        <AppTour />
+      </View>
+    </WebLayout>
   );
 }

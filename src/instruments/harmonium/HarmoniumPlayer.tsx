@@ -9,6 +9,7 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
+  Platform,
 } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { Ionicons } from '@expo/vector-icons';
@@ -73,6 +74,9 @@ export function HarmoniumPlayer({ lesson, notes = [], onComplete }: LessonPlayer
     });
     return () => sub?.remove();
   }, []);
+
+  const isWeb = Platform.OS === 'web';
+  const showSideBySide = isLandscape || isWeb;
 
   const videoSource = lesson.video_url ? { uri: lesson.video_url } : MOCK_VIDEO_URL;
 
@@ -140,25 +144,25 @@ export function HarmoniumPlayer({ lesson, notes = [], onComplete }: LessonPlayer
   );
 
   return (
-    <View style={[styles.container, isLandscape && styles.containerLandscape]}>
+    <View style={[styles.container, showSideBySide && styles.containerLandscape]}>
       {/* Video section */}
-      <View style={[styles.videoSection, isLandscape && styles.videoSectionLandscape]}>
+      <View style={[styles.videoSection, showSideBySide && styles.videoSectionLandscape]}>
         <VideoPlayer
           source={videoSource}
           thumbnailUrl={lesson.thumbnail_url ?? undefined}
           started={videoStarted}
           onStarted={handleVideoStarted}
           onPlaybackStatus={handlePlaybackStatus}
-          isLandscape={isLandscape}
+          isLandscape={showSideBySide}
         />
       </View>
 
       {/* Dividers */}
-      {!isLandscape && <View style={styles.sectionDivider} />}
-      {isLandscape && <View style={styles.verticalDivider} />}
+      {!showSideBySide && <View style={styles.sectionDivider} />}
+      {showSideBySide && <View style={styles.verticalDivider} />}
 
       {/* Right panel */}
-      <View style={[styles.rightPanel, isLandscape && styles.rightPanelLandscape]}>
+      <View style={[styles.rightPanel, showSideBySide && styles.rightPanelLandscape]}>
         {/* Speed slider */}
         <View style={[styles.speedRow, { borderTopColor: theme.border }]}>
           <Text style={styles.speedEmoji}>🐢</Text>
@@ -185,7 +189,7 @@ export function HarmoniumPlayer({ lesson, notes = [], onComplete }: LessonPlayer
           notes={activeNotes}
           isTutor={isTutor}
           onNotesEdit={handleNotesEdit}
-          isLandscape={isLandscape}
+          isLandscape={showSideBySide}
         />
       </View>
     </View>

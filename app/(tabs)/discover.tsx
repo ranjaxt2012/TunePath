@@ -9,7 +9,9 @@ import {
   StyleSheet,
   Animated,
   Dimensions,
+  Platform,
 } from 'react-native';
+import { WEB_CONTENT_MAX } from '@/src/utils/platform';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -220,7 +222,7 @@ export default function DiscoverScreen() {
 
   if (isLandscape) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }, Platform.OS === 'web' && { maxWidth: WEB_CONTENT_MAX }]}>
         <View style={styles.landscapeRow}>
           <View style={{ flex: 0.45 }}>
             {header}
