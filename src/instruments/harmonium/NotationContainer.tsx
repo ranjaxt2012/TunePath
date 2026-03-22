@@ -31,6 +31,13 @@ function NotationContainerInner({ engineRef, notes, isTutor, onNotesEdit, isLand
     rowIndex: number;
     notes: Note[];
   } | null>(null);
+  const [timeStrings, setTimeStrings] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (editingRow) {
+      setTimeStrings(editingRow.notes.map((n) => String(n.time)));
+    }
+  }, [editingRow?.rowIndex]);
 
   const handleRowEdit = useCallback((rowIndex: number, rowNotes: Note[]) => {
     setEditingRow({
@@ -154,17 +161,24 @@ function NotationContainerInner({ engineRef, notes, isTutor, onNotesEdit, isLand
                         backgroundColor: theme.surface,
                       },
                     ]}
-                    value={String(note.time)}
+                    value={timeStrings[idx] ?? String(note.time)}
                     onChangeText={(text) => {
-                      const updated = [...editingRow.notes];
-                      updated[idx] = {
-                        ...updated[idx],
-                        time: parseFloat(text) || 0,
-                      };
-                      setEditingRow({
-                        ...editingRow,
-                        notes: updated,
-                      });
+                      const updated = [...timeStrings];
+                      updated[idx] = text;
+                      setTimeStrings(updated);
+
+                      const parsed = parseFloat(text);
+                      if (!isNaN(parsed)) {
+                        const updatedNotes = [...editingRow!.notes];
+                        updatedNotes[idx] = {
+                          ...updatedNotes[idx],
+                          time: parsed,
+                        };
+                        setEditingRow({
+                          ...editingRow!,
+                          notes: updatedNotes,
+                        });
+                      }
                     }}
                     placeholder="0.00"
                     placeholderTextColor={theme.textDisabled}
