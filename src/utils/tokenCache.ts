@@ -1,34 +1,41 @@
-import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
-// TokenCache interface compatible with @clerk/clerk-expo
 export interface TokenCache {
   getToken: (key: string) => Promise<string | null>;
   saveToken: (key: string, value: string) => Promise<void>;
   clearToken?: (key: string) => Promise<void>;
 }
 
-const createTokenCache = (): TokenCache => ({
+export const tokenCache: TokenCache = {
   getToken: async (key: string) => {
-    if (Platform.OS === 'web') {
-      try { return localStorage.getItem(key); } catch { return null; }
+    try {
+      if (Platform.OS === 'web') {
+        return localStorage.getItem(key);
+      }
+      const SecureStore = await import('expo-secure-store');
+      return SecureStore.getItemAsync(key);
+    } catch {
+      return null;
     }
-    return SecureStore.getItemAsync(key);
   },
   saveToken: async (key: string, value: string) => {
-    if (Platform.OS === 'web') {
-      try { localStorage.setItem(key, value); } catch { /* ignore */ }
-      return;
-    }
-    return SecureStore.setItemAsync(key, value);
+    try {
+      if (Platform.OS === 'web') {
+        localStorage.setItem(key, value);
+        return;
+      }
+      const SecureStore = await import('expo-secure-store');
+      return SecureStore.setItemAsync(key, value);
+    } catch { /* ignore */ }
   },
   clearToken: async (key: string) => {
-    if (Platform.OS === 'web') {
-      try { localStorage.removeItem(key); } catch { /* ignore */ }
-      return;
-    }
-    return SecureStore.deleteItemAsync(key);
+    try {
+      if (Platform.OS === 'web') {
+        localStorage.removeItem(key);
+        return;
+      }
+      const SecureStore = await import('expo-secure-store');
+      return SecureStore.deleteItemAsync(key);
+    } catch { /* ignore */ }
   },
-});
-
-export const tokenCache = createTokenCache();
+};

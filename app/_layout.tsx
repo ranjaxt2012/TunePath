@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { Platform } from 'react-native';
 import { Slot, useRouter, useSegments } from 'expo-router';
 import { ClerkProvider, useAuth } from '@clerk/clerk-expo';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -57,7 +58,10 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <ClerkProvider publishableKey={CLERK_KEY} tokenCache={tokenCache}>
+        <ClerkProvider
+          publishableKey={CLERK_KEY}
+          tokenCache={Platform.OS === 'web' ? undefined : tokenCache}
+        >
           <ThemeProvider>
             <AuthGuard />
           </ThemeProvider>

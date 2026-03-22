@@ -1,78 +1,15 @@
-env: load .env.local
-env: export EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY EXPO_PUBLIC_API_URL
-Starting project at /Users/anupstakshak/repo/TunePathWorkdir/TunePath
+env: load .env.local .env
+env: export FIGMA_TOKEN FIGMA_FILE_KEY EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY EXPO_PUBLIC_API_URL EXPO_PUBLIC_API_URL_WEB
+Starting project at /Users/anupsingh/repo/TunePathWorkdir/TunePath
 Starting Metro Bundler
 warning: Bundler cache is empty, rebuilding (this may take a minute)
-The following packages should be updated for best compatibility with the installed expo version:
-  expo-audio@55.0.9 - expected version: ~1.1.1
-Your project may not work correctly until you install the expected versions of the packages.
 Waiting on http://localhost:8081
 Logs for your project will appear below.
-iOS node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
-iOS node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓░░░░░░░ 60.2% (705/909)
-iOS node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓░░░░░ 72.2% (1129/1329)
-iOS node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░ 95.7% (1671/1708)
-iOS Bundled 12041ms node_modules/expo-router/entry.js (1742 modules)
- WARN  Clerk: Clerk has been loaded with development keys. Development instances have strict usage limits and should not be used when deploying your application to production. Learn more: https://clerk.com/docs/deployments/overview
- LOG  🎬[PLAYER][16.40s] statusChange {"status": "readyToPlay"}
- LOG  🎬[PLAYER][16.40s] playingChange {"playing": true}
- LOG  🎬[PLAYER][16.40s] ⚠️ unexpected pause - possible buffer {"time": 0}
- LOG  🎬[PLAYER][16.40s] playingChange {"playing": false}
- LOG  🎬[PLAYER][19.96s] playingChange {"playing": true}
- LOG  🎬[PLAYER][21.15s] ⚠️ unexpected pause - possible buffer {"time": 0.936865676}
- LOG  🎬[PLAYER][21.15s] playingChange {"playing": false}
- LOG  🎬[PLAYER][21.70s] playingChange {"playing": true}
- LOG  🎬[PLAYER][21.74s] position {"speed": 1, "time": "1.0"}
- LOG  🎬[PLAYER][21.86s] ⚠️ unexpected pause - possible buffer {"time": 1.053712483}
- LOG  🎬[PLAYER][21.86s] playingChange {"playing": false}
- LOG  🎬[PLAYER][22.36s] playingChange {"playing": true}
- LOG  🎬[PLAYER][23.28s] position {"speed": 1, "time": "2.0"}
- LOG  🎬[PLAYER][24.38s] position {"speed": 1, "time": "3.1"}
- LOG  🎬[PLAYER][25.13s] ⚠️ unexpected pause - possible buffer {"time": 3.787935207}
- LOG  🎬[PLAYER][25.13s] playingChange {"playing": false}
- LOG  🎬[PLAYER][25.37s] playingChange {"playing": true}
- LOG  🎬[PLAYER][25.75s] position {"speed": 1, "time": "4.2"}
- LOG  🎬[PLAYER][26.86s] position {"speed": 1, "time": "5.3"}
- LOG  🎬[PLAYER][27.85s] ⚠️ unexpected pause - possible buffer {"time": 6.256851697}
- LOG  🎬[PLAYER][27.85s] playingChange {"playing": false}
- LOG  🎬[PLAYER][28.21s] playingChange {"playing": true}
- LOG  🎬[PLAYER][28.34s] position {"speed": 1, "time": "6.4"}
- LOG  🎬[PLAYER][29.39s] ⚠️ unexpected pause - possible buffer {"time": 7.391419941}
- LOG  🎬[PLAYER][29.39s] playingChange {"playing": false}
- LOG  🎬[PLAYER][29.65s] playingChange {"playing": true}
- LOG  🎬[PLAYER][29.66s] position {"speed": 1, "time": "7.4"}
- LOG  🎬[PLAYER][30.74s] position {"speed": 1, "time": "8.5"}
- LOG  🎬[PLAYER][31.74s] position {"speed": 1, "time": "9.5"}
- LOG  🎬[PLAYER][32.08s] ⚠️ unexpected pause - possible buffer {"time": 9.788698971}
- LOG  🎬[PLAYER][32.08s] playingChange {"playing": false}
- LOG  🎬[PLAYER][32.39s] playingChange {"playing": true}
- LOG  🎬[PLAYER][33.18s] position {"speed": 1, "time": "10.6"}
- LOG  🎬[PLAYER][34.18s] position {"speed": 1, "time": "11.6"}
- LOG  🎬[PLAYER][34.95s] ⚠️ unexpected pause - possible buffer {"time": 12.321632576}
- LOG  🎬[PLAYER][34.96s] playingChange {"playing": false}
- LOG  🎬[PLAYER][35.45s] playingChange {"playing": true}
- LOG  🎬[PLAYER][35.71s] position {"speed": 1, "time": "12.6"}
- LOG  🎬[PLAYER][36.81s] position {"speed": 1, "time": "13.7"}
- LOG  🎬[PLAYER][37.81s] position {"speed": 1, "time": "14.7"}
- LOG  🎬[PLAYER][38.35s] ⚠️ unexpected pause - possible buffer {"time": 15.188067012}
- LOG  🎬[PLAYER][38.35s] playingChange {"playing": false}
- LOG  🎬[PLAYER][38.62s] playingChange {"playing": true}
- LOG  🎬[PLAYER][39.21s] position {"speed": 1, "time": "15.8"}
- LOG  🎬[PLAYER][40.21s] position {"speed": 1, "time": "16.8"}
- LOG  🎬[PLAYER][41.31s] position {"speed": 1, "time": "17.9"}
- LOG  🎬[PLAYER][42.41s] position {"speed": 1, "time": "19.0"}
- LOG  🎬[PLAYER][43.41s] position {"speed": 1, "time": "20.0"}
- LOG  🎬[PLAYER][44.51s] position {"speed": 1, "time": "21.1"}
- LOG  🎬[PLAYER][44.64s] ⚠️ unexpected pause - possible buffer {"time": 21.173042748}
- LOG  🎬[PLAYER][44.64s] playingChange {"playing": false}
- LOG  🎬[PLAYER][44.85s] playingChange {"playing": true}
- LOG  🎬[PLAYER][45.74s] position {"speed": 1, "time": "22.1"}
- LOG  🎬[PLAYER][46.07s] ⚠️ unexpected pause - possible buffer {"time": 22.373214787}
- LOG  🎬[PLAYER][46.07s] playingChange {"playing": false}
- LOG  🎬[PLAYER][46.23s] playingChange {"playing": true}
- LOG  🎬[PLAYER][47.04s] position {"speed": 1, "time": "23.2"}
- LOG  🎬[PLAYER][48.03s] playingChange {"playing": false}
- LOG  🎬[PLAYER][78.35s] statusChange {"status": "readyToPlay"}
- LOG  🎬[PLAYER][78.35s] playingChange {"playing": true}
- LOG  🎬[PLAYER][78.35s] ⚠️ unexpected pause - possible buffer {"time": 0}
- LOG  🎬[PLAYER][78.35s] playingChange {"playing": false}
+Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓░░░ 87.4% (1274/1363)
+λ node_modules/expo-router/node/render.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░ 95.3% (1383/1417)
+λ Bundled 3554ms node_modules/expo-router/node/render.js (1417 modules)
+"shadow*" style props are deprecated. Use "boxShadow".
+[expo-av]: Expo AV has been deprecated and will be removed in SDK 54. Use the `expo-audio` and `expo-video` packages to replace the required functionality.
+Web Bundled 4256ms node_modules/expo-router/entry.js (1508 modules)
+Web Bundled 1638ms node_modules/expo-router/entry.js (1526 modules)
