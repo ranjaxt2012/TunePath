@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
 import { Slot, useRouter, useSegments } from 'expo-router';
-import { ClerkProvider, useAuth } from '@clerk/clerk-expo';
+import { ClerkProvider, useAuth, useUser } from '@clerk/clerk-expo';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ThemeProvider } from '@/src/design';
@@ -14,6 +14,7 @@ const CLERK_KEY = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY ?? '';
 
 function AuthGuard() {
   const { isSignedIn, isLoaded, getToken } = useAuth();
+  const { user } = useUser();
   const router = useRouter();
   const segments = useSegments();
   const hasOnboarded = useAuthStore((s) => s.hasOnboarded);
@@ -28,10 +29,22 @@ function AuthGuard() {
     }
     let cancelled = false;
     getToken()
-      .then((token) => {
+      .then(async (token) => {
         if (cancelled) return;
         setAuthToken(token);
-        return api.post('/api/auth/sync', {});
+        try {
+          await api.post('/api/auth/sync', {
+            clerkUserId: user?.id ?? '',
+            email: user?.primaryEmailAddress?.emailAddress ?? '',
+            displayName:
+              user?.fullName ??
+              (`${user?.firstName ?? ''} ${user?.lastName ?? ''}`.trim() ||
+                (user?.primaryEmailAddress?.emailAddress ?? '')),
+            avatarUrl: user?.imageUrl ?? null,
+          });
+        } catch (err) {
+          Log.auth('sync failed', err);
+        }
       })
       .catch(() => {});
     return () => {

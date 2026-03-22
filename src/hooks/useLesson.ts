@@ -88,7 +88,8 @@ export function useLesson(id: string | undefined) {
     };
 
     void fetchLesson();
-  }, [id, getToken]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run if id changes
+  }, [id]);
 
   return { lesson, notes, loading, error };
 }
