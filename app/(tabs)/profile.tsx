@@ -50,11 +50,6 @@ export default function ProfileScreen() {
       ? `${user.firstName} ${user.lastName}`
       : user?.firstName ?? user?.email ?? 'User';
 
-  const initials =
-    user?.firstName && user?.lastName
-      ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase()
-      : (user?.firstName?.[0] ?? user?.email?.[0] ?? 'U').toUpperCase();
-
   const handleSignOut = async () => {
     await signOut();
     clearUser();
@@ -75,7 +70,7 @@ export default function ProfileScreen() {
       >
         {/* Avatar + identity */}
         <View style={styles.profileHeader}>
-          <Avatar name={initials} size={72} />
+          <Avatar name={displayName} size={72} />
           <View style={styles.profileInfo}>
             <Text style={[styles.displayName, { color: theme.textPrimary }]}>{displayName}</Text>
             {trustTier === 'verified' && (
