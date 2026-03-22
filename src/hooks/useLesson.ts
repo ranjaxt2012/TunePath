@@ -100,16 +100,25 @@ export function useLesson(id: string | undefined) {
 
         // Fetch notation if available
         if ((data as any).notation_url) {
-          try {
-            const notationData = await fetch((data as any).notation_url).then((r) =>
-              r.json()
-            );
-            const noteArray = convertSectionsToNotes(notationData);
-            setNotes(noteArray);
-          } catch (err) {
-            Log.apiError('notation fetch failed', err);
-            setNotes([]);
-          }
+          const notationUrl = (data as any).notation_url;
+          fetch(notationUrl)
+            .then((r) => {
+              console.log('notation status:', r.status);
+              return r.json();
+            })
+            .then((notationData) => {
+              console.log('notation raw data:', JSON.stringify(notationData));
+              console.log('notation data:', notationData);
+              const noteArray = convertSectionsToNotes(notationData);
+              console.log('converted notes:', noteArray.length, noteArray[0]);
+              console.log('notes:', noteArray.length);
+              setNotes(noteArray);
+            })
+            .catch((err) => {
+              console.error('notation error:', err);
+              Log.apiError('notation fetch failed', err);
+              setNotes([]);
+            });
         } else if (__DEV__) {
           setNotes(generateMockNotes());
         } else {
