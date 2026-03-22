@@ -1,18 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { View, Text, ScrollView, StyleSheet, Platform, TouchableOpacity, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '@clerk/clerk-expo';
 import { useTheme, Spacing, FontSize, Radius } from '@/src/design';
-import { useLessons } from '@/src/hooks/useLessons';
-import { BASE_URL } from '@/src/services/api';
+import { api, setAuthToken } from '@/src/services/api';
 import { LessonCard } from '@/src/components/ui/LessonCard';
 import { TagChip } from '@/src/components/ui/TagChip';
 import { SectionHeader } from '@/src/components/ui/SectionHeader';
 import { EmptyState } from '@/src/components/ui/EmptyState';
 import { LoadingCard } from '@/src/components/ui/LoadingCard';
 import { Log } from '@/src/utils/log';
+import type { Lesson } from '@/src/types/models';
 
 const WEB_CONTENT_MAX = 960;
 
@@ -28,10 +29,8 @@ const TAGS = [
   'Devotional',
 ];
 
-// Map display tag label → instrument/tag query value
-function tagToInstrument(tag: string): string | undefined {
+function tagToSlug(tag: string): string | undefined {
   if (tag === 'All') return undefined;
-  // Strip emoji and lowercase
   return tag.replace(/\s*[\u{1F300}-\u{1FAFF}]/gu, '').trim().toLowerCase();
 }
 
@@ -44,58 +43,124 @@ function formatDuration(seconds: number): string {
 export default function DiscoverScreen() {
   const { theme } = useTheme();
   const router = useRouter();
+  const { getToken } = useAuth();
   const isWeb = Platform.OS === 'web';
-  const [activeTag, setActiveTag] = useState('All');
 
-  const instrument = tagToInstrument(activeTag);
-
-  // Three separate data fetches for three rows
-  const {
-    lessons: trending,
-    loading: loadTrending,
-    error: errorTrending,
-    refetch: refetchTrending,
-  } = useLessons({ sort: 'trending', limit: 10, instrument });
-
-  const {
-    lessons: newLessons,
-    loading: loadNew,
-    refetch: refetchNew,
-  } = useLessons({ sort: 'new', limit: 10, instrument });
-
-  const {
-    lessons: harmonium,
-    loading: loadHarmonium,
-  } = useLessons({ instrument: 'harmonium', limit: 10 });
-
-  const featured = trending[0];
-  const cardWidth = isWeb ? 220 : 140;
-  const thumbHeight = isWeb ? 124 : 90;
-
-  const hPad = isWeb ? Spacing.xl : Spacing.lg;
+  // ── Single fetch, single loading flag ──────────────────────────────────────
+  const [trending, setTrending] = useState<Lesson[]>([]);
+  const [newLessons, setNewLessons] = useState<Lesson[]>([]);
+  const [harmonium, setHarmonium] = useState<Lesson[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const hasFetched = useRef(false);
 
   useEffect(() => {
+    if (hasFetched.current) return;
+    hasFetched.current = true;
+
     Log.ui('discover mounted');
-    Log.api('fetching lessons', { BASE_URL });
+
+    const fetchAll = async () => {
+      try {
+        const token = await getToken();
+        setAuthToken(token);
+        const [t, n, h] = await Promise.all([
+          api.get<Lesson[]>('/api/lessons?sort=trending&limit=10'),
+          api.get<Lesson[]>('/api/lessons?sort=new&limit=10'),
+          api.get<Lesson[]>('/api/lessons?instrument=harmonium&limit=10'),
+        ]);
+        setTrending(t);
+        setNewLessons(n);
+        setHarmonium(h);
+        Log.api('discover fetch ok', { trending: t.length, new: n.length, harmonium: h.length });
+      } catch (err: any) {
+        Log.apiError('discover fetch failed', err);
+        setFetchError(err?.message ?? 'Failed to load lessons');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void fetchAll();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- fetch once on mount
   }, []);
 
-  // Error state — show if trending fails (primary data source)
-  if (!loadTrending && errorTrending) {
+  // ── Client-side tag filter (no re-fetch) ───────────────────────────────────
+  const [activeTag, setActiveTag] = useState('All');
+  const activeSlug = tagToSlug(activeTag);
+
+  const filteredTrending = useMemo(() => {
+    if (!activeSlug) return trending;
+    return trending.filter(
+      (l) => l.instrument_slug === activeSlug || (l as any).tags?.includes(activeSlug)
+    );
+  }, [activeSlug, trending]);
+
+  const filteredNew = useMemo(() => {
+    if (!activeSlug) return newLessons;
+    return newLessons.filter(
+      (l) => l.instrument_slug === activeSlug || (l as any).tags?.includes(activeSlug)
+    );
+  }, [activeSlug, newLessons]);
+
+  // ── Derived values ─────────────────────────────────────────────────────────
+  const featuredLesson = filteredTrending[0] ?? null;
+  const cardWidth = isWeb ? 220 : 140;
+  const thumbHeight = isWeb ? 124 : 90;
+  const hPad = isWeb ? Spacing.xl : Spacing.lg;
+
+  // ── Stable onPress callbacks ───────────────────────────────────────────────
+  const handleFeaturedPress = useCallback(() => {
+    if (featuredLesson) router.push(`/lesson/${featuredLesson.id}` as any);
+  }, [featuredLesson, router]);
+
+  const handleCreatePress = useCallback(() => {
+    router.push('/(tabs)/create' as any);
+  }, [router]);
+
+  const handleRetry = useCallback(() => {
+    hasFetched.current = false;
+    setFetchError(null);
+    setLoading(true);
+    // Re-trigger by resetting the guard — component will re-mount or we manually re-call
+    const refetch = async () => {
+      try {
+        const token = await getToken();
+        setAuthToken(token);
+        const [t, n, h] = await Promise.all([
+          api.get<Lesson[]>('/api/lessons?sort=trending&limit=10'),
+          api.get<Lesson[]>('/api/lessons?sort=new&limit=10'),
+          api.get<Lesson[]>('/api/lessons?instrument=harmonium&limit=10'),
+        ]);
+        setTrending(t);
+        setNewLessons(n);
+        setHarmonium(h);
+      } catch (err: any) {
+        setFetchError(err?.message ?? 'Failed to load lessons');
+      } finally {
+        setLoading(false);
+      }
+    };
+    void refetch();
+  }, [getToken]);
+
+  // ── Error state ────────────────────────────────────────────────────────────
+  if (!loading && fetchError) {
     return (
       <SafeAreaView style={[styles.flex, { backgroundColor: theme.background }]}>
         <EmptyState
           emoji="⚠️"
           title="Something went wrong"
-          subtitle={errorTrending ?? 'Failed to load lessons'}
+          subtitle={fetchError}
           actionLabel="Retry"
-          onAction={refetchTrending}
+          onAction={handleRetry}
         />
       </SafeAreaView>
     );
   }
 
-  // Empty state — no trending lessons and not loading
-  if (!loadTrending && trending.length === 0 && !errorTrending) {
+  // ── Empty state ────────────────────────────────────────────────────────────
+  if (!loading && trending.length === 0) {
     return (
       <SafeAreaView style={[styles.flex, { backgroundColor: theme.background }]}>
         <EmptyState
@@ -103,7 +168,7 @@ export default function DiscoverScreen() {
           title="No lessons yet 🎵"
           subtitle="Be the first to create one"
           actionLabel="Create"
-          onAction={() => router.push('/(tabs)/create' as any)}
+          onAction={handleCreatePress}
         />
       </SafeAreaView>
     );
@@ -146,7 +211,7 @@ export default function DiscoverScreen() {
 
           {/* ── Featured hero ── */}
           <View style={[styles.heroWrapper, { paddingHorizontal: hPad }]}>
-            {loadTrending ? (
+            {loading ? (
               <View
                 style={[
                   styles.heroShimmer,
@@ -157,22 +222,18 @@ export default function DiscoverScreen() {
                   },
                 ]}
               />
-            ) : featured ? (
+            ) : featuredLesson ? (
               <TouchableOpacity
                 style={[
                   styles.heroCard,
-                  {
-                    aspectRatio: isWeb ? 16 / 6 : 16 / 9,
-                    borderRadius: Radius.lg,
-                  },
+                  { aspectRatio: isWeb ? 16 / 6 : 16 / 9, borderRadius: Radius.lg },
                 ]}
-                onPress={() => router.push(`/lesson/${featured.id}` as any)}
+                onPress={handleFeaturedPress}
                 activeOpacity={0.9}
               >
-                {/* Background */}
-                {featured.thumbnail_url ? (
+                {featuredLesson.thumbnail_url ? (
                   <Image
-                    source={{ uri: featured.thumbnail_url }}
+                    source={{ uri: featuredLesson.thumbnail_url }}
                     style={StyleSheet.absoluteFillObject}
                     resizeMode="cover"
                   />
@@ -180,38 +241,37 @@ export default function DiscoverScreen() {
                   <View style={[StyleSheet.absoluteFillObject, { backgroundColor: theme.surfaceHigh }]} />
                 )}
 
-                {/* Duration badge */}
                 <View style={[styles.heroDuration, { backgroundColor: theme.overlay }]}>
-                  <Text style={[styles.heroDurationText, { color: '#FFFFFF' }]}>
-                    {formatDuration(featured.duration_seconds)}
+                  <Text style={styles.heroDurationText}>
+                    {formatDuration(featuredLesson.duration_seconds)}
                   </Text>
                 </View>
 
-                {/* Center play button */}
                 <View style={styles.heroPlayBtn}>
                   <Ionicons name="play" size={28} color="#FFFFFF" style={{ marginLeft: 3 }} />
                 </View>
 
-                {/* Bottom overlay */}
                 <LinearGradient
                   colors={['transparent', 'rgba(0,0,0,0.8)']}
                   style={styles.heroGradient}
                 >
                   <View style={styles.heroMeta}>
-                    {featured.level_slug && (
+                    {featuredLesson.level_slug && (
                       <View style={[styles.levelBadge, { backgroundColor: theme.primary }]}>
                         <Text style={[styles.levelText, { color: theme.textOnPrimary }]}>
-                          {featured.level_slug}
+                          {featuredLesson.level_slug}
                         </Text>
                       </View>
                     )}
                   </View>
-                  <Text style={styles.heroTitle} numberOfLines={2}>{featured.title}</Text>
+                  <Text style={styles.heroTitle} numberOfLines={2}>
+                    {featuredLesson.title}
+                  </Text>
                   <View style={styles.heroCreatorRow}>
                     <Text style={styles.heroCreator} numberOfLines={1}>
-                      {featured.creator_name ?? 'Unknown'}
+                      {featuredLesson.creator_name ?? 'Unknown'}
                     </Text>
-                    {featured.creator_verified && (
+                    {featuredLesson.creator_verified && (
                       <Text style={[styles.verifiedDot, { color: theme.primary }]}> •</Text>
                     )}
                   </View>
@@ -227,11 +287,11 @@ export default function DiscoverScreen() {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={[styles.rowContent, { paddingHorizontal: hPad }]}
           >
-            {loadTrending
+            {loading
               ? Array.from({ length: 5 }).map((_, i) => (
                   <LoadingCard key={i} width={cardWidth} thumbHeight={thumbHeight} />
                 ))
-              : trending.slice(1).map((lesson) => (
+              : filteredTrending.slice(1).map((lesson) => (
                   <LessonCard
                     key={lesson.id}
                     lesson={lesson}
@@ -250,11 +310,11 @@ export default function DiscoverScreen() {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={[styles.rowContent, { paddingHorizontal: hPad }]}
           >
-            {loadNew
+            {loading
               ? Array.from({ length: 5 }).map((_, i) => (
                   <LoadingCard key={i} width={cardWidth} thumbHeight={thumbHeight} />
                 ))
-              : newLessons.map((lesson) => (
+              : filteredNew.map((lesson) => (
                   <LessonCard
                     key={lesson.id}
                     lesson={lesson}
@@ -273,7 +333,7 @@ export default function DiscoverScreen() {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={[styles.rowContent, { paddingHorizontal: hPad }]}
           >
-            {loadHarmonium
+            {loading
               ? Array.from({ length: 5 }).map((_, i) => (
                   <LoadingCard key={i} width={cardWidth} thumbHeight={thumbHeight} />
                 ))
@@ -296,15 +356,9 @@ export default function DiscoverScreen() {
 }
 
 const styles = StyleSheet.create({
-  flex: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: Spacing.xxxl,
-  },
-  container: {
-    // max-width centering applied inline for web
-  },
+  flex: { flex: 1 },
+  scrollContent: { paddingBottom: Spacing.xxxl },
+  container: {},
   title: {
     fontSize: FontSize.hero,
     fontWeight: 'bold',
@@ -317,12 +371,8 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.md,
     paddingRight: Spacing.xl,
   },
-  heroWrapper: {
-    marginBottom: Spacing.lg,
-  },
-  heroShimmer: {
-    width: '100%',
-  },
+  heroWrapper: { marginBottom: Spacing.lg },
+  heroShimmer: { width: '100%' },
   heroCard: {
     width: '100%',
     overflow: 'hidden',
@@ -340,6 +390,7 @@ const styles = StyleSheet.create({
   heroDurationText: {
     fontSize: FontSize.xs,
     fontWeight: '600',
+    color: '#FFFFFF',
   },
   heroPlayBtn: {
     width: 60,
@@ -380,19 +431,13 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     lineHeight: 24,
   },
-  heroCreatorRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
+  heroCreatorRow: { flexDirection: 'row', alignItems: 'center' },
   heroCreator: {
     fontSize: FontSize.sm,
     color: 'rgba(255,255,255,0.85)',
     fontWeight: '500',
   },
-  verifiedDot: {
-    fontSize: FontSize.sm,
-    fontWeight: '700',
-  },
+  verifiedDot: { fontSize: FontSize.sm, fontWeight: '700' },
   rowContent: {
     flexDirection: 'row',
     gap: Spacing.sm,
