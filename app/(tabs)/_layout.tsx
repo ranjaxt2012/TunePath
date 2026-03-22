@@ -156,20 +156,18 @@ const styles = StyleSheet.create({
 
 export default function TabLayout() {
   return (
-    <WebLayout>
-      <View style={{ flex: 1 }}>
-        <Tabs
-          screenOptions={{ headerShown: false }}
-          tabBar={(props) => <CustomTabBar {...props} />}
-        >
-          <Tabs.Screen name="discover" />
-          <Tabs.Screen name="learning" />
-          <Tabs.Screen name="create" />
-          <Tabs.Screen name="profile" />
-        </Tabs>
-        {Platform.OS !== 'web' && <SupportBot />}
-        <AppTour />
-      </View>
-    </WebLayout>
+    <View style={{ flex: 1 }}>
+      <Tabs
+        screenOptions={{ headerShown: false }}
+        tabBar={(props) => <CustomTabBar {...props} />}
+      >
+        <Tabs.Screen name="discover" />
+        <Tabs.Screen name="learning" />
+        <Tabs.Screen name="create" />
+        <Tabs.Screen name="profile" />
+      </Tabs>
+      {Platform.OS !== 'web' && <SupportBot />}
+      <AppTour />
+    </View>
   );
 }
