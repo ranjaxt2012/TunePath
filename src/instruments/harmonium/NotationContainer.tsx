@@ -1,6 +1,6 @@
 import React, { memo, useEffect, useState, RefObject } from 'react';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
-import { useTheme } from '@/src/design';
+import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
+import { useTheme, FontSize } from '@/src/design';
 import { ScrollingNotation } from './ScrollingNotation';
 import { SargamPlayerEngine, type Note } from './SargamPlayerEngine';
 
@@ -27,8 +27,16 @@ function NotationContainerInner({ engineRef, notes, isTutor, onNotesEdit, isLand
 
   if (notes.length === 0) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator color={theme.textSecondary} />
+      <View style={styles.empty}>
+        <Text
+          style={{
+            color: theme.textDisabled,
+            fontSize: FontSize.sm,
+            textAlign: 'center',
+          }}
+        >
+          🎵 Notation loading...
+        </Text>
       </View>
     );
   }
@@ -56,4 +64,5 @@ export const NotationContainer = memo(NotationContainerInner, arePropsEqual);
 const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  empty: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 });

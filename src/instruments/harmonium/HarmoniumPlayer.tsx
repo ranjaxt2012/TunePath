@@ -1,7 +1,9 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet, Platform, TouchableOpacity } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
-import { useTheme, Spacing, FontSize } from '@/src/design';
+import { useTheme, Spacing, FontSize, Radius } from '@/src/design';
 import { useProgressStore } from '@/src/store/progressStore';
 import { VideoPlayer } from './VideoPlayer';
 import { NotationContainer } from './NotationContainer';
@@ -22,7 +24,10 @@ const MOCK_VIDEO_URL = require('../../../assets/instruments/harmonium/test_lesso
 
 export function HarmoniumPlayer({ lesson, notes = [], onComplete }: HarmoniumPlayerProps) {
   const { theme } = useTheme();
+  const router = useRouter();
   const { isLandscape } = useOrientation();
+  const markComplete = useProgressStore((s) => s.markComplete);
+  const isComplete = useProgressStore((s) => s.isComplete);
   const isWeb = Platform.OS === 'web';
   const showSideBySide = isLandscape || isWeb;
 
@@ -35,6 +40,41 @@ export function HarmoniumPlayer({ lesson, notes = [], onComplete }: HarmoniumPla
 
   const savePosition = useProgressStore((s) => s.savePosition);
   const getPosition = useProgressStore((s) => s.getPosition);
+
+  const header = (
+    <View
+      style={[
+        styles.header,
+        {
+          backgroundColor: theme.background,
+          borderBottomColor: theme.border,
+        },
+      ]}
+    >
+      <TouchableOpacity
+        onPress={() => router.back()}
+        style={[styles.backBtn, { backgroundColor: theme.surface }]}
+      >
+        <Ionicons name="chevron-back" size={20} color={theme.textPrimary} />
+      </TouchableOpacity>
+      <Text
+        numberOfLines={1}
+        style={[styles.headerTitle, { color: theme.textPrimary }]}
+      >
+        {lesson.title}
+      </Text>
+      <TouchableOpacity
+        onPress={() => markComplete(lesson.id)}
+        style={styles.completeBtn}
+      >
+        <Ionicons
+          name={isComplete(lesson.id) ? 'checkmark-circle' : 'checkmark-circle-outline'}
+          size={24}
+          color={isComplete(lesson.id) ? theme.success : theme.textDisabled}
+        />
+      </TouchableOpacity>
+    </View>
+  );
 
   const videoSource = useMemo(
     () => (lesson.video_url ? { uri: lesson.video_url } : MOCK_VIDEO_URL),
@@ -139,6 +179,7 @@ export function HarmoniumPlayer({ lesson, notes = [], onComplete }: HarmoniumPla
   if (showSideBySide) {
     return (
       <View style={[styles.container, { backgroundColor: theme.background }]}>
+        {header}
         {/* Video side */}
         <View style={styles.sideBySideVideo}>
           <VideoPlayer
@@ -165,6 +206,7 @@ export function HarmoniumPlayer({ lesson, notes = [], onComplete }: HarmoniumPla
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
+      {header}
       {/* Video (16:9) */}
       <VideoPlayer
         source={videoSource}
@@ -190,6 +232,29 @@ export function HarmoniumPlayer({ lesson, notes = [], onComplete }: HarmoniumPla
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  header: {
+    height: 52,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    gap: Spacing.sm,
+    borderBottomWidth: 0.5,
+  },
+  backBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: Radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    flex: 1,
+    fontSize: FontSize.md,
+    fontWeight: '600',
+  },
+  completeBtn: {
+    padding: Spacing.xs,
   },
   horizontalDivider: {
     width: '100%',

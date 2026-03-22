@@ -11,7 +11,7 @@ import { Log } from '@/src/utils/log';
 export default function LessonPlayerScreen() {
   const { theme } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { lesson, loading, error } = useLesson(id);
+  const { lesson, notes, loading, error } = useLesson(id);
 
   useEffect(() => {
     Log.nav('opening lesson', { id });
@@ -66,7 +66,7 @@ export default function LessonPlayerScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <Player lesson={lesson} />
+      <Player lesson={lesson} notes={notes} />
     </View>
   );
 }

@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { View, Image, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Image, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Video, ResizeMode } from 'expo-av';
@@ -42,6 +42,37 @@ function VideoPlayerInner({
             <Ionicons name="play" size={28} color={theme.textOnPrimary} style={{ marginLeft: 3 }} />
           </View>
         </TouchableOpacity>
+      ) : Platform.OS === 'web' ? (
+        <video
+          src={
+            typeof source === 'object' && source && 'uri' in source
+              ? (source as { uri?: string }).uri
+              : undefined
+          }
+          controls
+          autoPlay
+          style={{
+            width: '100%',
+            height: '100%',
+            backgroundColor: '#000',
+            objectFit: 'contain',
+          } as any}
+          onTimeUpdate={(e: any) => {
+            const currentTime = (e.target as HTMLVideoElement).currentTime;
+            onPlaybackStatus({
+              isLoaded: true,
+              isPlaying: true,
+              positionMillis: currentTime * 1000,
+              durationMillis: 0,
+              rate: 1,
+              shouldPlay: true,
+              volume: 1,
+              isMuted: false,
+              isBuffering: false,
+              didJustFinish: false,
+            } as any);
+          }}
+        />
       ) : (
         <Video
           source={source}
@@ -57,7 +88,13 @@ function VideoPlayerInner({
 }
 
 function arePropsEqual(p: VideoPlayerProps, n: VideoPlayerProps) {
-  return p.started === n.started && p.isLandscape === n.isLandscape && p.source === n.source;
+  // Once started, NEVER re-render video from parent state changes
+  if (p.started && n.started) return true;
+  return (
+    p.started === n.started &&
+    p.isLandscape === n.isLandscape &&
+    p.source === n.source
+  );
 }
 
 export const VideoPlayer = memo(VideoPlayerInner, arePropsEqual);
