@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Modal, Pressable, Platform } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Modal, Pressable, Platform, Dimensions } from 'react-native';
+import ColorPicker, { Panel1, Swatches, Preview, HueSlider } from 'reanimated-color-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@clerk/clerk-expo';
@@ -10,10 +11,8 @@ import {
   Spacing,
   Radius,
   FontSize,
-  THEMES,
   STANDARD_THEMES,
   SEASONAL_THEMES,
-  ThemeId,
   HoliGradient,
 } from '@/src/design';
 import { useAuthStore } from '@/src/store/authStore';
@@ -21,14 +20,7 @@ import { Avatar } from '@/src/components/ui/Avatar';
 
 const WEB_CONTENT_MAX = 960;
 
-const CUSTOM_COLORS = [
-  '#EF4444', '#F97316', '#EAB308',
-  '#22C55E', '#14B8A6', '#3B82F6',
-  '#8B5CF6', '#EC4899', '#64748B',
-  '#DC2626', '#EA580C', '#CA8A04',
-  '#16A34A', '#0D9488', '#2563EB',
-  '#7C3AED', '#DB2777', '#475569',
-];
+const SCREEN_HEIGHT = Dimensions.get('window').height;
 
 export default function ProfileScreen() {
   const { theme, themeId, setTheme } = useTheme();
@@ -44,6 +36,21 @@ export default function ProfileScreen() {
   const selectedTheme = themeId;
 
   const [colorModalVisible, setColorModalVisible] = useState(false);
+  const [pickedColor, setPickedColor] = useState('#8B5CF6');
+
+  const handleColorComplete = useCallback(({ hex }: { hex: string }) => {
+    setPickedColor(hex);
+  }, []);
+
+  const handleApplyColor = useCallback(() => {
+    setTheme('custom', {
+      primary: pickedColor,
+      primaryLight: pickedColor + 'CC',
+      primaryDark: pickedColor + 'EE',
+      gradient: [pickedColor, pickedColor, pickedColor, pickedColor] as any,
+    });
+    setColorModalVisible(false);
+  }, [pickedColor, setTheme]);
 
   const displayName =
     user?.firstName && user?.lastName
@@ -225,11 +232,11 @@ export default function ProfileScreen() {
         </View>
       </ScrollView>
 
-      {/* Custom color modal */}
+      {/* Custom color picker modal */}
       <Modal
         visible={colorModalVisible}
         transparent
-        animationType="fade"
+        animationType="slide"
         onRequestClose={() => setColorModalVisible(false)}
       >
         <Pressable
@@ -237,30 +244,43 @@ export default function ProfileScreen() {
           onPress={() => setColorModalVisible(false)}
         >
           <Pressable
-            style={[styles.colorModalSheet, { backgroundColor: theme.modalBg, borderRadius: Radius.xl }]}
+            style={[
+              styles.colorModalSheet,
+              { backgroundColor: theme.modalBg, borderTopLeftRadius: Radius.xl, borderTopRightRadius: Radius.xl, height: SCREEN_HEIGHT * 0.7 },
+            ]}
             onPress={(e) => e.stopPropagation()}
           >
-            <Text style={[styles.colorModalTitle, { color: theme.textPrimary }]}>Custom Color</Text>
-            <View style={styles.colorGrid}>
-              {CUSTOM_COLORS.map((color) => (
-                <TouchableOpacity
-                  key={color}
-                  style={[
-                    styles.colorSwatch,
-                    { backgroundColor: color, borderRadius: Radius.md },
-                    THEMES.custom.primary === color &&
-                      selectedTheme === 'custom' && {
-                        borderWidth: 3,
-                        borderColor: theme.textPrimary,
-                      },
-                  ]}
-                  onPress={() => {
-                    // In a real impl, we'd mutate the custom theme primary color here
-                    setTheme('custom');
-                    setColorModalVisible(false);
-                  }}
-                />
-              ))}
+            <View style={styles.colorModalHandle}>
+              <View style={[styles.handleBar, { backgroundColor: theme.border }]} />
+            </View>
+            <Text style={[styles.colorModalTitle, { color: theme.textPrimary }]}>Pick your color 🎨</Text>
+
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.pickerContent}>
+              <ColorPicker
+                style={styles.colorPicker}
+                value={pickedColor}
+                onComplete={handleColorComplete}
+              >
+                <Preview />
+                <Panel1 />
+                <HueSlider />
+                <Swatches />
+              </ColorPicker>
+            </ScrollView>
+
+            <View style={styles.colorModalActions}>
+              <TouchableOpacity
+                style={[styles.colorActionBtn, { backgroundColor: theme.surface, borderRadius: Radius.md }]}
+                onPress={() => setColorModalVisible(false)}
+              >
+                <Text style={[styles.colorActionText, { color: theme.textSecondary }]}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.colorActionBtn, { backgroundColor: pickedColor, borderRadius: Radius.md }]}
+                onPress={handleApplyColor}
+              >
+                <Text style={[styles.colorActionText, { color: '#FFFFFF' }]}>Apply</Text>
+              </TouchableOpacity>
             </View>
           </Pressable>
         </Pressable>
@@ -384,27 +404,47 @@ const styles = StyleSheet.create({
   },
   colorModalOverlay: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: Spacing.xl,
+    justifyContent: 'flex-end',
   },
   colorModalSheet: {
     width: '100%',
-    maxWidth: 360,
     padding: Spacing.xl,
-    gap: Spacing.lg,
+    paddingBottom: Spacing.xxxl,
+  },
+  colorModalHandle: {
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  handleBar: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
   },
   colorModalTitle: {
     fontSize: FontSize.xl,
     fontWeight: 'bold',
+    marginBottom: Spacing.lg,
   },
-  colorGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+  pickerContent: {
+    paddingBottom: Spacing.lg,
+  },
+  colorPicker: {
+    width: '100%',
     gap: Spacing.md,
   },
-  colorSwatch: {
-    width: 44,
-    height: 44,
+  colorModalActions: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+    marginTop: Spacing.lg,
+  },
+  colorActionBtn: {
+    flex: 1,
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  colorActionText: {
+    fontSize: FontSize.md,
+    fontWeight: '700',
   },
 });
