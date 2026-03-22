@@ -21,6 +21,13 @@ export default function LessonPlayerScreen() {
     return isAdmin || (lesson as any).tutor_id === dbUserId;
   }, [lesson, dbUserId, isAdmin]);
 
+  console.log('canEdit debug:', {
+    dbUserId,
+    tutor_id: (lesson as any)?.tutor_id,
+    isAdmin,
+    canEdit,
+  });
+
   useEffect(() => {
     Log.nav('opening lesson', { id });
   }, [id]);
