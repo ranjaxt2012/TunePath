@@ -107,12 +107,20 @@ export function useLesson(id: string | undefined) {
               return r.json();
             })
             .then((notationData) => {
-              console.log('notation raw data:', JSON.stringify(notationData));
+              console.log('notation raw data:',
+                JSON.stringify(notationData));
               console.log('notation data:', notationData);
-              const noteArray = convertSectionsToNotes(notationData);
-              console.log('converted notes:', noteArray.length, noteArray[0]);
-              console.log('notes:', noteArray.length);
-              setNotes(noteArray);
+
+              try {
+                const noteArray =
+                  convertSectionsToNotes(notationData);
+                console.log('converted notes:',
+                  noteArray.length, noteArray[0]);
+                setNotes(noteArray);
+              } catch (e) {
+                console.error('convertSectionsToNotes crashed:', e);
+                setNotes(generateMockNotes());
+              }
             })
             .catch((err) => {
               console.error('notation error:', err);
