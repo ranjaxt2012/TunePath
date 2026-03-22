@@ -12,9 +12,14 @@ import { Log } from '@/src/utils/log';
 export default function LessonPlayerScreen() {
   const { theme } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { lesson, notes, loading, error } = useLesson(id);
-  const dbUserId = useAuthStore((s) => s.dbUserId);
   const isAdmin = useAuthStore((s) => s.isAdmin);
+  const dbUserId = useAuthStore((s) => s.dbUserId);
+  const { lesson, notes, loading, error } = useLesson(id);
+
+  const canEdit = useMemo(() => {
+    if (!lesson || !dbUserId) return false;
+    return isAdmin || (lesson as any).tutor_id === dbUserId;
+  }, [lesson, dbUserId, isAdmin]);
 
   useEffect(() => {
     Log.nav('opening lesson', { id });
@@ -56,12 +61,6 @@ export default function LessonPlayerScreen() {
   }
 
   const Player = getPlayer(lesson.instrument_slug ?? 'harmonium');
-
-  // User can edit if they own the lesson or are admin
-  const canEdit = useMemo(() => {
-    if (!lesson || !dbUserId) return false;
-    return isAdmin || (lesson as any).tutor_id === dbUserId;
-  }, [lesson, dbUserId, isAdmin]);
 
   if (!Player) {
     return (
