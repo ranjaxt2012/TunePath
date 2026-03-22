@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@clerk/clerk-expo';
 import { api, setAuthToken } from '@/src/services/api';
 
@@ -22,24 +22,33 @@ export function useProgress() {
   const [summary, setSummary] = useState<ProgressSummary | null>(null);
   const [inProgress, setInProgress] = useState<InProgressLesson[]>([]);
   const [loading, setLoading] = useState(true);
+  const [retryCount, setRetryCount] = useState(0);
+  const MAX_RETRIES = 1;
+
+  const fetchProgress = useCallback(async () => {
+    try {
+      const token = await getToken();
+      setAuthToken(token);
+      const [s, p] = await Promise.allSettled([
+        api.get<ProgressSummary>('/api/progress/summary'),
+        api.get<InProgressLesson[]>('/api/progress/in-progress'),
+      ]);
+      if (s.status === 'fulfilled') setSummary(s.value);
+      if (p.status === 'fulfilled') setInProgress(p.value);
+    } finally {
+      setLoading(false);
+    }
+  }, [getToken]);
 
   useEffect(() => {
     if (!isSignedIn) return;
-    (async () => {
-      try {
-        const token = await getToken();
-        setAuthToken(token);
-        const [s, p] = await Promise.allSettled([
-          api.get<ProgressSummary>('/api/progress/summary'),
-          api.get<InProgressLesson[]>('/api/progress/in-progress'),
-        ]);
-        if (s.status === 'fulfilled') setSummary(s.value);
-        if (p.status === 'fulfilled') setInProgress(p.value);
-      } catch { /* best-effort */ } finally {
-        setLoading(false);
-      }
-    })();
-  }, [isSignedIn, getToken]);
+    if (retryCount >= MAX_RETRIES) return;
+
+    fetchProgress().catch(() => {
+      setRetryCount(r => r + 1);
+      setLoading(false);
+    });
+  }, [isSignedIn, fetchProgress, retryCount]);
 
   if (!isSignedIn) {
     return {
