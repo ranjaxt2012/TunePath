@@ -13,6 +13,7 @@ import {
   Theme,
   ThemeId,
   THEMES,
+  generateBackground,
 } from './themes';
 import { useAuthStore } from '@/src/store/authStore';
 
@@ -56,9 +57,13 @@ export function ThemeProvider({
   const setTheme = useCallback(
     async (id: ThemeId, custom?: Partial<Theme>) => {
       const base = THEMES[id] ?? DEFAULT_THEME;
-      const resolved: Theme = custom
-        ? { ...base, ...custom, id: 'custom' }
-        : base;
+      let resolved: Theme;
+      if (custom?.primary) {
+        const tinted = generateBackground(custom.primary);
+        resolved = { ...base, ...custom, ...tinted, id: 'custom' };
+      } else {
+        resolved = custom ? { ...base, ...custom, id: 'custom' } : base;
+      }
       setCurrentTheme(resolved);
       useAuthStore.getState().setTheme(id);
       if (isSignedIn) {
