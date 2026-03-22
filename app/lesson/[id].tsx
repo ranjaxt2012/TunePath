@@ -58,7 +58,7 @@ export default function LessonPlayerScreen() {
   const Player = getPlayer(lesson.instrument_slug ?? 'harmonium');
 
   // User can edit if they own the lesson or are admin
-  const canEdit = isAdmin || lesson.creator_id === dbUserId;
+  const canEdit = isAdmin || (lesson as any).tutor_id === dbUserId;
 
   if (!Player) {
     return (

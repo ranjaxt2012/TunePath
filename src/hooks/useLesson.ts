@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@clerk/clerk-expo';
 import { api, setAuthToken } from '@/src/services/api';
 import type { Lesson } from '@/src/types/models';
@@ -55,8 +55,6 @@ export function useLesson(id: string | undefined) {
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const fetchedRef = useRef(false);
-  const fetchedIdRef = useRef<string>('');
 
   useEffect(() => {
     if (!id) {
@@ -64,12 +62,7 @@ export function useLesson(id: string | undefined) {
       return;
     }
 
-    // Only fetch if id changed
-    if (fetchedRef.current && fetchedIdRef.current === id) return;
-
-    fetchedRef.current = true;
-    fetchedIdRef.current = id;
-
+    // Re-fetch if id changes
     const fetchLesson = async () => {
       setLoading(true);
       setError(null);
