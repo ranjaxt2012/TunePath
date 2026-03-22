@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@clerk/clerk-expo';
 import { api, setAuthToken } from '@/src/services/api';
 import type { Lesson } from '@/src/types/models';
@@ -37,60 +37,58 @@ export function useLesson(id: string | undefined) {
   const [notes, setNotes] = useState<NoteLike[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const fetchedRef = useRef(false);
+  const fetchedIdRef = useRef<string>('');
 
   useEffect(() => {
     if (!id) {
       setLoading(false);
       return;
     }
-    let cancelled = false;
-    (async () => {
+
+    // Only fetch if id changed
+    if (fetchedRef.current && fetchedIdRef.current === id) return;
+
+    fetchedRef.current = true;
+    fetchedIdRef.current = id;
+
+    const fetchLesson = async () => {
       setLoading(true);
       setError(null);
       try {
         const token = await getToken();
         setAuthToken(token);
         const data = await api.get<Lesson>(`/api/lessons/${id}`);
-        if (!cancelled) setLesson(data);
+        setLesson(data);
+
+        // Fetch notation if available
+        if ((data as any).notation_url) {
+          try {
+            const notationData = await fetch((data as any).notation_url).then(r => r.json());
+            const noteArray = Array.isArray(notationData)
+              ? notationData
+              : notationData.notes ?? [];
+            setNotes(noteArray);
+          } catch (err) {
+            Log.apiError('notation fetch failed', err);
+            setNotes([]);
+          }
+        } else if (__DEV__) {
+          setNotes(generateMockNotes());
+        } else {
+          setNotes([]);
+        }
       } catch (e: any) {
-        if (!cancelled) setError(e.message ?? 'Failed to load lesson');
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [id, getToken]);
-
-  useEffect(() => {
-    if (!lesson) {
-      setNotes([]);
-      return;
-    }
-
-    if (__DEV__ && !lesson.notation_url) {
-      setNotes(generateMockNotes());
-      return;
-    }
-
-    if (!lesson.notation_url) {
-      setNotes([]);
-      return;
-    }
-
-    setNotes([]);
-    fetch(lesson.notation_url)
-      .then((r) => r.json())
-      .then((data) => {
-        const noteArray = Array.isArray(data) ? data : data?.notes ?? [];
-        setNotes(noteArray);
-      })
-      .catch((err) => {
-        Log.apiError('notation fetch failed', err);
+        setError(e.message ?? 'Failed to load lesson');
+        setLesson(null);
         setNotes([]);
-      });
-  }, [lesson?.notation_url]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void fetchLesson();
+  }, [id, getToken]);
 
   return { lesson, notes, loading, error };
 }
