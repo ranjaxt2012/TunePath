@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { View, ActivityIndicator, Text, StyleSheet, Platform } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import * as ScreenOrientation from 'expo-screen-orientation';
@@ -58,7 +58,10 @@ export default function LessonPlayerScreen() {
   const Player = getPlayer(lesson.instrument_slug ?? 'harmonium');
 
   // User can edit if they own the lesson or are admin
-  const canEdit = isAdmin || (lesson as any).tutor_id === dbUserId;
+  const canEdit = useMemo(() => {
+    if (!lesson || !dbUserId) return false;
+    return isAdmin || (lesson as any).tutor_id === dbUserId;
+  }, [lesson, dbUserId, isAdmin]);
 
   if (!Player) {
     return (
