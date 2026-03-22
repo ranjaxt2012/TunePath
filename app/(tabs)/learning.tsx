@@ -2,14 +2,14 @@ import { View, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '@/src/design';
 
-export default function ProfileScreen() {
+export default function LearningScreen() {
   const { theme } = useTheme();
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: theme.background }]}
     >
       <Text style={[styles.text, { color: theme.textPrimary }]}>
-        Profile 👤
+        Learning 📚
       </Text>
     </SafeAreaView>
   );

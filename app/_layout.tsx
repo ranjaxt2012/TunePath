@@ -1,124 +1,60 @@
-/**
- * Navigation Tree
- * ───────────────
- * / (root)
- * ├── (tabs)/
- * │   ├── index (welcome)
- * │   ├── home
- * │   ├── progress
- * │   ├── practice
- * │   └── profile
- * ├── (auth)/
- * │   ├── login
- * │   ├── sign-in
- * │   └── sign-up
- * ├── select/
- * │   ├── instrument
- * │   └── level
- * ├── course/[id]
- * ├── lesson/[id]
- * ├── tutor/upload
- * ├── select-instrument (redirect → select/instrument)
- * └── select-level (redirect → select/level)
- */
-import {
-  Inter_400Regular,
-  Inter_500Medium,
-  Inter_600SemiBold,
-  Inter_700Bold,
-} from '@expo-google-fonts/inter';
-import { useFonts } from '@expo-google-fonts/inter/useFonts';
-import { ClerkProvider, ClerkLoaded } from '@clerk/clerk-expo';
-import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
-import { Stack } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
-import 'react-native-reanimated';
-
-import { useColorScheme } from '@/components/useColorScheme';
-import { TokenProvider } from '@/src/components/auth/TokenProvider';
-import { useAuthGuard } from '@/src/hooks/useAuthGuard';
-import { useUserSync } from '@/src/hooks/useUserSync';
+import { ClerkProvider, useAuth } from '@clerk/clerk-expo';
 import { tokenCache } from '@/src/utils/tokenCache';
-import { ThemeProvider } from '@/src/contexts/ThemeContext';
+import { ThemeProvider } from '@/src/design';
+import { useAuthStore } from '@/src/store/authStore';
+import { Slot, useRouter, useSegments } from 'expo-router';
+import { useEffect } from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-export {
-  ErrorBoundary,
-} from 'expo-router';
+const CLERK_KEY =
+  process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY ?? '';
 
-export const unstable_settings = {
-  initialRouteName: '(tabs)',
-};
+function AuthGuard() {
+  const { isSignedIn, isLoaded } = useAuth();
+  const segments = useSegments();
+  const router = useRouter();
+  const hasOnboarded = useAuthStore(s => s.hasOnboarded);
 
-SplashScreen.preventAutoHideAsync();
+  useEffect(() => {
+    if (!isLoaded) return;
 
-const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
-if (!publishableKey) {
-  throw new Error('Missing EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY in .env.local');
+    const inAuth = segments[0] === '(auth)';
+    const inOnboarding = segments[0] === 'onboarding';
+    const inTabs = segments[0] === '(tabs)';
+
+    if (!isSignedIn && !inAuth) {
+      router.replace('/(auth)/sign-in');
+      return;
+    }
+
+    if (isSignedIn && !hasOnboarded && !inOnboarding) {
+      router.replace('/onboarding');
+      return;
+    }
+
+    if (isSignedIn && hasOnboarded && (inAuth || inOnboarding)) {
+      router.replace('/(tabs)/discover');
+      return;
+    }
+  }, [isSignedIn, isLoaded, hasOnboarded, segments]);
+
+  return <Slot />;
 }
 
 export default function RootLayout() {
-  const [loaded, error] = useFonts({
-    Inter_400Regular,
-    Inter_500Medium,
-    Inter_600SemiBold,
-    Inter_700Bold,
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-  });
-
-  useEffect(() => {
-    if (error) throw error;
-  }, [error]);
-
-  useEffect(() => {
-    if (loaded) SplashScreen.hideAsync();
-  }, [loaded]);
-
-  if (!loaded) {
-    return null;
-  }
-
   return (
-    <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
-      <ClerkLoaded>
-        <TokenProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <ClerkProvider
+          publishableKey={CLERK_KEY}
+          tokenCache={tokenCache}
+        >
           <ThemeProvider>
-            <AuthGuardLayout />
+            <AuthGuard />
           </ThemeProvider>
-        </TokenProvider>
-      </ClerkLoaded>
-    </ClerkProvider>
-  );
-}
-
-function AuthGuardLayout() {
-  useAuthGuard();
-  useUserSync();
-  return <RootLayoutNav />;
-}
-
-function RootLayoutNav() {
-  const colorScheme = useColorScheme();
-
-  return (
-    <NavigationThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="lesson/[id]"
-          options={{
-            headerShown: false,
-            gestureEnabled: true,
-            gestureDirection: 'horizontal',
-            fullScreenGestureEnabled: true,
-          }}
-        />
-        <Stack.Screen name="select-instrument" options={{ headerShown: false }} />
-        <Stack.Screen name="select-level" options={{ headerShown: false }} />
-        <Stack.Screen name="course/[id]" options={{ headerShown: false }} />
-        <Stack.Screen name="tutor/upload" options={{ headerShown: false }} />
-      </Stack>
-    </NavigationThemeProvider>
+        </ClerkProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
