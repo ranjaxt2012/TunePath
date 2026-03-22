@@ -18,12 +18,13 @@ interface InProgressLesson {
 }
 
 export function useProgress() {
-  const { getToken } = useAuth();
+  const { isSignedIn, getToken } = useAuth();
   const [summary, setSummary] = useState<ProgressSummary | null>(null);
   const [inProgress, setInProgress] = useState<InProgressLesson[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!isSignedIn) return;
     (async () => {
       try {
         const token = await getToken();
@@ -38,7 +39,15 @@ export function useProgress() {
         setLoading(false);
       }
     })();
-  }, [getToken]);
+  }, [isSignedIn, getToken]);
+
+  if (!isSignedIn) {
+    return {
+      summary: null,
+      inProgress: [],
+      loading: false,
+    };
+  }
 
   return { summary, inProgress, loading };
 }

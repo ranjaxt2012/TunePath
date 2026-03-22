@@ -20,11 +20,23 @@ function AuthGuard() {
   const hasRedirected = useRef(false);
   const prevAuthRef = useRef({ isSignedIn, hasOnboarded });
 
-  // Sync token to api layer
+  // Sync token to api layer — only runs when auth changes
   useEffect(() => {
-    if (!isSignedIn) { setAuthToken(null); return; }
-    getToken().then((t) => setAuthToken(t)).catch(() => {});
-  }, [isSignedIn, getToken]);
+    if (!isSignedIn) {
+      setAuthToken(null);
+      return;
+    }
+    let cancelled = false;
+    getToken()
+      .then((token) => {
+        if (!cancelled) setAuthToken(token);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- only run when auth changes
+  }, [isSignedIn]);
 
   useEffect(() => {
     if (!isLoaded) return;

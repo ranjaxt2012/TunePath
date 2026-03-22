@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@clerk/clerk-expo';
 import { api, setAuthToken } from '@/src/services/api';
 import type { Lesson } from '@/src/types/models';
@@ -14,6 +14,7 @@ export function useLessons(options: UseLessonsOptions = {}) {
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const fetchedRef = useRef(false);
 
   const fetchLessons = useCallback(async () => {
     setLoading(true);
@@ -35,7 +36,16 @@ export function useLessons(options: UseLessonsOptions = {}) {
     }
   }, [getToken, options.instrument, options.tag, options.limit]);
 
-  useEffect(() => { void fetchLessons(); }, [fetchLessons]);
+  useEffect(() => {
+    if (fetchedRef.current) return;
+    fetchedRef.current = true;
+    void fetchLessons();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fetch once on mount only
+  }, []);
 
-  return { lessons, loading, error, refetch: fetchLessons };
+  const refetch = useCallback(() => {
+    void fetchLessons();
+  }, [fetchLessons]);
+
+  return { lessons, loading, error, refetch };
 }
