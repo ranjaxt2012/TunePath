@@ -13,6 +13,7 @@ interface TunePathUser {
 
 interface AuthState {
   user: TunePathUser | null;
+  dbUserId: string | null;
   selectedTheme: string;
   selectedInstrument: string;
   selectedLevel: string;
@@ -22,6 +23,7 @@ interface AuthState {
   isAdmin: boolean;
   uploadCount: number;
   setUser: (user: TunePathUser | null) => void;
+  setDbUserId: (id: string | null) => void;
   setTheme: (theme: string) => void;
   setSelectedInstrument: (slug: string) => void;
   setSelectedLevel: (slug: string) => void;
@@ -37,6 +39,7 @@ export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
       user: null,
+      dbUserId: null,
       selectedTheme: 'purple',
       selectedInstrument: '',
       selectedLevel: '',
@@ -46,6 +49,7 @@ export const useAuthStore = create<AuthState>()(
       isAdmin: false,
       uploadCount: 0,
       setUser: (user) => set({ user }),
+      setDbUserId: (dbUserId) => set({ dbUserId }),
       setTheme: (selectedTheme) => set({ selectedTheme }),
       setSelectedInstrument: (slug) => set({ selectedInstrument: slug }),
       setSelectedLevel: (slug) => set({ selectedLevel: slug }),
@@ -54,7 +58,7 @@ export const useAuthStore = create<AuthState>()(
       setTrustTier: (trustTier) => set({ trustTier }),
       setIsAdmin: (isAdmin) => set({ isAdmin }),
       setUploadCount: (uploadCount) => set({ uploadCount }),
-      clearUser: () => set({ user: null, hasOnboarded: false, trustTier: 'new', isAdmin: false, uploadCount: 0 }),
+      clearUser: () => set({ user: null, dbUserId: null, hasOnboarded: false, trustTier: 'new', isAdmin: false, uploadCount: 0 }),
     }),
     {
       name: 'auth-store',

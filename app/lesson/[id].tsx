@@ -4,6 +4,7 @@ import { useLocalSearchParams } from 'expo-router';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { useTheme } from '@/src/design';
 import { useLesson } from '@/src/hooks/useLesson';
+import { useAuthStore } from '@/src/store/authStore';
 import { useProgressStore } from '@/src/store/progressStore';
 import { getPlayer } from '@/src/instruments/registry';
 import { Log } from '@/src/utils/log';
@@ -12,6 +13,8 @@ export default function LessonPlayerScreen() {
   const { theme } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { lesson, notes, loading, error } = useLesson(id);
+  const dbUserId = useAuthStore((s) => s.dbUserId);
+  const isAdmin = useAuthStore((s) => s.isAdmin);
 
   useEffect(() => {
     Log.nav('opening lesson', { id });
@@ -54,6 +57,9 @@ export default function LessonPlayerScreen() {
 
   const Player = getPlayer(lesson.instrument_slug ?? 'harmonium');
 
+  // User can edit if they own the lesson or are admin
+  const canEdit = isAdmin || lesson.creator_id === dbUserId;
+
   if (!Player) {
     return (
       <View style={[styles.centered, { backgroundColor: theme.background }]}>
@@ -66,7 +72,7 @@ export default function LessonPlayerScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <Player lesson={lesson} notes={notes} />
+      <Player lesson={lesson} notes={notes} isTutor={canEdit} />
     </View>
   );
 }

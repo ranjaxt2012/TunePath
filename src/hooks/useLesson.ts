@@ -49,25 +49,6 @@ function convertSectionsToNotes(data: any): Note[] {
   return [];
 }
 
-function generateMockNotes(): Note[] {
-  const noteNames = ['Sa', 'Re', 'Ga', 'Ma', 'Pa', 'Dha', 'Ni', 'Sa'];
-  const notes: Note[] = [];
-  let time = 1.0;
-  for (let i = 0; i < 32; i++) {
-    const noteName = noteNames[i % noteNames.length];
-    notes.push({
-      time,
-      note: noteName,
-      octave: i > 15 ? 1 : 0,
-      duration: 0.75,
-      lyric: noteName,
-      confidence: 0.9,
-    });
-    time += 0.8;
-  }
-  return notes;
-}
-
 export function useLesson(id: string | undefined) {
   const { getToken } = useAuth();
   const [lesson, setLesson] = useState<Lesson | null>(null);
@@ -102,33 +83,19 @@ export function useLesson(id: string | undefined) {
         if ((data as any).notation_url) {
           const notationUrl = (data as any).notation_url;
           fetch(notationUrl)
-            .then((r) => {
-              console.log('notation status:', r.status);
-              return r.json();
-            })
+            .then((r) => r.json())
             .then((notationData) => {
-              console.log('notation raw data:',
-                JSON.stringify(notationData));
-              console.log('notation data:', notationData);
-
               try {
-                const noteArray =
-                  convertSectionsToNotes(notationData);
-                console.log('converted notes:',
-                  noteArray.length, noteArray[0]);
+                const noteArray = convertSectionsToNotes(notationData);
                 setNotes(noteArray);
-              } catch (e) {
-                console.error('convertSectionsToNotes crashed:', e);
-                setNotes(generateMockNotes());
+              } catch {
+                setNotes([]);
               }
             })
             .catch((err) => {
-              console.error('notation error:', err);
               Log.apiError('notation fetch failed', err);
               setNotes([]);
             });
-        } else if (__DEV__) {
-          setNotes(generateMockNotes());
         } else {
           setNotes([]);
         }

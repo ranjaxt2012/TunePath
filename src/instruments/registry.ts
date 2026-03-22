@@ -6,6 +6,7 @@ import type { Note } from './harmonium/SargamPlayerEngine';
 interface PlayerProps {
   lesson: Lesson;
   notes?: Note[];
+  isTutor?: boolean;
   onComplete?(): void;
 }
 

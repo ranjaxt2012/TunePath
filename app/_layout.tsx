@@ -25,6 +25,7 @@ function AuthGuard() {
   useEffect(() => {
     if (!isSignedIn) {
       setAuthToken(null);
+      useAuthStore.getState().setDbUserId(null);
       return;
     }
     let cancelled = false;
@@ -33,7 +34,7 @@ function AuthGuard() {
         if (cancelled) return;
         setAuthToken(token);
         try {
-          await api.post('/api/auth/sync', {
+          const syncResult = await api.post('/api/auth/sync', {
             clerkUserId: user?.id ?? '',
             email: user?.primaryEmailAddress?.emailAddress ?? '',
             displayName:
@@ -42,6 +43,7 @@ function AuthGuard() {
                 (user?.primaryEmailAddress?.emailAddress ?? '')),
             avatarUrl: user?.imageUrl ?? null,
           });
+          useAuthStore.getState().setDbUserId((syncResult as any)?.id ?? null);
         } catch (err) {
           Log.auth('sync failed', err);
         }

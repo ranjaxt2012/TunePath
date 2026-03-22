@@ -17,12 +17,13 @@ import { Log } from '@/src/utils/log';
 interface HarmoniumPlayerProps {
   lesson: Lesson;
   notes?: Note[];
+  isTutor?: boolean;
   onComplete?(): void;
 }
 
 const MOCK_VIDEO_URL = require('../../../assets/instruments/harmonium/test_lesson.mp4');
 
-export function HarmoniumPlayer({ lesson, notes = [], onComplete }: HarmoniumPlayerProps) {
+export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: HarmoniumPlayerProps) {
   const { theme } = useTheme();
   const router = useRouter();
   const { isLandscape } = useOrientation();
@@ -170,7 +171,7 @@ export function HarmoniumPlayer({ lesson, notes = [], onComplete }: HarmoniumPla
     <NotationContainer
       engineRef={engineRef}
       notes={notes}
-      isTutor={false}
+      isTutor={isTutor ?? false}
       onNotesEdit={handleNotesEdit}
       isLandscape={showSideBySide}
     />
