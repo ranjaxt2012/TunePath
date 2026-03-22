@@ -35,6 +35,11 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
 
   const [playbackSpeed, setPlaybackSpeed] = useState(1.0);
   const [videoStarted, setVideoStarted] = useState(false);
+  const [localNotes, setLocalNotes] = useState<Note[]>(notes);
+
+  useEffect(() => {
+    setLocalNotes(notes);
+  }, [notes]);
 
   const engineRef = useRef<SargamPlayerEngine | null>(null);
   const lastSyncRef = useRef<number>(0);
@@ -86,7 +91,7 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
   // Init engine
   useEffect(() => {
     const engine = new SargamPlayerEngine();
-    engine.load(notes, HARMONIUM_SAMPLE_MAP);
+    engine.load(localNotes, HARMONIUM_SAMPLE_MAP);
     engine.onComplete = () => {
       onComplete?.();
     };
@@ -101,10 +106,10 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
 
   // Reload notes when they change
   useEffect(() => {
-    if (engineRef.current && notes.length > 0) {
-      engineRef.current.load(notes, HARMONIUM_SAMPLE_MAP);
+    if (engineRef.current && localNotes.length > 0) {
+      engineRef.current.load(localNotes, HARMONIUM_SAMPLE_MAP);
     }
-  }, [notes]);
+  }, [localNotes]);
 
   const handleVideoStarted = useCallback(() => {
     setVideoStarted(true);
@@ -143,7 +148,7 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
   );
 
   const handleNotesEdit = useCallback((updatedNotes: Note[]) => {
-    // Stub: reload engine with updated notes
+    setLocalNotes(updatedNotes);
     engineRef.current?.load(updatedNotes, HARMONIUM_SAMPLE_MAP);
   }, []);
 
@@ -171,7 +176,7 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
   const notationPanel = (
     <NotationContainer
       engineRef={engineRef}
-      notes={notes}
+      notes={localNotes}
       isTutor={isTutor ?? false}
       onNotesEdit={handleNotesEdit}
       isLandscape={showSideBySide}
