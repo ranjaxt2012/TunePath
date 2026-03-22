@@ -1,219 +1,277 @@
+import React, { useState, useCallback } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  TextInput,
+  StyleSheet,
+  Platform,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  ScrollView,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { ScreenGradient } from '@/src/components/common/ScreenGradient';
-import { DesignSystem, Typography } from '@/src/constants/theme';
+import { useSignUp } from '@clerk/clerk-expo';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useTheme, Spacing, FontSize, Radius, THEMES } from '@/src/design';
 
 export default function SignUpScreen() {
+  const { theme } = useTheme();
   const router = useRouter();
-  
-  const handleSignUp = () => {
-    // TODO: add proper logging
-    router.push('/select/instrument' as any);
-  };
+  const { signUp, setActive, isLoaded } = useSignUp();
 
-  return (
-    <ScreenGradient style={styles.container}>
-        {/* Back Button */}
-        <View style={styles.backButtonContainer}>
-          <Pressable 
-            style={({ pressed }) => [styles.backButton, { opacity: pressed ? 0.8 : 1 }]}
-            onPress={() => router.push('/(auth)/sign-in')}
-          >
-            <Text style={styles.backIcon}>‹</Text>
-            <Text style={styles.backText}>Back</Text>
-          </Pressable>
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSignUp = useCallback(async () => {
+    if (!isLoaded) return;
+    setError(null);
+    setLoading(true);
+    try {
+      const result = await signUp.create({
+        firstName: name.trim().split(' ')[0] ?? name.trim(),
+        lastName: name.trim().split(' ').slice(1).join(' ') || undefined,
+        emailAddress: email.trim(),
+        password,
+      });
+      if (result.status === 'complete') {
+        await setActive({ session: result.createdSessionId });
+        router.replace('/(tabs)/discover' as any);
+      } else {
+        // Email verification or other steps may be required
+        setError('Please check your email to verify your account.');
+      }
+    } catch (err: any) {
+      setError(err.errors?.[0]?.message ?? 'Sign up failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }, [isLoaded, signUp, name, email, password, setActive, router]);
+
+  const formContent = (
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      style={{ flex: Platform.OS === 'web' ? 0 : 1 }}
+    >
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Logo */}
+        <View style={styles.logoArea}>
+          <Text style={styles.logoEmoji}>🎵</Text>
+          <Text style={[styles.appName, Platform.OS === 'web' && { color: theme.textPrimary }]}>
+            TunePath
+          </Text>
+          <Text style={styles.title}>Create your account</Text>
+          <Text style={[styles.subtitle, Platform.OS === 'web' && { color: theme.textSecondary }]}>
+            Start your music journey today
+          </Text>
         </View>
 
-          {/* Title */}
-          <View style={styles.titleContainer}>
-            <Text style={styles.title}>Create Your Account</Text>
+        {/* Fields */}
+        <View style={styles.fieldGroup}>
+          {/* Name */}
+          <TextInput
+            style={[styles.input, { backgroundColor: theme.surfaceHigh, borderColor: theme.border, color: theme.textPrimary }]}
+            placeholder="Full name"
+            placeholderTextColor={theme.textDisabled}
+            value={name}
+            onChangeText={setName}
+            autoCapitalize="words"
+            textContentType="name"
+            autoComplete="name"
+          />
+
+          {/* Email */}
+          <TextInput
+            style={[styles.input, { backgroundColor: theme.surfaceHigh, borderColor: theme.border, color: theme.textPrimary }]}
+            placeholder="Email"
+            placeholderTextColor={theme.textDisabled}
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            textContentType="emailAddress"
+            autoComplete="email"
+          />
+
+          {/* Password */}
+          <View>
+            <TextInput
+              style={[styles.input, { backgroundColor: theme.surfaceHigh, borderColor: theme.border, color: theme.textPrimary }]}
+              placeholder="Password"
+              placeholderTextColor={theme.textDisabled}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!showPassword}
+              textContentType="newPassword"
+              autoComplete="new-password"
+            />
+            <TouchableOpacity
+              style={styles.eyeBtn}
+              onPress={() => setShowPassword((v) => !v)}
+            >
+              <Ionicons
+                name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                size={18}
+                color={theme.textDisabled}
+              />
+            </TouchableOpacity>
           </View>
 
-          {/* Subtitle */}
-          <View style={styles.subtitleContainer}>
-            <Text style={styles.subtitle}>Start your music journey today.</Text>
-          </View>
+          {/* Error */}
+          {error && (
+            <Text style={[styles.errorText, { color: theme.error }]}>{error}</Text>
+          )}
 
-          {/* Form */}
-          <View style={styles.formContainer}>
-            {/* Full Name Input */}
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputText}>Full Name</Text>
-            </View>
-
-            {/* Email Input */}
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputText}>Email</Text>
-            </View>
-
-            {/* Password Input */}
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputText}>Password</Text>
-            </View>
-
-            {/* Create Account Button */}
-            <View style={styles.buttonContainer}>
-              <Pressable 
-                onPress={handleSignUp}
-                style={({ pressed }) => [
-                  styles.button,
-                  { opacity: pressed ? 0.8 : 1 }
-                ]}
-              >
-                <Text style={styles.buttonText}>Create Account</Text>
-              </Pressable>
-            </View>
-          </View>
+          {/* Create account button */}
+          <TouchableOpacity
+            style={[styles.primaryBtn, { backgroundColor: theme.primary }]}
+            onPress={handleSignUp}
+            disabled={loading}
+            activeOpacity={0.85}
+          >
+            {loading ? (
+              <ActivityIndicator color={theme.textOnPrimary} />
+            ) : (
+              <Text style={[styles.primaryBtnText, { color: theme.textOnPrimary }]}>Create Account</Text>
+            )}
+          </TouchableOpacity>
 
           {/* Terms */}
-          <View style={styles.termsContainer}>
-            <Text style={styles.termsText}>
-              By creating an account, you agree to our 
-            </Text>
-            <View style={styles.linkContainer}>
-              <Text style={styles.linkText}>Terms</Text>
-            </View>
-            <Text style={styles.termsText}> & </Text>
-            <View style={styles.linkContainer}>
-              <Text style={styles.linkText}>Privacy Policy</Text>
-            </View>
-            <Text style={styles.termsText}>.</Text>
-          </View>
+          <Text style={[styles.termsText, { color: theme.textDisabled }]}>
+            By creating an account, you agree to our Terms & Privacy Policy
+          </Text>
+        </View>
 
-          {/* Footer */}
-          <View style={styles.footerContainer}>
-            <Text style={styles.footerText}>
-              Already have an account? 
-            </Text>
-            <View style={styles.linkContainer}>
-              <Pressable onPress={() => router.push('/(auth)/sign-in' as any)}>
-                <Text style={styles.linkText}>Sign In</Text>
-              </Pressable>
-            </View>
-          </View>
-      </ScreenGradient>
+        {/* Sign in link */}
+        <TouchableOpacity
+          style={styles.linkRow}
+          onPress={() => router.push('/(auth)/sign-in' as any)}
+        >
+          <Text style={[styles.linkText, { color: theme.textSecondary }]}>
+            Already have an account?{' '}
+            <Text style={{ color: theme.primary, fontWeight: '600' }}>Sign in →</Text>
+          </Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </KeyboardAvoidingView>
+  );
+
+  if (Platform.OS === 'web') {
+    return (
+      <View style={[styles.webContainer, { backgroundColor: theme.background }]}>
+        <View style={[styles.webCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          {formContent}
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <LinearGradient colors={THEMES.purple.gradient} style={styles.gradient}>
+      <SafeAreaView style={{ flex: 1 }}>
+        {formContent}
+      </SafeAreaView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  gradient: { flex: 1 },
+  webContainer: {
     flex: 1,
+    alignItems: 'center',
     justifyContent: 'center',
+    minHeight: '100vh' as any,
+  },
+  webCard: {
+    width: 420,
+    borderRadius: Radius.xl,
+    borderWidth: 0.5,
+    padding: Spacing.xxl,
+    marginTop: -60,
+  },
+  scroll: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.xxl,
+    gap: Spacing.lg,
+  },
+  logoArea: {
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 40,
+    gap: Spacing.xs,
+    marginBottom: Spacing.md,
   },
-  backButtonContainer: {
-    position: 'absolute',
-    top: 60,
-    left: 40,
-    zIndex: 1,
+  logoEmoji: { fontSize: 48 },
+  appName: {
+    fontSize: FontSize.xxl,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 4,
-  },
-  backIcon: {
-    fontSize: 24,
-    color: DesignSystem.colors.white,
-    fontFamily: Typography.regular,
-  },
-  backText: {
-    fontSize: 16,
-    color: DesignSystem.colors.white,
-    fontFamily: Typography.regular,
-  },
-  titleContainer: { alignItems: 'center', marginBottom: 16 },
   title: {
-    fontSize: 28,
-    fontFamily: Typography.medium,
-    color: DesignSystem.colors.white,
-    textAlign: 'center',
-    lineHeight: 42,
+    fontSize: FontSize.xl,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginTop: Spacing.sm,
   },
-  subtitleContainer: { alignItems: 'center', marginBottom: 40 },
   subtitle: {
-    fontSize: 15,
-    fontFamily: Typography.regular,
-    color: DesignSystem.colors.whiteOverlay['70'],
+    fontSize: FontSize.sm,
+    color: 'rgba(255,255,255,0.7)',
     textAlign: 'center',
-    lineHeight: 22.5,
   },
-  formContainer: { marginBottom: 32 },
-  inputContainer: {
-    backgroundColor: DesignSystem.colors.whiteOverlay['20'],
-    borderWidth: 1,
-    borderColor: DesignSystem.colors.whiteOverlay['30'],
-    borderRadius: 20,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    marginBottom: 16,
+  fieldGroup: {
+    gap: Spacing.md,
+  },
+  input: {
+    borderWidth: 0.5,
+    borderRadius: Radius.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    fontSize: FontSize.md,
+  },
+  eyeBtn: {
+    position: 'absolute',
+    right: Spacing.md,
+    top: 0,
+    bottom: 0,
     justifyContent: 'center',
   },
-  inputText: {
-    fontSize: 14,
-    fontFamily: Typography.regular,
-    color: DesignSystem.colors.whiteOverlay['60'],
-    lineHeight: 17,
+  errorText: {
+    fontSize: FontSize.sm,
+    textAlign: 'center',
   },
-  buttonContainer: { alignItems: 'center' },
-  button: {
-    width: 318,
-    height: 52,
-    backgroundColor: DesignSystem.colors.white,
-    borderRadius: 20,
+  primaryBtn: {
+    paddingVertical: Spacing.md,
+    borderRadius: Radius.lg,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 8,
+    height: 48,
   },
-  buttonText: {
-    fontSize: 17,
-    fontFamily: Typography.semiBold,
-    color: DesignSystem.colors.primary,
-    textAlign: 'center',
-    lineHeight: 25.5,
-  },
-  termsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexWrap: 'wrap',
-    marginBottom: 24,
+  primaryBtnText: {
+    fontSize: FontSize.md,
+    fontWeight: '700',
   },
   termsText: {
-    fontSize: 12,
-    fontFamily: Typography.regular,
-    color: DesignSystem.colors.whiteOverlay['50'],
+    fontSize: FontSize.xs,
     textAlign: 'center',
-    lineHeight: 19.5,
+    lineHeight: 18,
   },
-  linkContainer: { marginLeft: 4 },
-  linkText: {
-    fontSize: 16,
-    fontFamily: Typography.medium,
-    color: DesignSystem.colors.white,
-    textAlign: 'center',
-    lineHeight: 24,
-  },
-  footerContainer: {
-    flexDirection: 'row',
+  linkRow: {
     alignItems: 'center',
-    justifyContent: 'center',
-    flexWrap: 'wrap',
+    paddingTop: Spacing.sm,
   },
-  footerText: {
-    fontSize: 14,
-    fontFamily: Typography.regular,
-    color: DesignSystem.colors.whiteOverlay['70'],
+  linkText: {
+    fontSize: FontSize.sm,
     textAlign: 'center',
-    lineHeight: 21,
   },
 });
-

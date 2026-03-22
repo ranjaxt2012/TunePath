@@ -1,87 +1,194 @@
-import { useSSO } from '@clerk/clerk-expo';
-import * as WebBrowser from 'expo-web-browser';
-import { useRouter } from 'expo-router';
-import { useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
+  TextInput,
   StyleSheet,
+  Platform,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
+import { useSignIn, useOAuth } from '@clerk/clerk-expo';
+import * as WebBrowser from 'expo-web-browser';
 import { Ionicons } from '@expo/vector-icons';
-import { THEMES } from '@/src/design';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useTheme, Spacing, FontSize, Radius, THEMES } from '@/src/design';
 
 WebBrowser.maybeCompleteAuthSession();
 
 export default function SignInScreen() {
-  const { startSSOFlow } = useSSO();
+  const { theme } = useTheme();
   const router = useRouter();
+  const { signIn, setActive, isLoaded } = useSignIn();
+  const { startOAuthFlow } = useOAuth({ strategy: 'oauth_google' });
 
-  const handleSSO = useCallback(
-    async (strategy: 'oauth_google' | 'oauth_apple' | 'oauth_facebook') => {
-      try {
-        const { createdSessionId, setActive } = await startSSOFlow({ strategy });
-        if (createdSessionId && setActive) {
-          await setActive({ session: createdSessionId });
-          // AuthGuard will handle redirect based on hasOnboarded
-        }
-      } catch {
-        // silent fail — user can try again
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSignIn = useCallback(async () => {
+    if (!isLoaded) return;
+    setError(null);
+    setLoading(true);
+    try {
+      const result = await signIn.create({
+        identifier: email.trim(),
+        password,
+      });
+      if (result.status === 'complete') {
+        await setActive({ session: result.createdSessionId });
+        router.replace('/(tabs)/discover' as any);
       }
-    },
-    [startSSOFlow]
-  );
+    } catch (err: any) {
+      setError(err.errors?.[0]?.message ?? 'Sign in failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }, [isLoaded, signIn, email, password, setActive, router]);
 
-  return (
-    <LinearGradient
-      colors={THEMES.purple.gradient}
-      style={styles.gradient}
+  const handleGoogle = useCallback(async () => {
+    try {
+      const { createdSessionId, setActive: activate } = await startOAuthFlow();
+      if (createdSessionId && activate) {
+        await activate({ session: createdSessionId });
+        router.replace('/(tabs)/discover' as any);
+      }
+    } catch {
+      setError('Google sign-in failed. Please try again.');
+    }
+  }, [startOAuthFlow, router]);
+
+  const formContent = (
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      style={{ flex: Platform.OS === 'web' ? 0 : 1 }}
     >
-      <SafeAreaView style={styles.safe}>
-        <View style={styles.center}>
-          {/* Logo area */}
-          <View style={styles.logoArea}>
-            <Text style={styles.logo}>🎵</Text>
-            <Text style={styles.appName}>TunePath</Text>
-            <Text style={styles.tagline}>Learn music, your way</Text>
-          </View>
-
-          {/* Auth buttons */}
-          <View style={styles.authCard}>
-            <TouchableOpacity
-              style={styles.socialBtn}
-              onPress={() => handleSSO('oauth_apple')}
-              activeOpacity={0.85}
-            >
-              <Ionicons name="logo-apple" size={20} color="#1f2937" />
-              <Text style={styles.socialBtnText}>Continue with Apple</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.socialBtn}
-              onPress={() => handleSSO('oauth_google')}
-              activeOpacity={0.85}
-            >
-              <Ionicons name="logo-google" size={20} color="#1f2937" />
-              <Text style={styles.socialBtnText}>Continue with Google</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.socialBtn}
-              onPress={() => handleSSO('oauth_facebook')}
-              activeOpacity={0.85}
-            >
-              <Ionicons name="logo-facebook" size={20} color="#1f2937" />
-              <Text style={styles.socialBtnText}>Continue with Facebook</Text>
-            </TouchableOpacity>
-          </View>
-
-          <Text style={styles.terms}>
-            By continuing, you agree to our Terms & Privacy Policy
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Logo */}
+        <View style={styles.logoArea}>
+          <Text style={styles.logoEmoji}>🎵</Text>
+          <Text style={[styles.appName, Platform.OS === 'web' && { color: theme.textPrimary }]}>
+            TunePath
+          </Text>
+          <Text style={styles.title}>Welcome back</Text>
+          <Text style={[styles.subtitle, Platform.OS === 'web' && { color: theme.textSecondary }]}>
+            Sign in to continue learning
           </Text>
         </View>
+
+        {/* Email */}
+        <View style={styles.fieldGroup}>
+          <TextInput
+            style={[styles.input, { backgroundColor: theme.surfaceHigh, borderColor: theme.border, color: theme.textPrimary }]}
+            placeholder="Email"
+            placeholderTextColor={theme.textDisabled}
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            textContentType="emailAddress"
+            autoComplete="email"
+          />
+
+          {/* Password */}
+          <View>
+            <TextInput
+              style={[styles.input, { backgroundColor: theme.surfaceHigh, borderColor: theme.border, color: theme.textPrimary }]}
+              placeholder="Password"
+              placeholderTextColor={theme.textDisabled}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!showPassword}
+              textContentType="password"
+              autoComplete="password"
+            />
+            <TouchableOpacity
+              style={styles.eyeBtn}
+              onPress={() => setShowPassword((v) => !v)}
+            >
+              <Ionicons
+                name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                size={18}
+                color={theme.textDisabled}
+              />
+            </TouchableOpacity>
+          </View>
+
+          {/* Error */}
+          {error && (
+            <Text style={[styles.errorText, { color: theme.error }]}>{error}</Text>
+          )}
+
+          {/* Sign in button */}
+          <TouchableOpacity
+            style={[styles.primaryBtn, { backgroundColor: theme.primary }]}
+            onPress={handleSignIn}
+            disabled={loading}
+            activeOpacity={0.85}
+          >
+            {loading ? (
+              <ActivityIndicator color={theme.textOnPrimary} />
+            ) : (
+              <Text style={[styles.primaryBtnText, { color: theme.textOnPrimary }]}>Sign in</Text>
+            )}
+          </TouchableOpacity>
+
+          {/* Divider */}
+          <View style={styles.dividerRow}>
+            <View style={[styles.dividerLine, { backgroundColor: theme.border }]} />
+            <Text style={[styles.dividerText, { color: theme.textDisabled }]}>or</Text>
+            <View style={[styles.dividerLine, { backgroundColor: theme.border }]} />
+          </View>
+
+          {/* Google */}
+          <TouchableOpacity
+            style={[styles.googleBtn, { backgroundColor: theme.surface, borderColor: theme.border }]}
+            onPress={handleGoogle}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="logo-google" size={18} color={theme.textPrimary} />
+            <Text style={[styles.googleBtnText, { color: theme.textPrimary }]}>Continue with Google</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Sign up link */}
+        <TouchableOpacity
+          style={styles.linkRow}
+          onPress={() => router.push('/(auth)/sign-up' as any)}
+        >
+          <Text style={[styles.linkText, { color: theme.textSecondary }]}>
+            Don't have an account?{' '}
+            <Text style={{ color: theme.primary, fontWeight: '600' }}>Sign up →</Text>
+          </Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </KeyboardAvoidingView>
+  );
+
+  if (Platform.OS === 'web') {
+    return (
+      <View style={[styles.webContainer, { backgroundColor: theme.background }]}>
+        <View style={[styles.webCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          {formContent}
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <LinearGradient colors={THEMES.purple.gradient} style={styles.gradient}>
+      <SafeAreaView style={{ flex: 1 }}>
+        {formContent}
       </SafeAreaView>
     </LinearGradient>
   );
@@ -89,51 +196,112 @@ export default function SignInScreen() {
 
 const styles = StyleSheet.create({
   gradient: { flex: 1 },
-  safe: { flex: 1 },
-  center: {
+  webContainer: {
     flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    gap: 32,
+    justifyContent: 'center',
+    minHeight: '100vh' as any,
+  },
+  webCard: {
+    width: 420,
+    borderRadius: Radius.xl,
+    borderWidth: 0.5,
+    padding: Spacing.xxl,
+    marginTop: -60,
+  },
+  scroll: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.xxl,
+    gap: Spacing.lg,
   },
   logoArea: {
     alignItems: 'center',
-    gap: 8,
+    gap: Spacing.xs,
+    marginBottom: Spacing.md,
   },
-  logo: { fontSize: 64 },
+  logoEmoji: { fontSize: 48 },
   appName: {
-    fontSize: 36,
+    fontSize: FontSize.xxl,
     fontWeight: '700',
     color: '#FFFFFF',
-    letterSpacing: 0.5,
   },
-  tagline: {
-    fontSize: 16,
+  title: {
+    fontSize: FontSize.xl,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginTop: Spacing.sm,
+  },
+  subtitle: {
+    fontSize: FontSize.sm,
     color: 'rgba(255,255,255,0.7)',
+    textAlign: 'center',
   },
-  authCard: {
-    width: '100%',
-    gap: 12,
+  fieldGroup: {
+    gap: Spacing.md,
   },
-  socialBtn: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 50,
-    paddingVertical: 14,
-    paddingHorizontal: 20,
+  input: {
+    borderWidth: 0.5,
+    borderRadius: Radius.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    fontSize: FontSize.md,
+  },
+  eyeBtn: {
+    position: 'absolute',
+    right: Spacing.md,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
+  },
+  errorText: {
+    fontSize: FontSize.sm,
+    textAlign: 'center',
+  },
+  primaryBtn: {
+    paddingVertical: Spacing.md,
+    borderRadius: Radius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 48,
+  },
+  primaryBtnText: {
+    fontSize: FontSize.md,
+    fontWeight: '700',
+  },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 0.5,
+  },
+  dividerText: {
+    fontSize: FontSize.sm,
+  },
+  googleBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+    borderRadius: Radius.lg,
+    borderWidth: 0.5,
+    height: 48,
   },
-  socialBtnText: {
-    fontSize: 16,
+  googleBtnText: {
+    fontSize: FontSize.md,
     fontWeight: '600',
-    color: '#1f2937',
   },
-  terms: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.5)',
+  linkRow: {
+    alignItems: 'center',
+    paddingTop: Spacing.sm,
+  },
+  linkText: {
+    fontSize: FontSize.sm,
     textAlign: 'center',
   },
 });
