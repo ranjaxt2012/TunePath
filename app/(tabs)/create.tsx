@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Alert,
   Platform,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,7 +23,7 @@ const WEB_CONTENT_MAX = 960;
 
 export default function CreateScreen() {
   const { theme } = useTheme();
-  const { trustTier } = useAuthStore();
+  const { trustTier, dbUserId } = useAuthStore();
   const { getToken } = useAuth();
 
   const [ytModalVisible, setYtModalVisible] = useState(false);
@@ -31,15 +32,72 @@ export default function CreateScreen() {
   const [ytLoading, setYtLoading] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [processingLessonId, setProcessingLessonId] = useState<string | null>(null);
-  const [ytPreview, setYtPreview] = useState<{ title: string; duration: string } | null>(null);
+  const [ytPreview, setYtPreview] = useState<{
+    title: string;
+    duration_seconds: number;
+    thumbnail_url: string;
+    channel: string;
+    video_id: string;
+  } | null>(null);
+  const [ytError, setYtError] = useState<string | null>(null);
+  const [defaultCourse, setDefaultCourse] = useState<{
+    course_id: string;
+    instrument_id: string;
+    level_id: string;
+  } | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Fetch default course for YouTube upload when modal opens
+  useEffect(() => {
+    if (!ytModalVisible) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const token = await getToken();
+        setAuthToken(token);
+        const [courses, instruments, levels] = await Promise.all([
+          api.get<
+            {
+              id: string;
+              instrument_slug: string;
+              level_slug: string;
+              tutor_id: string;
+            }[]
+          >('/api/courses?limit=50'),
+          api.get<{ id: string; slug: string }[]>('/api/instruments'),
+          api.get<{ id: string; slug: string }[]>('/api/levels'),
+        ]);
+        if (cancelled) return;
+        const instMap = Object.fromEntries(instruments.map((i) => [i.slug, i.id]));
+        const lvlMap = Object.fromEntries(levels.map((l) => [l.slug, l.id]));
+        const myCourse = courses.find((c) => c.tutor_id === dbUserId);
+        const first = myCourse ?? courses[0];
+        if (first && instMap[first.instrument_slug] && lvlMap[first.level_slug]) {
+          setDefaultCourse({
+            course_id: first.id,
+            instrument_id: instMap[first.instrument_slug],
+            level_id: lvlMap[first.level_slug],
+          });
+        } else {
+          setDefaultCourse(null);
+        }
+      } catch {
+        if (!cancelled) setDefaultCourse(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [ytModalVisible, getToken, dbUserId]);
 
   // Poll lesson status every 5s while processing
   useEffect(() => {
     if (!processingLessonId) return;
     pollRef.current = setInterval(async () => {
       try {
-        const data = await api.get<{ status: string }>(`/api/lessons/${processingLessonId}/status`);
+        const data = await api.get<{ status: string }>(
+          `/api/tutor/lessons/${processingLessonId}/status`
+        );
         if (data.status === 'ready' || data.status === 'failed') {
           clearInterval(pollRef.current!);
           pollRef.current = null;
@@ -64,30 +122,39 @@ export default function CreateScreen() {
     Platform.OS === 'web' && styles.webContainer,
   ];
 
+  const isValidYtUrl = (s: string) =>
+    s.includes('youtube.com') || s.includes('youtu.be');
+
   const openYouTubeModal = () => {
     setYtUrl('');
     setYtConfirmed(false);
     setYtPreview(null);
+    setYtError(null);
     setProcessing(false);
     setYtLoading(false);
     setYtModalVisible(true);
   };
 
-  const handleYtUrlChange = async (url: string) => {
-    setYtUrl(url);
-    setYtPreview(null);
-    if (!url.trim()) return;
-
+  const handlePreview = async () => {
+    const url = ytUrl.trim();
+    if (!url || !isValidYtUrl(url)) return;
     setYtLoading(true);
+    setYtError(null);
+    setYtPreview(null);
     try {
       const token = await getToken();
       setAuthToken(token);
-      const data = await api.get<{ title: string; duration: string }>(
-        `/api/tutor/youtube/preview?url=${encodeURIComponent(url)}`
-      );
+      const data = await api.get<{
+        title: string;
+        duration_seconds: number;
+        thumbnail_url: string;
+        channel: string;
+        video_id: string;
+      }>(`/api/tutor/youtube/preview?url=${encodeURIComponent(url)}`);
       setYtPreview(data);
-    } catch {
-      // preview is optional
+    } catch (e: any) {
+      setYtError('Could not load video preview');
+      setYtPreview(null);
     } finally {
       setYtLoading(false);
     }
@@ -96,15 +163,42 @@ export default function CreateScreen() {
   const handleImport = async () => {
     if (!ytUrl.trim() || !ytConfirmed) return;
     setProcessing(true);
+    setYtError(null);
     try {
       const token = await getToken();
       setAuthToken(token);
-      const result = await api.post<{ id: string }>('/api/tutor/lessons/upload-youtube', { url: ytUrl });
-      setProcessingLessonId(result.id);
+      if (!defaultCourse) {
+        Alert.alert(
+          'No course',
+          'Please create or join a course first before importing.'
+        );
+        setProcessing(false);
+        return;
+      }
+      const result = await api.post<{ lesson_id: string }>(
+        '/api/tutor/lessons/upload-youtube',
+        {
+          youtube_url: ytUrl.trim(),
+          confirmed_own_content: ytConfirmed,
+          course_id: defaultCourse.course_id,
+          instrument_id: defaultCourse.instrument_id,
+          level_id: defaultCourse.level_id,
+        }
+      );
+      setProcessingLessonId(result.lesson_id);
     } catch (e: any) {
-      Alert.alert('Import failed', e.message ?? 'Something went wrong');
+      Alert.alert(
+        'Import failed',
+        (e as Error).message ?? 'Something went wrong'
+      );
       setProcessing(false);
     }
+  };
+
+  const formatDuration = (sec: number) => {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
   return (
@@ -200,40 +294,118 @@ export default function CreateScreen() {
               </View>
             ) : (
               <>
-                <TextInput
+                <View style={styles.urlInputRow}>
+                  <TextInput
+                    style={[
+                      styles.urlInput,
+                      {
+                        backgroundColor: theme.surface,
+                        color: theme.textPrimary,
+                        borderColor: theme.border,
+                        borderRadius: Radius.md,
+                      },
+                    ]}
+                    placeholder="Paste YouTube URL here..."
+                    placeholderTextColor={theme.textDisabled}
+                    value={ytUrl}
+                    onChangeText={(text) => {
+                      setYtUrl(text);
+                      setYtPreview(null);
+                      setYtError(null);
+                    }}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    keyboardType="url"
+                  />
+                  {ytUrl.length > 0 && (
+                    <TouchableOpacity
+                      style={styles.clearBtn}
+                      onPress={() => {
+                        setYtUrl('');
+                        setYtPreview(null);
+                        setYtError(null);
+                      }}
+                    >
+                      <Text style={[styles.clearBtnText, { color: theme.textSecondary }]}>×</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+
+                <TouchableOpacity
                   style={[
-                    styles.urlInput,
+                    styles.previewButton,
                     {
-                      backgroundColor: theme.surface,
-                      color: theme.textPrimary,
+                      backgroundColor: isValidYtUrl(ytUrl)
+                        ? theme.primary
+                        : theme.surface,
                       borderColor: theme.border,
                       borderRadius: Radius.md,
                     },
                   ]}
-                  placeholder="Paste YouTube URL..."
-                  placeholderTextColor={theme.textDisabled}
-                  value={ytUrl}
-                  onChangeText={handleYtUrlChange}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  keyboardType="url"
-                />
+                  onPress={handlePreview}
+                  disabled={!isValidYtUrl(ytUrl) || ytLoading}
+                >
+                  {ytLoading ? (
+                    <ActivityIndicator size="small" color={theme.textOnPrimary} />
+                  ) : (
+                    <Text
+                      style={{
+                        color: isValidYtUrl(ytUrl)
+                          ? theme.textOnPrimary
+                          : theme.textDisabled,
+                        fontWeight: '600',
+                      }}
+                    >
+                      Preview
+                    </Text>
+                  )}
+                </TouchableOpacity>
 
-                {ytLoading && (
-                  <ActivityIndicator
-                    size="small"
-                    color={theme.primary}
-                    style={styles.previewLoader}
-                  />
+                {ytError && !ytLoading && (
+                  <View style={styles.errorBox}>
+                    <Text style={[styles.errorTitle, { color: theme.error }]}>
+                      {ytError}
+                    </Text>
+                    <Text style={[styles.errorSub, { color: theme.textSecondary }]}>
+                      Make sure it's a valid YouTube URL
+                    </Text>
+                  </View>
                 )}
 
                 {ytPreview && !ytLoading && (
-                  <View style={[styles.previewCard, { backgroundColor: theme.surface, borderRadius: Radius.lg, borderColor: theme.border }]}>
-                    <Text style={[styles.previewTitle, { color: theme.textPrimary }]} numberOfLines={2}>
+                  <View
+                    style={[
+                      styles.previewCard,
+                      {
+                        backgroundColor: theme.surface,
+                        borderRadius: Radius.lg,
+                        borderColor: theme.border,
+                      },
+                    ]}
+                  >
+                    <View style={styles.thumbnailWrap}>
+                      <Image
+                        source={{ uri: ytPreview.thumbnail_url }}
+                        style={styles.thumbnail}
+                        resizeMode="cover"
+                      />
+                    </View>
+                    <Text
+                      style={[styles.previewTitle, { color: theme.textPrimary }]}
+                      numberOfLines={2}
+                    >
                       {ytPreview.title}
                     </Text>
-                    <Text style={[styles.previewDuration, { color: theme.textSecondary }]}>
-                      Duration: {ytPreview.duration}
+                    <Text
+                      style={[styles.previewDuration, { color: theme.textSecondary }]}
+                    >
+                      {formatDuration(ytPreview.duration_seconds)}
+                    </Text>
+                    <Text
+                      style={[styles.previewChannel, { color: theme.textDisabled }]}
+                      numberOfLines={1}
+                    >
+                      {ytPreview.channel}
                     </Text>
                   </View>
                 )}
@@ -258,7 +430,7 @@ export default function CreateScreen() {
                     )}
                   </View>
                   <Text style={[styles.checkboxLabel, { color: theme.textSecondary }]}>
-                    I confirm this is my own content
+                    I confirm I own this content
                   </Text>
                 </TouchableOpacity>
 
@@ -279,14 +451,22 @@ export default function CreateScreen() {
                       },
                     ]}
                     onPress={handleImport}
-                    disabled={!ytConfirmed || !ytUrl.trim()}
+                    disabled={
+                      !ytConfirmed ||
+                      !ytUrl.trim() ||
+                      !ytPreview ||
+                      !defaultCourse
+                    }
                   >
                     <Text
                       style={[
                         styles.importText,
                         {
                           color:
-                            ytConfirmed && ytUrl.trim()
+                            ytConfirmed &&
+                            ytUrl.trim() &&
+                            ytPreview &&
+                            defaultCourse
                               ? theme.textOnPrimary
                               : theme.textDisabled,
                         },
@@ -392,14 +572,45 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: Spacing.lg,
   },
+  urlInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+    gap: Spacing.sm,
+  },
   urlInput: {
+    flex: 1,
     padding: Spacing.md,
     fontSize: FontSize.md,
     borderWidth: 1,
+  },
+  clearBtn: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  clearBtnText: {
+    fontSize: 24,
+    fontWeight: '400',
+  },
+  previewButton: {
+    padding: Spacing.md,
+    borderWidth: 1,
+    alignItems: 'center',
     marginBottom: Spacing.md,
   },
-  previewLoader: {
+  errorBox: {
+    padding: Spacing.md,
     marginBottom: Spacing.md,
+    gap: Spacing.xs,
+  },
+  errorTitle: {
+    fontSize: FontSize.md,
+    fontWeight: '600',
+  },
+  errorSub: {
+    fontSize: FontSize.sm,
   },
   previewCard: {
     padding: Spacing.md,
@@ -407,11 +618,24 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
     gap: Spacing.xs,
   },
+  thumbnailWrap: {
+    aspectRatio: 16 / 9,
+    borderRadius: Radius.md,
+    overflow: 'hidden',
+    marginBottom: Spacing.sm,
+  },
+  thumbnail: {
+    width: '100%',
+    height: '100%',
+  },
   previewTitle: {
     fontSize: FontSize.md,
     fontWeight: '600',
   },
   previewDuration: {
+    fontSize: FontSize.sm,
+  },
+  previewChannel: {
     fontSize: FontSize.sm,
   },
   checkboxRow: {

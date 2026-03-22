@@ -5,7 +5,6 @@ import {
   StyleSheet,
   Modal,
   TextInput,
-  ScrollView,
   TouchableOpacity,
 } from 'react-native';
 import { useTheme, FontSize, Spacing, Radius } from '@/src/design';
@@ -115,102 +114,38 @@ function NotationContainerInner({ engineRef, notes, isTutor, onNotesEdit, isLand
               Edit Row {(editingRow?.rowIndex ?? 0) + 1}
             </Text>
 
-            <ScrollView style={{ maxHeight: 300 }}>
+            <View style={styles.noteChipsWrap}>
               {editingRow?.notes.map((note, idx) => (
-                <View
+                <TextInput
                   key={idx}
                   style={[
-                    styles.noteEditRow,
-                    { borderBottomColor: theme.border },
+                    styles.noteChip,
+                    {
+                      color: theme.textPrimary,
+                      borderColor: theme.primary,
+                      backgroundColor: theme.surface,
+                    },
                   ]}
-                >
-                  <TextInput
-                    style={[
-                      styles.noteInput,
-                      {
-                        color: theme.textPrimary,
-                        borderColor: theme.border,
-                        backgroundColor: theme.surface,
-                      },
-                    ]}
-                    value={note.note}
-                    onChangeText={(text) => {
-                      const updated = [...editingRow.notes];
-                      updated[idx] = {
-                        ...updated[idx],
-                        note: text,
-                        lyric: text,
-                      };
-                      setEditingRow({
-                        ...editingRow,
-                        notes: updated,
-                      });
-                    }}
-                    placeholder="Sa"
-                    placeholderTextColor={theme.textDisabled}
-                  />
-                  <TextInput
-                    style={[
-                      styles.timeInput,
-                      {
-                        color: theme.textPrimary,
-                        borderColor: theme.border,
-                        backgroundColor: theme.surface,
-                      },
-                    ]}
-                    value={note.time.toFixed(2)}
-                    onChangeText={(text) => {
-                      const updated = [...editingRow.notes];
-                      updated[idx] = {
-                        ...updated[idx],
-                        time: parseFloat(text) || 0,
-                      };
-                      setEditingRow({
-                        ...editingRow,
-                        notes: updated,
-                      });
-                    }}
-                    keyboardType="numeric"
-                    placeholder="0.00"
-                    placeholderTextColor={theme.textDisabled}
-                  />
-                  <TouchableOpacity
-                    style={[
-                      styles.octaveBtn,
-                      {
-                        backgroundColor:
-                          note.octave === 1 ? theme.primary : theme.surface,
-                        borderColor: theme.border,
-                      },
-                    ]}
-                    onPress={() => {
-                      const updated = [...editingRow.notes];
-                      updated[idx] = {
-                        ...updated[idx],
-                        octave: note.octave === 1 ? 0 : 1,
-                      };
-                      setEditingRow({
-                        ...editingRow,
-                        notes: updated,
-                      });
-                    }}
-                  >
-                    <Text
-                      style={{
-                        color:
-                          note.octave === 1
-                            ? theme.textOnPrimary
-                            : theme.textSecondary,
-                        fontSize: FontSize.xs,
-                        fontWeight: '600',
-                      }}
-                    >
-                      {note.octave === 1 ? '↑ High' : '↓ Low'}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
+                  value={note.note}
+                  onChangeText={(text) => {
+                    const updated = [...editingRow.notes];
+                    updated[idx] = {
+                      ...updated[idx],
+                      note: text.trim(),
+                      lyric: text.trim(),
+                    };
+                    setEditingRow({
+                      ...editingRow,
+                      notes: updated,
+                    });
+                  }}
+                  placeholder="Sa"
+                  placeholderTextColor={theme.textDisabled}
+                  autoCapitalize="words"
+                  autoCorrect={false}
+                />
               ))}
-            </ScrollView>
+            </View>
 
             <View style={styles.modalBtns}>
               <TouchableOpacity
@@ -286,38 +221,20 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginBottom: Spacing.lg,
   },
-  noteEditRow: {
+  noteChipsWrap: {
     flexDirection: 'row',
-    alignItems: 'center',
+    flexWrap: 'wrap',
     gap: Spacing.sm,
-    paddingVertical: Spacing.sm,
-    borderBottomWidth: 0.5,
+    marginBottom: Spacing.lg,
   },
-  noteInput: {
-    flex: 1,
-    height: 36,
-    borderRadius: Radius.sm,
-    borderWidth: 1,
-    paddingHorizontal: Spacing.sm,
-    fontSize: FontSize.md,
-    fontWeight: '600',
-  },
-  timeInput: {
-    width: 64,
-    height: 36,
-    borderRadius: Radius.sm,
-    borderWidth: 1,
-    paddingHorizontal: Spacing.sm,
-    fontSize: FontSize.sm,
+  noteChip: {
+    width: 52,
+    height: 44,
+    borderRadius: Radius.md,
+    borderWidth: 1.5,
     textAlign: 'center',
-  },
-  octaveBtn: {
-    height: 36,
-    paddingHorizontal: Spacing.sm,
-    borderRadius: Radius.sm,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    fontSize: FontSize.md,
+    fontWeight: '700',
   },
   modalBtns: {
     flexDirection: 'row',
