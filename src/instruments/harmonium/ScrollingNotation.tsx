@@ -1,19 +1,29 @@
-import React, { memo, useRef, useEffect } from 'react';
+import React, { memo } from 'react';
 import { ScrollView, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { useTheme, Spacing, FontSize, Radius } from '@/src/design';
 import type { Note } from '@/src/hooks/useLesson';
 
 const NOTES_PER_ROW = 8;
 const ROW_HEIGHT = 60;
 
+function snapTime(rawTime: number, bpm: number, firstBeat: number): number {
+  const beatDuration = 60 / bpm;
+  const beatNumber = Math.round((rawTime - firstBeat) / beatDuration);
+  return beatNumber * beatDuration + firstBeat;
+}
+
 interface ScrollingNotationProps {
   notes: Note[];
   activeNoteIndex: number;
   noteProgress: number;
   isTutor: boolean;
-  onRowEdit(rowIndex: number, rowNotes: Note[]): void;
   isLandscape: boolean;
+  editMode: boolean;
+  snapToBeat: boolean;
+  bpm: number;
+  firstBeat: number;
+  currentTimeRef: React.MutableRefObject<number>;
+  onNotesEdit(notes: Note[]): void;
 }
 
 function ScrollingNotationInner({
@@ -21,11 +31,16 @@ function ScrollingNotationInner({
   activeNoteIndex,
   noteProgress,
   isTutor,
-  onRowEdit,
   isLandscape,
+  editMode,
+  snapToBeat,
+  bpm,
+  firstBeat,
+  currentTimeRef,
+  onNotesEdit,
 }: ScrollingNotationProps) {
   const { theme } = useTheme();
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = React.useRef<ScrollView>(null);
 
   // Group notes into rows of NOTES_PER_ROW
   const rows: Note[][] = [];
@@ -34,12 +49,27 @@ function ScrollingNotationInner({
   }
 
   // Auto-scroll to keep active note visible
-  useEffect(() => {
+  React.useEffect(() => {
     if (activeNoteIndex < 0) return;
     const rowIndex = Math.floor(activeNoteIndex / NOTES_PER_ROW);
     const scrollY = Math.max(0, rowIndex * ROW_HEIGHT - ROW_HEIGHT);
     scrollRef.current?.scrollTo({ y: scrollY, animated: true });
   }, [activeNoteIndex]);
+
+  const handleNotePress = (globalIndex: number) => {
+    if (!editMode) return;
+    const raw = currentTimeRef.current;
+    const stamped = snapToBeat ? snapTime(raw, bpm, firstBeat) : raw;
+
+    const updated = [...notes];
+    const nextTime = updated[globalIndex + 1]?.time ?? stamped + 60 / bpm;
+    updated[globalIndex] = {
+      ...updated[globalIndex],
+      time: stamped,
+      duration: nextTime - stamped,
+    };
+    onNotesEdit(updated);
+  };
 
   return (
     <ScrollView
@@ -59,30 +89,37 @@ function ScrollingNotationInner({
               const isPast = globalIndex < activeNoteIndex;
               const isFuture = globalIndex > activeNoteIndex;
 
-              return (
-                <View
-                  key={globalIndex}
-                  style={[
-                    styles.noteCell,
-                    {
-                      backgroundColor: isActive ? theme.primary : theme.surface,
-                      borderColor: isActive ? theme.primary : theme.border,
-                      opacity: isPast ? 0.35 : isFuture ? 0.20 : 1,
-                    },
-                  ]}
-                >
+              const cellStyle = [
+                styles.noteCell,
+                {
+                  backgroundColor: isActive ? theme.primary : theme.surface,
+                  borderColor:
+                    editMode && note.time > 0
+                      ? theme.success
+                      : isActive
+                        ? theme.primary
+                        : theme.border,
+                  opacity: isPast ? 0.35 : isFuture ? 0.2 : 1,
+                },
+              ];
+
+              const cellContent = (
+                <>
                   <Text
                     style={[
                       styles.noteText,
                       {
-                        color: isActive ? theme.textOnPrimary : isPast ? theme.textSecondary : theme.textDisabled,
+                        color: isActive
+                          ? theme.textOnPrimary
+                          : isPast
+                            ? theme.textSecondary
+                            : theme.textDisabled,
                         fontSize: isActive ? FontSize.md : FontSize.sm,
                       },
                     ]}
                   >
                     {note.note}
                   </Text>
-                  {/* Progress underline for active note */}
                   {isActive && noteProgress > 0 && (
                     <View
                       style={[
@@ -94,20 +131,27 @@ function ScrollingNotationInner({
                       ]}
                     />
                   )}
+                </>
+              );
+
+              if (editMode) {
+                return (
+                  <TouchableOpacity
+                    key={globalIndex}
+                    onPress={() => handleNotePress(globalIndex)}
+                    style={cellStyle}
+                    activeOpacity={0.7}
+                  >
+                    {cellContent}
+                  </TouchableOpacity>
+                );
+              }
+              return (
+                <View key={globalIndex} style={cellStyle}>
+                  {cellContent}
                 </View>
               );
             })}
-
-            {/* Tutor edit button at end of row */}
-            {isTutor && (
-              <TouchableOpacity
-                style={[styles.editBtn, { backgroundColor: theme.surfaceHigh }]}
-                onPress={() => onRowEdit(rowIndex, rowNotes)}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="pencil" size={14} color={theme.textSecondary} />
-              </TouchableOpacity>
-            )}
           </View>
         );
       })}
@@ -121,7 +165,12 @@ function arePropsEqual(p: ScrollingNotationProps, n: ScrollingNotationProps) {
     p.activeNoteIndex === n.activeNoteIndex &&
     p.noteProgress === n.noteProgress &&
     p.isTutor === n.isTutor &&
-    p.isLandscape === n.isLandscape
+    p.isLandscape === n.isLandscape &&
+    p.editMode === n.editMode &&
+    p.snapToBeat === n.snapToBeat &&
+    p.bpm === n.bpm &&
+    p.firstBeat === n.firstBeat &&
+    p.currentTimeRef === n.currentTimeRef
   );
 }
 
@@ -164,13 +213,5 @@ const styles = StyleSheet.create({
     left: 0,
     height: 3,
     opacity: 0.7,
-  },
-  editBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: Radius.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: Spacing.xs,
   },
 });

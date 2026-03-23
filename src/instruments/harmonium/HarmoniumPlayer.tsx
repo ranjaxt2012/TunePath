@@ -1,5 +1,12 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, Platform, TouchableOpacity } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Platform,
+  TouchableOpacity,
+  TextInput,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
@@ -25,6 +32,19 @@ interface HarmoniumPlayerProps {
 
 const MOCK_VIDEO_URL = require('../../../assets/instruments/harmonium/test_lesson.mp4');
 
+function formatTimeMs(seconds: number): string {
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  const ms = Math.floor((seconds % 1) * 1000);
+  return `${mins}:${String(secs).padStart(2, '0')}.${String(ms).padStart(3, '0')}`;
+}
+
+function snapTime(rawTime: number, bpm: number, firstBeat: number): number {
+  const beatDuration = 60 / bpm;
+  const beatNumber = Math.round((rawTime - firstBeat) / beatDuration);
+  return beatNumber * beatDuration + firstBeat;
+}
+
 export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: HarmoniumPlayerProps) {
   const { theme } = useTheme();
   const router = useRouter();
@@ -38,6 +58,11 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
   const [videoStarted, setVideoStarted] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [localNotes, setLocalNotes] = useState<Note[]>(notes);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [editMode, setEditMode] = useState(false);
+  const [bpm, setBpm] = useState(80);
+  const [firstBeat, setFirstBeat] = useState(0.2);
+  const [snapToBeat, setSnapToBeat] = useState(true);
 
   useEffect(() => {
     setLocalNotes(notes);
@@ -46,6 +71,7 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
   const engineRef = useRef<SargamPlayerEngine | null>(null);
   const lastSyncRef = useRef<number>(0);
   const lastSaveRef = useRef<number>(0);
+  const currentTimeRef = useRef(0);
 
   const savePosition = useProgressStore((s) => s.savePosition);
   const getPosition = useProgressStore((s) => s.getPosition);
@@ -128,6 +154,8 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
 
       const now = Date.now();
       const positionSecs = (status.positionMillis ?? 0) / 1000;
+      setCurrentTime(positionSecs);
+      currentTimeRef.current = positionSecs;
 
       // Throttle engine sync to ~100ms
       if (now - lastSyncRef.current >= 100) {
@@ -169,7 +197,16 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
   const speedLabel = playbackSpeed.toFixed(2).replace(/\.?0+$/, '') + 'x';
 
   const speedSlider = (
-    <View style={styles.sliderRow}>
+    <View>
+      <Text
+        style={[
+          styles.timeDisplay,
+          { color: theme.textSecondary },
+        ]}
+      >
+        {formatTimeMs(currentTime)}
+      </Text>
+      <View style={styles.sliderRow}>
       <Text style={styles.sliderEmoji}>🐢</Text>
       <Slider
         style={styles.slider}
@@ -205,15 +242,139 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
         />
       </TouchableOpacity>
     </View>
+    </View>
   );
+
+  const editToolbar = isTutor ? (
+    <View
+      style={[
+        styles.editToolbar,
+        {
+          backgroundColor: theme.surface,
+          borderColor: theme.border,
+        },
+      ]}
+    >
+      <TouchableOpacity
+        onPress={() => setEditMode(!editMode)}
+        style={[
+          styles.editModeBtn,
+          {
+            backgroundColor: editMode ? theme.primary : theme.surface,
+            borderColor: theme.border,
+          },
+        ]}
+      >
+        <Text
+          style={{
+            color: editMode ? theme.textOnPrimary : theme.textSecondary,
+            fontSize: FontSize.sm,
+            fontWeight: '600',
+          }}
+        >
+          {editMode ? '✏️ Editing' : '✏️ Edit'}
+        </Text>
+      </TouchableOpacity>
+
+      {editMode && (
+        <>
+          <Text
+            style={{
+              color: theme.textSecondary,
+              fontSize: FontSize.sm,
+            }}
+          >
+            BPM:
+          </Text>
+          <TextInput
+            style={[
+              styles.bpmInput,
+              {
+                color: theme.textPrimary,
+                borderColor: theme.border,
+                backgroundColor: theme.background,
+              },
+            ]}
+            value={String(bpm)}
+            onChangeText={(t) => {
+              const n = parseInt(t, 10);
+              if (!isNaN(n) && n > 0) setBpm(n);
+            }}
+            keyboardType="number-pad"
+          />
+          <TouchableOpacity
+            onPress={() => setSnapToBeat(!snapToBeat)}
+            style={[
+              styles.snapBtn,
+              {
+                backgroundColor: snapToBeat ? theme.primary : theme.surface,
+                borderColor: theme.border,
+              },
+            ]}
+          >
+            <Text
+              style={{
+                color: snapToBeat ? theme.textOnPrimary : theme.textSecondary,
+                fontSize: FontSize.xs,
+                fontWeight: '600',
+              }}
+            >
+              {snapToBeat ? '⊙ Snap ON' : '⊙ Snap OFF'}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setFirstBeat(currentTimeRef.current)}
+            style={[
+              styles.snapBtn,
+              {
+                backgroundColor: theme.surface,
+                borderColor: theme.border,
+              },
+            ]}
+          >
+            <Text
+              style={{
+                color: theme.textSecondary,
+                fontSize: FontSize.xs,
+              }}
+            >
+              Set Beat 1
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={async () => {
+              await handleNotesEdit(localNotes);
+              setEditMode(false);
+            }}
+            style={[styles.saveNotationBtn, { backgroundColor: theme.success }]}
+          >
+            <Text
+              style={{
+                color: '#fff',
+                fontWeight: '700',
+                fontSize: FontSize.sm,
+              }}
+            >
+              Save ✓
+            </Text>
+          </TouchableOpacity>
+        </>
+      )}
+    </View>
+  ) : null;
 
   const notationPanel = (
     <NotationContainer
       engineRef={engineRef}
       notes={localNotes}
       isTutor={isTutor ?? false}
-      onNotesEdit={handleNotesEdit}
+      onNotesEdit={setLocalNotes}
       isLandscape={showSideBySide}
+      editMode={editMode}
+      snapToBeat={snapToBeat}
+      bpm={bpm}
+      firstBeat={firstBeat}
+      currentTimeRef={currentTimeRef}
     />
   );
 
@@ -239,6 +400,7 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
         {/* Notation side */}
         <View style={styles.sideBySideNotation}>
           {speedSlider}
+          {editToolbar}
           {notationPanel}
         </View>
       </View>
@@ -263,6 +425,7 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
 
       {/* Speed slider */}
       {speedSlider}
+      {editToolbar}
 
       {/* Notation (flex 1) */}
       {notationPanel}
@@ -312,6 +475,49 @@ const styles = StyleSheet.create({
   },
   sideBySideNotation: {
     flex: 1,
+  },
+  timeDisplay: {
+    fontSize: FontSize.sm,
+    fontWeight: '600',
+    textAlign: 'center',
+    paddingVertical: Spacing.xs,
+    fontVariant: ['tabular-nums'],
+  },
+  editToolbar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderTopWidth: 0.5,
+    flexWrap: 'wrap',
+  },
+  editModeBtn: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+  },
+  bpmInput: {
+    width: 52,
+    height: 32,
+    borderRadius: Radius.sm,
+    borderWidth: 1,
+    textAlign: 'center',
+    fontSize: FontSize.sm,
+    fontWeight: '600',
+  },
+  snapBtn: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+  },
+  saveNotationBtn: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radius.md,
+    marginLeft: 'auto',
   },
   sliderRow: {
     height: 44,
