@@ -6,7 +6,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ThemeProvider } from '@/src/design';
 import { tokenCache } from '@/src/utils/tokenCache';
-import { setAuthToken, api } from '@/src/services/api';
+import { setAuthToken, setRefreshToken, api } from '@/src/services/api';
 import { useAuthStore } from '@/src/store/authStore';
 import { Log } from '@/src/utils/log';
 
@@ -20,6 +20,13 @@ function AuthGuard() {
   const hasOnboarded = useAuthStore((s) => s.hasOnboarded);
   const hasRedirected = useRef(false);
   const prevAuthRef = useRef({ isSignedIn, hasOnboarded });
+
+  useEffect(() => {
+    setRefreshToken(async () => {
+      const token = await getToken({ skipCache: true });
+      return token;
+    });
+  }, [getToken]);
 
   // Sync token to api layer — only runs when auth changes
   useEffect(() => {
