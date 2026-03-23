@@ -7,7 +7,7 @@ import { useTheme, Spacing, FontSize, Radius } from '@/src/design';
 const NAV_ITEMS = [
   { name: 'discover', label: 'Discover', icon: 'compass-outline' as const, iconActive: 'compass' as const },
   { name: 'learning', label: 'Learning', icon: 'book-outline' as const, iconActive: 'book' as const },
-  { name: 'create', label: 'Create', icon: 'add-circle-outline' as const, iconActive: 'add-circle' as const, isCreate: true },
+  { name: 'create', label: 'Create', icon: 'add-circle-outline' as const, iconActive: 'add-circle' as const },
   { name: 'profile', label: 'Profile', icon: 'person-outline' as const, iconActive: 'person' as const },
 ];
 
@@ -23,9 +23,27 @@ function WebSidebar() {
       {NAV_ITEMS.map((item) => {
         const active = activeSegment === item.name;
         return (
-          <TouchableOpacity key={item.name} style={[styles.navItem, active && { backgroundColor: theme.surface }, (item as any).isCreate && [styles.createItem, { backgroundColor: theme.primary }]]} onPress={() => router.push(`/(tabs)/${item.name}` as any)}>
-            <Ionicons name={active ? item.iconActive : item.icon} size={20} color={(item as any).isCreate ? theme.textOnPrimary : active ? theme.primary : theme.textSecondary} />
-            <Text style={[styles.navLabel, { color: (item as any).isCreate ? theme.textOnPrimary : active ? theme.primary : theme.textSecondary, fontWeight: active ? '600' : '400' }]}>{item.label}</Text>
+          <TouchableOpacity
+            key={item.name}
+            style={[styles.navItem, active && { backgroundColor: theme.surface }]}
+            onPress={() => router.push(`/(tabs)/${item.name}` as any)}
+          >
+            <Ionicons
+              name={active ? item.iconActive : item.icon}
+              size={20}
+              color={active ? theme.primary : theme.textSecondary}
+            />
+            <Text
+              style={[
+                styles.navLabel,
+                {
+                  color: active ? theme.primary : theme.textSecondary,
+                  fontWeight: active ? '600' : '400',
+                },
+              ]}
+            >
+              {item.label}
+            </Text>
           </TouchableOpacity>
         );
       })}
@@ -77,7 +95,6 @@ const styles = StyleSheet.create({
   sidebar: { width: 220, borderRightWidth: 0.5, paddingTop: Spacing.xl, paddingHorizontal: Spacing.md },
   logo: { fontSize: FontSize.xl, fontWeight: '700', paddingHorizontal: Spacing.md, paddingBottom: Spacing.xl },
   navItem: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, paddingVertical: Spacing.md, paddingHorizontal: Spacing.md, borderRadius: Radius.md, marginBottom: Spacing.xs },
-  createItem: { marginTop: Spacing.sm, borderRadius: Radius.lg },
   navLabel: { fontSize: FontSize.md, flex: 1 },
   content: { flex: 1, maxWidth: 960 },
 });
