@@ -57,6 +57,7 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
   const [playbackSpeed, setPlaybackSpeed] = useState(1.0);
   const [videoStarted, setVideoStarted] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [videoDuration, setVideoDuration] = useState(0);
   const [localNotes, setLocalNotes] = useState<Note[]>(notes);
   const [currentTime, setCurrentTime] = useState(0);
   const [editMode, setEditMode] = useState(false);
@@ -156,6 +157,10 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
       const positionSecs = (status.positionMillis ?? 0) / 1000;
       setCurrentTime(positionSecs);
       currentTimeRef.current = positionSecs;
+
+      if (status.durationMillis) {
+        setVideoDuration(status.durationMillis / 1000);
+      }
 
       // Throttle engine sync to ~100ms
       if (now - lastSyncRef.current >= 100) {
@@ -375,6 +380,7 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
       bpm={bpm}
       firstBeat={firstBeat}
       currentTimeRef={currentTimeRef}
+      videoDuration={videoDuration}
     />
   );
 

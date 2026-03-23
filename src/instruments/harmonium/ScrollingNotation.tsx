@@ -1,5 +1,12 @@
 import React, { memo } from 'react';
-import { ScrollView, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import {
+  ScrollView,
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme, Spacing, FontSize, Radius } from '@/src/design';
 import type { Note } from '@/src/hooks/useLesson';
 
@@ -24,6 +31,7 @@ interface ScrollingNotationProps {
   firstBeat: number;
   currentTimeRef: React.MutableRefObject<number>;
   onNotesEdit(notes: Note[]): void;
+  onNotePencilPress(globalIndex: number): void;
 }
 
 function ScrollingNotationInner({
@@ -38,6 +46,7 @@ function ScrollingNotationInner({
   firstBeat,
   currentTimeRef,
   onNotesEdit,
+  onNotePencilPress,
 }: ScrollingNotationProps) {
   const { theme } = useTheme();
   const scrollRef = React.useRef<ScrollView>(null);
@@ -131,6 +140,24 @@ function ScrollingNotationInner({
                       ]}
                     />
                   )}
+                  {isTutor && (
+                    <TouchableOpacity
+                      style={[
+                        styles.pencilOverlay,
+                        {
+                          backgroundColor: theme.surfaceHigh,
+                        },
+                      ]}
+                      onPress={() => onNotePencilPress(globalIndex)}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons
+                        name="pencil"
+                        size={10}
+                        color={theme.textSecondary}
+                      />
+                    </TouchableOpacity>
+                  )}
                 </>
               );
 
@@ -213,5 +240,15 @@ const styles = StyleSheet.create({
     left: 0,
     height: 3,
     opacity: 0.7,
+  },
+  pencilOverlay: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
