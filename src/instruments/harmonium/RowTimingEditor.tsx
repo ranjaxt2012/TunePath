@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
-  Modal,
   View,
   Text,
   TouchableOpacity,
@@ -12,7 +11,6 @@ import { useTheme, FontSize } from '@/src/design';
 import type { Note } from '@/src/hooks/useLesson';
 
 interface RowTimingEditorProps {
-  visible: boolean;
   rowIndex: number;
   rowNotes: Note[];
   videoDuration: number;
@@ -25,7 +23,6 @@ interface RowTimingEditorProps {
 }
 
 export function RowTimingEditor({
-  visible,
   rowIndex,
   rowNotes,
   videoDuration,
@@ -84,23 +81,24 @@ export function RowTimingEditor({
   };
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.overlay}>
-        <View style={[styles.sheet, { backgroundColor: theme.modalBg }]}>
-          {/* Handle */}
-          <View style={[styles.handle, { backgroundColor: theme.border }]} />
+    <View style={[styles.sheet, { backgroundColor: theme.modalBg }]}>
+      {/* Handle */}
+      <View style={[styles.handle, { backgroundColor: theme.border }]} />
 
-          {/* Title bar */}
-          <View style={styles.titleBar}>
-            <Text style={[styles.title, { color: theme.textPrimary }]}>
-              Row {rowIndex + 1} — {rowNotes.length} notes
-            </Text>
-            <TouchableOpacity onPress={onClose}>
-              <Text style={{ color: theme.textSecondary, fontSize: 20 }}>✕</Text>
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        style={{ flex: 1 }}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* Title bar */}
+        <View style={styles.titleBar}>
+          <Text style={[styles.title, { color: theme.textPrimary }]}>
+            Row {rowIndex + 1} — {rowNotes.length} notes
+          </Text>
+          <TouchableOpacity onPress={onClose}>
+            <Text style={{ color: theme.textSecondary, fontSize: 20 }}>✕</Text>
+          </TouchableOpacity>
+        </View>
             {/* NOTE CHIPS */}
             <ScrollView
               horizontal
@@ -535,16 +533,18 @@ export function RowTimingEditor({
                 </Text>
               </TouchableOpacity>
             </View>
-          </ScrollView>
-        </View>
-      </View>
-    </Modal>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.6)' },
-  sheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingBottom: 32, maxHeight: '92%' },
+  sheet: {
+    flex: 1,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingBottom: 32,
+  },
   handle: { width: 36, height: 4, borderRadius: 2, alignSelf: 'center', marginVertical: 10 },
   titleBar: {
     flexDirection: 'row',

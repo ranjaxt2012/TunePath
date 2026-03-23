@@ -15,6 +15,7 @@ import { useProgressStore } from '@/src/store/progressStore';
 import { VideoPlayer, type VideoPlayerHandle } from './VideoPlayer';
 import type { Note } from '@/src/hooks/useLesson';
 import { NotationContainer } from './NotationContainer';
+import { RowTimingEditor } from './RowTimingEditor';
 import { SargamPlayerEngine } from './SargamPlayerEngine';
 import { HARMONIUM_SAMPLE_MAP } from './sampleMap';
 import type { Lesson } from '@/src/types/models';
@@ -45,6 +46,11 @@ function snapTime(rawTime: number, bpm: number, firstBeat: number): number {
   return beatNumber * beatDuration + firstBeat;
 }
 
+function getRowNotes(notes: Note[], rowIndex: number): Note[] {
+  const start = rowIndex * 8;
+  return notes.slice(start, start + 8);
+}
+
 export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: HarmoniumPlayerProps) {
   const { theme } = useTheme();
   const router = useRouter();
@@ -64,6 +70,7 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
   const [bpm, setBpm] = useState(80);
   const [firstBeat, setFirstBeat] = useState(0.2);
   const [snapToBeat, setSnapToBeat] = useState(true);
+  const [editingRowIndex, setEditingRowIndex] = useState<number | null>(null);
 
   useEffect(() => {
     setLocalNotes(notes);
@@ -383,8 +390,40 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
       currentTimeRef={currentTimeRef}
       videoDuration={videoDuration}
       videoRef={videoRef}
+      onRowEditOpen={(idx) => setEditingRowIndex(idx)}
     />
   );
+
+  const rowEditorPanel =
+    editingRowIndex !== null ? (
+      <RowTimingEditor
+        rowIndex={editingRowIndex}
+        rowNotes={getRowNotes(localNotes, editingRowIndex)}
+        videoDuration={videoDuration}
+        totalRows={Math.ceil(localNotes.length / 8)}
+        videoRef={videoRef}
+        onSave={(updatedRowNotes) => {
+          const allNotes = [...localNotes];
+          const start = editingRowIndex * 8;
+          updatedRowNotes.forEach((n, i) => {
+            allNotes[start + i] = n;
+          });
+          handleNotesEdit(allNotes);
+          setEditingRowIndex(null);
+        }}
+        onClose={() => setEditingRowIndex(null)}
+        onPrevRow={() =>
+          setEditingRowIndex(Math.max(0, editingRowIndex - 1))
+        }
+        onNextRow={() =>
+          setEditingRowIndex(
+            Math.min(Math.ceil(localNotes.length / 8) - 1, editingRowIndex + 1)
+          )
+        }
+      />
+    ) : (
+      notationPanel
+    );
 
   if (showSideBySide) {
     return (
@@ -410,7 +449,7 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
         <View style={styles.sideBySideNotation}>
           {speedSlider}
           {editToolbar}
-          {notationPanel}
+          {rowEditorPanel}
         </View>
       </View>
     );
@@ -437,8 +476,8 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
       {speedSlider}
       {editToolbar}
 
-      {/* Notation (flex 1) */}
-      {notationPanel}
+      {/* Notation or Row Editor (flex 1) */}
+      {rowEditorPanel}
     </View>
   );
 }

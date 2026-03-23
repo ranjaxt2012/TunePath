@@ -3,10 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { useTheme, FontSize } from '@/src/design';
 import type { Note } from '@/src/hooks/useLesson';
 import { ScrollingNotation } from './ScrollingNotation';
-import { RowTimingEditor } from './RowTimingEditor';
 import { SargamPlayerEngine } from './SargamPlayerEngine';
-
-const NOTES_PER_ROW = 8;
 
 interface NotationContainerProps {
   engineRef: RefObject<SargamPlayerEngine | null>;
@@ -21,6 +18,7 @@ interface NotationContainerProps {
   currentTimeRef: React.MutableRefObject<number>;
   videoDuration: number;
   videoRef?: React.RefObject<any>;
+  onRowEditOpen(rowIndex: number): void;
 }
 
 function NotationContainerInner({
@@ -36,17 +34,11 @@ function NotationContainerInner({
   currentTimeRef,
   videoDuration,
   videoRef,
+  onRowEditOpen,
 }: NotationContainerProps) {
   const { theme } = useTheme();
   const [activeNoteIndex, setActiveNoteIndex] = useState(-1);
   const [noteProgress, setNoteProgress] = useState(0);
-  const [editingRowIndex, setEditingRowIndex] = useState<number | null>(null);
-
-  // Compute rows to pass correct rowNotes to editor
-  const rows: Note[][] = [];
-  for (let i = 0; i < notes.length; i += NOTES_PER_ROW) {
-    rows.push(notes.slice(i, i + NOTES_PER_ROW));
-  }
 
   useEffect(() => {
     const attach = () => {
@@ -97,37 +89,7 @@ function NotationContainerInner({
         firstBeat={firstBeat}
         currentTimeRef={currentTimeRef}
         onNotesEdit={onNotesEdit}
-        onRowEdit={(rowIndex) => setEditingRowIndex(rowIndex)}
-      />
-
-      <RowTimingEditor
-        visible={editingRowIndex !== null}
-        rowIndex={editingRowIndex ?? 0}
-        rowNotes={editingRowIndex !== null ? (rows[editingRowIndex] ?? []) : []}
-        videoDuration={videoDuration}
-        totalRows={rows.length}
-        videoRef={videoRef ?? { current: null }}
-        onSave={(updatedRowNotes) => {
-          if (editingRowIndex === null) return;
-          const allNotes = [...notes];
-          const start = editingRowIndex * NOTES_PER_ROW;
-          updatedRowNotes.forEach((n, i) => {
-            allNotes[start + i] = n;
-          });
-          onNotesEdit(allNotes);
-          setEditingRowIndex(null);
-        }}
-        onClose={() => setEditingRowIndex(null)}
-        onPrevRow={() => {
-          if (editingRowIndex !== null && editingRowIndex > 0) {
-            setEditingRowIndex(editingRowIndex - 1);
-          }
-        }}
-        onNextRow={() => {
-          if (editingRowIndex !== null && editingRowIndex < rows.length - 1) {
-            setEditingRowIndex(editingRowIndex + 1);
-          }
-        }}
+        onRowEdit={(rowIndex) => onRowEditOpen(rowIndex)}
       />
     </View>
   );
