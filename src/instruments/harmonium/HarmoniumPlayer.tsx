@@ -155,7 +155,7 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
       engineRef.current?.load(updatedNotes, HARMONIUM_SAMPLE_MAP);
 
       try {
-        await api.patch(`/api/tutor/lessons/${lesson.id}/notation`, {
+        await api.put(`/api/tutor/lessons/${lesson.id}/notation/direct`, {
           notes: updatedNotes,
         });
         Log.player('notation saved');
