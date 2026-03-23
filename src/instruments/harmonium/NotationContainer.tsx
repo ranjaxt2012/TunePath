@@ -3,8 +3,10 @@ import { View, Text, StyleSheet } from 'react-native';
 import { useTheme, FontSize } from '@/src/design';
 import type { Note } from '@/src/hooks/useLesson';
 import { ScrollingNotation } from './ScrollingNotation';
-import { NoteTimingEditor } from './NoteTimingEditor';
+import { RowTimingEditor } from './RowTimingEditor';
 import { SargamPlayerEngine } from './SargamPlayerEngine';
+
+const NOTES_PER_ROW = 8;
 
 interface NotationContainerProps {
   engineRef: RefObject<SargamPlayerEngine | null>;
@@ -18,6 +20,7 @@ interface NotationContainerProps {
   firstBeat: number;
   currentTimeRef: React.MutableRefObject<number>;
   videoDuration: number;
+  videoRef?: React.RefObject<any>;
 }
 
 function NotationContainerInner({
@@ -32,14 +35,18 @@ function NotationContainerInner({
   firstBeat,
   currentTimeRef,
   videoDuration,
+  videoRef,
 }: NotationContainerProps) {
   const { theme } = useTheme();
   const [activeNoteIndex, setActiveNoteIndex] = useState(-1);
   const [noteProgress, setNoteProgress] = useState(0);
-  const [timingEditorNote, setTimingEditorNote] = useState<{
-    note: Note;
-    index: number;
-  } | null>(null);
+  const [editingRowIndex, setEditingRowIndex] = useState<number | null>(null);
+
+  // Compute rows to pass correct rowNotes to editor
+  const rows: Note[][] = [];
+  for (let i = 0; i < notes.length; i += NOTES_PER_ROW) {
+    rows.push(notes.slice(i, i + NOTES_PER_ROW));
+  }
 
   useEffect(() => {
     const attach = () => {
@@ -90,53 +97,35 @@ function NotationContainerInner({
         firstBeat={firstBeat}
         currentTimeRef={currentTimeRef}
         onNotesEdit={onNotesEdit}
-        onNotePencilPress={(globalIndex) => {
-          setTimingEditorNote({
-            note: notes[globalIndex],
-            index: globalIndex,
-          });
-        }}
+        onRowEdit={(rowIndex) => setEditingRowIndex(rowIndex)}
       />
 
-      <NoteTimingEditor
-        visible={timingEditorNote !== null}
-        note={timingEditorNote?.note ?? null}
-        noteIndex={timingEditorNote?.index ?? 0}
-        totalNotes={notes.length}
+      <RowTimingEditor
+        visible={editingRowIndex !== null}
+        rowIndex={editingRowIndex ?? 0}
+        rowNotes={editingRowIndex !== null ? (rows[editingRowIndex] ?? []) : []}
         videoDuration={videoDuration}
-        onSave={(updatedNote) => {
-          const updated = [...notes];
-          const idx = timingEditorNote!.index;
-          updated[idx] = updatedNote;
-          onNotesEdit(updated);
-          if (idx < notes.length - 1) {
-            setTimingEditorNote({
-              note: updated[idx + 1],
-              index: idx + 1,
-            });
-          } else {
-            setTimingEditorNote(null);
+        totalRows={rows.length}
+        videoRef={videoRef ?? { current: null }}
+        onSave={(updatedRowNotes) => {
+          if (editingRowIndex === null) return;
+          const allNotes = [...notes];
+          const start = editingRowIndex * NOTES_PER_ROW;
+          updatedRowNotes.forEach((n, i) => {
+            allNotes[start + i] = n;
+          });
+          onNotesEdit(allNotes);
+          setEditingRowIndex(null);
+        }}
+        onClose={() => setEditingRowIndex(null)}
+        onPrevRow={() => {
+          if (editingRowIndex !== null && editingRowIndex > 0) {
+            setEditingRowIndex(editingRowIndex - 1);
           }
         }}
-        onClose={() => setTimingEditorNote(null)}
-        onPrev={() => {
-          if (!timingEditorNote) return;
-          const i = timingEditorNote.index - 1;
-          if (i >= 0) {
-            setTimingEditorNote({
-              note: notes[i],
-              index: i,
-            });
-          }
-        }}
-        onNext={() => {
-          if (!timingEditorNote) return;
-          const i = timingEditorNote.index + 1;
-          if (i < notes.length) {
-            setTimingEditorNote({
-              note: notes[i],
-              index: i,
-            });
+        onNextRow={() => {
+          if (editingRowIndex !== null && editingRowIndex < rows.length - 1) {
+            setEditingRowIndex(editingRowIndex + 1);
           }
         }}
       />
@@ -154,7 +143,8 @@ function arePropsEqual(p: NotationContainerProps, n: NotationContainerProps) {
     p.bpm === n.bpm &&
     p.firstBeat === n.firstBeat &&
     p.currentTimeRef === n.currentTimeRef &&
-    p.videoDuration === n.videoDuration
+    p.videoDuration === n.videoDuration &&
+    p.videoRef === n.videoRef
   );
 }
 
@@ -162,6 +152,5 @@ export const NotationContainer = memo(NotationContainerInner, arePropsEqual);
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 });

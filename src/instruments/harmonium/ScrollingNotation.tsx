@@ -31,7 +31,7 @@ interface ScrollingNotationProps {
   firstBeat: number;
   currentTimeRef: React.MutableRefObject<number>;
   onNotesEdit(notes: Note[]): void;
-  onNotePencilPress(globalIndex: number): void;
+  onRowEdit(rowIndex: number, rowNotes: Note[]): void;
 }
 
 function ScrollingNotationInner({
@@ -46,7 +46,7 @@ function ScrollingNotationInner({
   firstBeat,
   currentTimeRef,
   onNotesEdit,
-  onNotePencilPress,
+  onRowEdit,
 }: ScrollingNotationProps) {
   const { theme } = useTheme();
   const scrollRef = React.useRef<ScrollView>(null);
@@ -106,8 +106,8 @@ function ScrollingNotationInner({
                     editMode && note.time > 0
                       ? theme.success
                       : isActive
-                        ? theme.primary
-                        : theme.border,
+                      ? theme.primary
+                      : theme.border,
                   opacity: isPast ? 0.35 : isFuture ? 0.2 : 1,
                 },
               ];
@@ -121,8 +121,8 @@ function ScrollingNotationInner({
                         color: isActive
                           ? theme.textOnPrimary
                           : isPast
-                            ? theme.textSecondary
-                            : theme.textDisabled,
+                          ? theme.textSecondary
+                          : theme.textDisabled,
                         fontSize: isActive ? FontSize.md : FontSize.sm,
                       },
                     ]}
@@ -139,24 +139,6 @@ function ScrollingNotationInner({
                         },
                       ]}
                     />
-                  )}
-                  {isTutor && (
-                    <TouchableOpacity
-                      style={[
-                        styles.pencilOverlay,
-                        {
-                          backgroundColor: theme.surfaceHigh,
-                        },
-                      ]}
-                      onPress={() => onNotePencilPress(globalIndex)}
-                      activeOpacity={0.7}
-                    >
-                      <Ionicons
-                        name="pencil"
-                        size={10}
-                        color={theme.textSecondary}
-                      />
-                    </TouchableOpacity>
                   )}
                 </>
               );
@@ -179,6 +161,17 @@ function ScrollingNotationInner({
                 </View>
               );
             })}
+
+            {/* Pencil at end of row — tutor only */}
+            {isTutor && (
+              <TouchableOpacity
+                style={[styles.rowPencilBtn, { backgroundColor: theme.surfaceHigh }]}
+                onPress={() => onRowEdit(rowIndex, rowNotes)}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="pencil" size={14} color={theme.textSecondary} />
+              </TouchableOpacity>
+            )}
           </View>
         );
       })}
@@ -241,14 +234,12 @@ const styles = StyleSheet.create({
     height: 3,
     opacity: 0.7,
   },
-  pencilOverlay: {
-    position: 'absolute',
-    top: 2,
-    right: 2,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+  rowPencilBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
+    marginLeft: 4,
   },
 });

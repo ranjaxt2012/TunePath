@@ -12,7 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import { useTheme, Spacing, FontSize, Radius } from '@/src/design';
 import { useProgressStore } from '@/src/store/progressStore';
-import { VideoPlayer } from './VideoPlayer';
+import { VideoPlayer, type VideoPlayerHandle } from './VideoPlayer';
 import type { Note } from '@/src/hooks/useLesson';
 import { NotationContainer } from './NotationContainer';
 import { SargamPlayerEngine } from './SargamPlayerEngine';
@@ -73,6 +73,7 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
   const lastSyncRef = useRef<number>(0);
   const lastSaveRef = useRef<number>(0);
   const currentTimeRef = useRef(0);
+  const videoRef = useRef<VideoPlayerHandle>(null);
 
   const savePosition = useProgressStore((s) => s.savePosition);
   const getPosition = useProgressStore((s) => s.getPosition);
@@ -381,6 +382,7 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
       firstBeat={firstBeat}
       currentTimeRef={currentTimeRef}
       videoDuration={videoDuration}
+      videoRef={videoRef}
     />
   );
 
@@ -391,6 +393,7 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
         {/* Video side */}
         <View style={styles.sideBySideVideo}>
           <VideoPlayer
+            ref={videoRef}
             source={videoSource}
             thumbnailUrl={lesson.thumbnail_url ?? undefined}
             started={videoStarted}
@@ -418,6 +421,7 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
       {header}
       {/* Video (16:9) */}
       <VideoPlayer
+        ref={videoRef}
         source={videoSource}
         thumbnailUrl={lesson.thumbnail_url ?? undefined}
         started={videoStarted}
