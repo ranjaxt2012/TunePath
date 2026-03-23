@@ -21,13 +21,6 @@ function AuthGuard() {
   const hasRedirected = useRef(false);
   const prevAuthRef = useRef({ isSignedIn, hasOnboarded });
 
-  useEffect(() => {
-    setRefreshToken(async () => {
-      const token = await getToken({ skipCache: true });
-      return token;
-    });
-  }, [getToken]);
-
   // Sync token to api layer — only runs when auth changes
   useEffect(() => {
     if (!isSignedIn) {
@@ -35,6 +28,13 @@ function AuthGuard() {
       useAuthStore.getState().setDbUserId(null);
       return;
     }
+    setRefreshToken(async () => {
+      try {
+        return await getToken({ skipCache: true });
+      } catch {
+        return null;
+      }
+    });
     let cancelled = false;
     getToken()
       .then(async (token) => {
