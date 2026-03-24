@@ -40,12 +40,6 @@ function formatTimeMs(seconds: number): string {
   return `${mins}:${String(secs).padStart(2, '0')}.${String(ms).padStart(3, '0')}`;
 }
 
-function snapTime(rawTime: number, bpm: number, firstBeat: number): number {
-  const beatDuration = 60 / bpm;
-  const beatNumber = Math.round((rawTime - firstBeat) / beatDuration);
-  return beatNumber * beatDuration + firstBeat;
-}
-
 function getRowNotes(notes: Note[], rowIndex: number): Note[] {
   const start = rowIndex * 8;
   return notes.slice(start, start + 8);
@@ -86,31 +80,17 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
   const getPosition = useProgressStore((s) => s.getPosition);
 
   const header = (
-    <View
-      style={[
-        styles.header,
-        {
-          backgroundColor: theme.background,
-          borderBottomColor: theme.border,
-        },
-      ]}
-    >
+    <View style={[styles.header, { backgroundColor: theme.background, borderBottomColor: theme.border }]}>
       <TouchableOpacity
         onPress={() => router.back()}
         style={[styles.backBtn, { backgroundColor: theme.surface }]}
       >
         <Ionicons name="chevron-back" size={20} color={theme.textPrimary} />
       </TouchableOpacity>
-      <Text
-        numberOfLines={1}
-        style={[styles.headerTitle, { color: theme.textPrimary }]}
-      >
+      <Text numberOfLines={1} style={[styles.headerTitle, { color: theme.textPrimary }]}>
         {lesson.title}
       </Text>
-      <TouchableOpacity
-        onPress={() => markComplete(lesson.id)}
-        style={styles.completeBtn}
-      >
+      <TouchableOpacity onPress={() => markComplete(lesson.id)} style={styles.completeBtn}>
         <Ionicons
           name={isComplete(lesson.id) ? 'checkmark-circle' : 'checkmark-circle-outline'}
           size={24}
@@ -129,11 +109,8 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
   useEffect(() => {
     const engine = new SargamPlayerEngine();
     engine.load(localNotes, HARMONIUM_SAMPLE_MAP);
-    engine.onComplete = () => {
-      onComplete?.();
-    };
+    engine.onComplete = () => { onComplete?.(); };
     engineRef.current = engine;
-
     return () => {
       engine.destroy();
       engineRef.current = null;
@@ -141,7 +118,6 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Reload notes when they change
   useEffect(() => {
     if (engineRef.current && localNotes.length > 0) {
       engineRef.current.load(localNotes, HARMONIUM_SAMPLE_MAP);
@@ -151,50 +127,35 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
   const handleVideoStarted = useCallback(() => {
     setVideoStarted(true);
     Log.player('video started');
-    // Restore saved position — videoRef would seek here if exposed
     const savedPosition = getPosition(lesson.id);
-    // Position restore is handled via native controls once video is playing
     void savedPosition;
   }, [getPosition, lesson.id]);
 
   const handlePlaybackStatus = useCallback(
     (status: AVPlaybackStatus) => {
       if (!status.isLoaded) return;
-
       const now = Date.now();
       const positionSecs = (status.positionMillis ?? 0) / 1000;
       setCurrentTime(positionSecs);
       currentTimeRef.current = positionSecs;
-
-      if (status.durationMillis) {
-        setVideoDuration(status.durationMillis / 1000);
-      }
-
-      // Throttle engine sync to ~100ms
+      if (status.durationMillis) setVideoDuration(status.durationMillis / 1000);
       if (now - lastSyncRef.current >= 100) {
         lastSyncRef.current = now;
         engineRef.current?.syncToTime(positionSecs, playbackSpeed);
-        Log.player('position', { currentTime: positionSecs });
       }
-
-      // Save position every ~10s
       if (now - lastSaveRef.current >= 10_000) {
         lastSaveRef.current = now;
         savePosition(lesson.id, positionSecs);
-      }
-
-      if (!status.isPlaying && videoStarted) {
-        Log.playerWarn('unexpected pause');
       }
     },
     [lesson.id, playbackSpeed, savePosition]
   );
 
+  // Save a full updated notes array to state + engine + R2
   const handleNotesEdit = useCallback(
     async (updatedNotes: Note[]) => {
       setLocalNotes(updatedNotes);
       engineRef.current?.load(updatedNotes, HARMONIUM_SAMPLE_MAP);
-
       try {
         await api.put(`/api/tutor/lessons/${lesson.id}/notation/direct`, {
           notes: updatedNotes,
@@ -211,103 +172,72 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
 
   const speedSlider = (
     <View>
-      <Text
-        style={[
-          styles.timeDisplay,
-          { color: theme.textSecondary },
-        ]}
-      >
+      <Text style={[styles.timeDisplay, { color: theme.textSecondary }]}>
         {formatTimeMs(currentTime)}
       </Text>
       <View style={styles.sliderRow}>
-      <Text style={styles.sliderEmoji}>🐢</Text>
-      <Slider
-        style={styles.slider}
-        minimumValue={0.25}
-        maximumValue={2.0}
-        step={0.05}
-        value={playbackSpeed}
-        onValueChange={setPlaybackSpeed}
-        minimumTrackTintColor={theme.primary}
-        maximumTrackTintColor={theme.border}
-        thumbTintColor={theme.textPrimary}
-      />
-      <Text style={styles.sliderEmoji}>🐇</Text>
-      <Text style={[styles.speedLabel, { color: theme.textSecondary }]}>{speedLabel}</Text>
-      <TouchableOpacity
-        onPress={() => {
-          const next = !soundEnabled;
-          setSoundEnabled(next);
-          engineRef.current?.setSoundEnabled(next);
-        }}
-        style={[
-          styles.soundBtn,
-          {
+        <Text style={styles.sliderEmoji}>🐢</Text>
+        <Slider
+          style={styles.slider}
+          minimumValue={0.25}
+          maximumValue={2.0}
+          step={0.05}
+          value={playbackSpeed}
+          onValueChange={setPlaybackSpeed}
+          minimumTrackTintColor={theme.primary}
+          maximumTrackTintColor={theme.border}
+          thumbTintColor={theme.textPrimary}
+        />
+        <Text style={styles.sliderEmoji}>🐇</Text>
+        <Text style={[styles.speedLabel, { color: theme.textSecondary }]}>{speedLabel}</Text>
+        <TouchableOpacity
+          onPress={() => {
+            const next = !soundEnabled;
+            setSoundEnabled(next);
+            engineRef.current?.setSoundEnabled(next);
+          }}
+          style={[styles.soundBtn, {
             backgroundColor: soundEnabled ? theme.primary : theme.surface,
             borderColor: theme.border,
-          },
-        ]}
-      >
-        <Ionicons
-          name={soundEnabled ? 'musical-notes' : 'musical-notes-outline'}
-          size={18}
-          color={soundEnabled ? theme.textOnPrimary : theme.textSecondary}
-        />
-      </TouchableOpacity>
-    </View>
+          }]}
+        >
+          <Ionicons
+            name={soundEnabled ? 'musical-notes' : 'musical-notes-outline'}
+            size={18}
+            color={soundEnabled ? theme.textOnPrimary : theme.textSecondary}
+          />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 
   const editToolbar = isTutor ? (
-    <View
-      style={[
-        styles.editToolbar,
-        {
-          backgroundColor: theme.surface,
-          borderColor: theme.border,
-        },
-      ]}
-    >
+    <View style={[styles.editToolbar, { backgroundColor: theme.surface, borderColor: theme.border }]}>
       <TouchableOpacity
         onPress={() => setEditMode(!editMode)}
-        style={[
-          styles.editModeBtn,
-          {
-            backgroundColor: editMode ? theme.primary : theme.surface,
-            borderColor: theme.border,
-          },
-        ]}
+        style={[styles.editModeBtn, {
+          backgroundColor: editMode ? theme.primary : theme.surface,
+          borderColor: theme.border,
+        }]}
       >
-        <Text
-          style={{
-            color: editMode ? theme.textOnPrimary : theme.textSecondary,
-            fontSize: FontSize.sm,
-            fontWeight: '600',
-          }}
-        >
+        <Text style={{
+          color: editMode ? theme.textOnPrimary : theme.textSecondary,
+          fontSize: FontSize.sm,
+          fontWeight: '600',
+        }}>
           {editMode ? '✏️ Editing' : '✏️ Edit'}
         </Text>
       </TouchableOpacity>
 
       {editMode && (
         <>
-          <Text
-            style={{
-              color: theme.textSecondary,
-              fontSize: FontSize.sm,
-            }}
-          >
-            BPM:
-          </Text>
+          <Text style={{ color: theme.textSecondary, fontSize: FontSize.sm }}>BPM:</Text>
           <TextInput
-            style={[
-              styles.bpmInput,
-              {
-                color: theme.textPrimary,
-                borderColor: theme.border,
-                backgroundColor: theme.background,
-              },
-            ]}
+            style={[styles.bpmInput, {
+              color: theme.textPrimary,
+              borderColor: theme.border,
+              backgroundColor: theme.background,
+            }]}
             value={String(bpm)}
             onChangeText={(t) => {
               const n = parseInt(t, 10);
@@ -317,40 +247,24 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
           />
           <TouchableOpacity
             onPress={() => setSnapToBeat(!snapToBeat)}
-            style={[
-              styles.snapBtn,
-              {
-                backgroundColor: snapToBeat ? theme.primary : theme.surface,
-                borderColor: theme.border,
-              },
-            ]}
+            style={[styles.snapBtn, {
+              backgroundColor: snapToBeat ? theme.primary : theme.surface,
+              borderColor: theme.border,
+            }]}
           >
-            <Text
-              style={{
-                color: snapToBeat ? theme.textOnPrimary : theme.textSecondary,
-                fontSize: FontSize.xs,
-                fontWeight: '600',
-              }}
-            >
+            <Text style={{
+              color: snapToBeat ? theme.textOnPrimary : theme.textSecondary,
+              fontSize: FontSize.xs,
+              fontWeight: '600',
+            }}>
               {snapToBeat ? '⊙ Snap ON' : '⊙ Snap OFF'}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => setFirstBeat(currentTimeRef.current)}
-            style={[
-              styles.snapBtn,
-              {
-                backgroundColor: theme.surface,
-                borderColor: theme.border,
-              },
-            ]}
+            style={[styles.snapBtn, { backgroundColor: theme.surface, borderColor: theme.border }]}
           >
-            <Text
-              style={{
-                color: theme.textSecondary,
-                fontSize: FontSize.xs,
-              }}
-            >
+            <Text style={{ color: theme.textSecondary, fontSize: FontSize.xs }}>
               Set Beat 1
             </Text>
           </TouchableOpacity>
@@ -361,15 +275,7 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
             }}
             style={[styles.saveNotationBtn, { backgroundColor: theme.success }]}
           >
-            <Text
-              style={{
-                color: '#fff',
-                fontWeight: '700',
-                fontSize: FontSize.sm,
-              }}
-            >
-              Save ✓
-            </Text>
+            <Text style={{ color: '#fff', fontWeight: '700', fontSize: FontSize.sm }}>Save ✓</Text>
           </TouchableOpacity>
         </>
       )}
@@ -397,24 +303,28 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
   const rowEditorPanel =
     editingRowIndex !== null ? (
       <RowTimingEditor
+        lessonId={lesson.id}
         rowIndex={editingRowIndex}
         rowNotes={getRowNotes(localNotes, editingRowIndex)}
+        allNotes={localNotes}
         videoDuration={videoDuration}
+        currentVideoTime={currentTime}
         totalRows={Math.ceil(localNotes.length / 8)}
         videoRef={videoRef}
         onSave={(updatedRowNotes) => {
+          // Merge one row back into the full notes array
           const allNotes = [...localNotes];
           const start = editingRowIndex * 8;
-          updatedRowNotes.forEach((n, i) => {
-            allNotes[start + i] = n;
-          });
+          updatedRowNotes.forEach((n, i) => { allNotes[start + i] = n; });
           handleNotesEdit(allNotes);
           setEditingRowIndex(null);
         }}
+        onSaveAll={(updatedAllNotes) => {
+          // AI sync updates all notes at once — save directly
+          handleNotesEdit(updatedAllNotes);
+        }}
         onClose={() => setEditingRowIndex(null)}
-        onPrevRow={() =>
-          setEditingRowIndex(Math.max(0, editingRowIndex - 1))
-        }
+        onPrevRow={() => setEditingRowIndex(Math.max(0, editingRowIndex - 1))}
         onNextRow={() =>
           setEditingRowIndex(
             Math.min(Math.ceil(localNotes.length / 8) - 1, editingRowIndex + 1)
@@ -429,7 +339,6 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
     return (
       <View style={[styles.container, { backgroundColor: theme.background }]}>
         {header}
-        {/* Video side */}
         <View style={styles.sideBySideVideo}>
           <VideoPlayer
             ref={videoRef}
@@ -441,14 +350,10 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
             isLandscape
           />
         </View>
-
-        {/* 6px black vertical divider */}
         <View style={styles.verticalDivider} />
-
-        {/* Notation side */}
         <View style={styles.sideBySideNotation}>
-          {speedSlider}
-          {editToolbar}
+          {editingRowIndex === null && speedSlider}
+          {editingRowIndex === null && editToolbar}
           {rowEditorPanel}
         </View>
       </View>
@@ -458,7 +363,6 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       {header}
-      {/* Video (16:9) */}
       <VideoPlayer
         ref={videoRef}
         source={videoSource}
@@ -468,24 +372,16 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
         onPlaybackStatus={handlePlaybackStatus}
         isLandscape={false}
       />
-
-      {/* 6px black horizontal divider */}
       <View style={styles.horizontalDivider} />
-
-      {/* Speed slider */}
-      {speedSlider}
-      {editToolbar}
-
-      {/* Notation or Row Editor (flex 1) */}
+      {editingRowIndex === null && speedSlider}
+      {editingRowIndex === null && editToolbar}
       {rowEditorPanel}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1 },
   header: {
     height: 52,
     flexDirection: 'row',
@@ -494,37 +390,13 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     borderBottomWidth: 0.5,
   },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: Radius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    flex: 1,
-    fontSize: FontSize.md,
-    fontWeight: '600',
-  },
-  completeBtn: {
-    padding: Spacing.xs,
-  },
-  horizontalDivider: {
-    width: '100%',
-    height: 6,
-    backgroundColor: '#000000',
-  },
-  verticalDivider: {
-    width: 6,
-    alignSelf: 'stretch',
-    backgroundColor: '#000000',
-  },
-  sideBySideVideo: {
-    flex: 1,
-  },
-  sideBySideNotation: {
-    flex: 1,
-  },
+  backBtn: { width: 36, height: 36, borderRadius: Radius.md, alignItems: 'center', justifyContent: 'center' },
+  headerTitle: { flex: 1, fontSize: FontSize.md, fontWeight: '600' },
+  completeBtn: { padding: Spacing.xs },
+  horizontalDivider: { width: '100%', height: 6, backgroundColor: '#000000' },
+  verticalDivider: { width: 6, alignSelf: 'stretch', backgroundColor: '#000000' },
+  sideBySideVideo: { flex: 1 },
+  sideBySideNotation: { flex: 1 },
   timeDisplay: {
     fontSize: FontSize.sm,
     fontWeight: '600',
@@ -575,18 +447,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     gap: Spacing.xs,
   },
-  sliderEmoji: {
-    fontSize: 16,
-  },
-  slider: {
-    flex: 1,
-  },
-  speedLabel: {
-    fontSize: FontSize.sm,
-    fontWeight: '600',
-    minWidth: 36,
-    textAlign: 'right',
-  },
+  sliderEmoji: { fontSize: 16 },
+  slider: { flex: 1 },
+  speedLabel: { fontSize: FontSize.sm, fontWeight: '600', minWidth: 36, textAlign: 'right' },
   soundBtn: {
     width: 36,
     height: 36,

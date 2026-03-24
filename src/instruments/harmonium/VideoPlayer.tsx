@@ -8,6 +8,9 @@ import { useTheme, Spacing, FontSize } from '@/src/design';
 
 export interface VideoPlayerHandle {
   seekTo(seconds: number): void;
+  pause(): void;
+  play(): void;
+  setRate(rate: number): void;
 }
 
 interface VideoPlayerProps {
@@ -35,6 +38,40 @@ const VideoPlayerInner = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
             nativeVideoRef.current.currentTime = seconds;
           } else {
             nativeVideoRef.current.setPositionAsync(seconds * 1000);
+          }
+        } catch {}
+      },
+
+      pause: () => {
+        if (!nativeVideoRef.current) return;
+        try {
+          if (Platform.OS === 'web') {
+            nativeVideoRef.current.pause();
+          } else {
+            nativeVideoRef.current.pauseAsync();
+          }
+        } catch {}
+      },
+
+      play: () => {
+        if (!nativeVideoRef.current) return;
+        try {
+          if (Platform.OS === 'web') {
+            nativeVideoRef.current.play();
+          } else {
+            nativeVideoRef.current.playAsync();
+          }
+        } catch {}
+      },
+
+      setRate: (rate: number) => {
+        if (!nativeVideoRef.current) return;
+        try {
+          if (Platform.OS === 'web') {
+            nativeVideoRef.current.playbackRate = rate;
+          } else {
+            // shouldCorrectPitch=true keeps pitch natural at slow speeds
+            nativeVideoRef.current.setRateAsync(rate, true);
           }
         } catch {}
       },
@@ -128,7 +165,6 @@ const VideoPlayerInner = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
 );
 
 export const VideoPlayer = memo(VideoPlayerInner, (p, n) => {
-  // Once started, never re-render video from parent state changes
   if (p.started && n.started) return true;
   return p.started === n.started && p.isLandscape === n.isLandscape && p.source === n.source;
 });
