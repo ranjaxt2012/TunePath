@@ -16,7 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
-import { Paths, File } from 'expo-file-system';
+import { documentDirectory, getInfoAsync, readAsStringAsync, writeAsStringAsync, deleteAsync } from 'expo-file-system/legacy';
 import { useTheme, Spacing, FontSize, Radius } from '@/src/design';
 import { useAuthStore } from '@/src/store/authStore';
 import { api, setAuthToken } from '@/src/services/api';
@@ -25,9 +25,7 @@ import { VideoView, useVideoPlayer } from 'expo-video';
 
 const WEB_CONTENT_MAX = 960;
 const SARGAM_NOTES = ['Sa', 'Re', 'Ga', 'Ma', 'Pa', 'Dha', 'Ni'] as const;
-function draftsJsonFile(): File {
-  return new File(Paths.document, 'tunepath_drafts.json');
-}
+const DRAFTS_FILE = `${documentDirectory}tunepath_drafts.json`;
 
 interface Draft {
   id: string;
@@ -48,20 +46,13 @@ type YtStep = 'url' | 'notation' | 'confirm' | 'processing';
 // ── Draft helpers ─────────────────────────────────────────────────────────────
 async function loadDrafts(): Promise<Draft[]> {
   try {
-    const file = draftsJsonFile();
-    if (!file.exists) return [];
-    const raw = await file.text();
-    return JSON.parse(raw) as Draft[];
-  } catch {
-    return [];
-  }
+    const info = await getInfoAsync(DRAFTS_FILE);
+    if (!info.exists) return [];
+    return JSON.parse(await readAsStringAsync(DRAFTS_FILE));
+  } catch { return []; }
 }
 async function saveDrafts(drafts: Draft[]) {
-  const file = draftsJsonFile();
-  if (!file.exists) {
-    file.create({ intermediates: true });
-  }
-  file.write(JSON.stringify(drafts));
+  await writeAsStringAsync(DRAFTS_FILE, JSON.stringify(drafts));
 }
 async function addDraft(draft: Draft) {
   const existing = await loadDrafts();
@@ -301,10 +292,7 @@ export default function CreateScreen() {
     try {
       const token = await getToken();
       const formData = new FormData();
-      formData.append(
-        'video',
-        { uri: pickedVideoUri, name: 'lesson.mp4', type: 'video/mp4' } as unknown as Blob
-      );
+      formData.append('video', { uri: pickedVideoUri, name: 'lesson.mp4', type: 'video/mp4' } as any);
       formData.append('title', uploadTitle || 'My lesson');
       formData.append('course_id', defaultCourse.course_id);
       formData.append('instrument_id', defaultCourse.instrument_id);
@@ -319,8 +307,8 @@ export default function CreateScreen() {
       if (!result.ok) throw new Error(data.detail ?? 'Upload failed');
       setUploadModalVisible(false);
       router.push(`/lesson/${data.lesson_id}`);
-    } catch (e: unknown) {
-      setUploadError(e instanceof Error ? e.message : 'Upload failed. Try again.');
+    } catch (e: any) {
+      setUploadError(e?.message ?? 'Upload failed. Try again.');
     } finally { setUploading(false); }
   };
 
@@ -356,11 +344,9 @@ export default function CreateScreen() {
       );
       setDetectTaskId(result.task_id);
       // Polling starts via useEffect watching detectTaskId
-    } catch (e: unknown) {
+    } catch (e: any) {
       setDetecting(false);
-      setDetectError(
-        e instanceof Error ? e.message : 'Could not start detection. Enter notes manually.'
-      );
+      setDetectError(e?.message ?? 'Could not start detection. Enter notes manually.');
       setNotationMode('text');
     }
   };
@@ -386,11 +372,8 @@ export default function CreateScreen() {
         level_id: defaultCourse.level_id,
       });
       setProcessingLessonId(result.lesson_id);
-    } catch (e: unknown) {
-      Alert.alert(
-        'Import failed',
-        e instanceof Error ? e.message : 'Something went wrong'
-      );
+    } catch (e: any) {
+      Alert.alert('Import failed', (e as Error).message ?? 'Something went wrong');
       setYtStep('confirm');
     }
   };
@@ -511,7 +494,7 @@ export default function CreateScreen() {
           <ScrollView style={styles.flex} contentContainerStyle={styles.uploadScrollContent}>
             {uploadStep === 'preview' && pickedVideoUri && (
               <>
-                <View style={[styles.localVideoWrap, { backgroundColor: theme.divider }]}>
+                <View style={styles.localVideoWrap}>
                   <VideoView player={localVideoPlayer} style={styles.localVideo} contentFit="contain" nativeControls />
                 </View>
                 <View style={styles.previewActions}>
@@ -710,12 +693,7 @@ export default function CreateScreen() {
                           <View style={styles.chipsWrap}>
                             {detectedNotes.map((note, idx) => {
                               const isEditing = editingChipIdx === idx;
-                              const color =
-                                note.confidence >= 0.85
-                                  ? theme.success
-                                  : note.confidence >= 0.6
-                                    ? theme.warning
-                                    : theme.error;
+                              const color = note.confidence >= 0.85 ? '#10B981' : note.confidence >= 0.6 ? '#F59E0B' : '#EF4444';
                               return (
                                 <View key={idx}>
                                   <TouchableOpacity
@@ -861,7 +839,7 @@ const styles = StyleSheet.create({
   navBarBtn: { width: 36, height: 36, borderRadius: Radius.md, alignItems: 'center', justifyContent: 'center' },
   navBarTitle: { fontSize: FontSize.md, fontWeight: '600' },
   uploadScrollContent: { padding: Spacing.lg, paddingBottom: 48 },
-  localVideoWrap: { aspectRatio: 16 / 9, borderRadius: Radius.lg, overflow: 'hidden', marginBottom: Spacing.lg },
+  localVideoWrap: { aspectRatio: 16 / 9, borderRadius: Radius.lg, overflow: 'hidden', backgroundColor: '#000', marginBottom: Spacing.lg },
   localVideo: { flex: 1 },
   previewActions: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.xl },
   previewActionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingVertical: Spacing.md, borderRadius: Radius.lg, borderWidth: 1 },
