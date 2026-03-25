@@ -74,7 +74,7 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
   const lastSyncRef = useRef<number>(0);
   const lastSaveRef = useRef<number>(0);
   const currentTimeRef = useRef(0);
-  const videoRef = useRef<VideoPlayerHandle>(null);
+  const videoRef = useRef<VideoPlayerHandle | null>(null);
 
   const savePosition = useProgressStore((s) => s.savePosition);
   const getPosition = useProgressStore((s) => s.getPosition);
@@ -275,7 +275,7 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
             }}
             style={[styles.saveNotationBtn, { backgroundColor: theme.success }]}
           >
-            <Text style={{ color: '#fff', fontWeight: '700', fontSize: FontSize.sm }}>Save ✓</Text>
+            <Text style={{ color: theme.textOnPrimary, fontWeight: '700', fontSize: FontSize.sm }}>Save ✓</Text>
           </TouchableOpacity>
         </>
       )}
@@ -350,7 +350,7 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
             isLandscape
           />
         </View>
-        <View style={styles.verticalDivider} />
+        <View style={[styles.verticalDivider, { backgroundColor: theme.divider }]} />
         <View style={styles.sideBySideNotation}>
           {editingRowIndex === null && speedSlider}
           {editingRowIndex === null && editToolbar}
@@ -372,7 +372,7 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
         onPlaybackStatus={handlePlaybackStatus}
         isLandscape={false}
       />
-      <View style={styles.horizontalDivider} />
+      <View style={[styles.horizontalDivider, { backgroundColor: theme.divider }]} />
       {editingRowIndex === null && speedSlider}
       {editingRowIndex === null && editToolbar}
       {rowEditorPanel}
@@ -393,8 +393,8 @@ const styles = StyleSheet.create({
   backBtn: { width: 36, height: 36, borderRadius: Radius.md, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { flex: 1, fontSize: FontSize.md, fontWeight: '600' },
   completeBtn: { padding: Spacing.xs },
-  horizontalDivider: { width: '100%', height: 6, backgroundColor: '#000000' },
-  verticalDivider: { width: 6, alignSelf: 'stretch', backgroundColor: '#000000' },
+  horizontalDivider: { width: '100%', height: Spacing.sm - 2 },
+  verticalDivider: { width: Spacing.sm - 2, alignSelf: 'stretch' },
   sideBySideVideo: { flex: 1 },
   sideBySideNotation: { flex: 1 },
   timeDisplay: {

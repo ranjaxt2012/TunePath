@@ -13,28 +13,45 @@ export interface Note {
   confidence?: number;
 }
 
-function convertSectionsToNotes(data: any): Note[] {
-  if (!data) return [];
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === 'object' && v !== null;
+}
 
-  // Already in notes format
-  if (Array.isArray(data)) return data as Note[];
-  if (Array.isArray(data.notes)) return data.notes as Note[];
-
-  // Convert sections format to notes
+function convertSectionsToNotes(data: unknown): Note[] {
+  if (data == null) return [];
+  if (Array.isArray(data)) {
+    return data as Note[];
+  }
+  if (!isRecord(data)) return [];
+  if (Array.isArray(data.notes)) {
+    return data.notes as Note[];
+  }
   if (Array.isArray(data.sections)) {
     const notes: Note[] = [];
     for (const section of data.sections) {
-      const noteNames: string[] = (section.notation as string)
+      if (!isRecord(section)) continue;
+      const notation = section.notation;
+      const startSec = section.startSec;
+      const endSec = section.endSec;
+      if (
+        typeof notation !== 'string' ||
+        typeof startSec !== 'number' ||
+        typeof endSec !== 'number'
+      ) {
+        continue;
+      }
+
+      const noteNames: string[] = notation
         .trim()
         .split(/\s+/)
         .filter(Boolean);
 
-      const totalDuration = section.endSec - section.startSec;
-      const noteDuration = totalDuration / noteNames.length;
+      const totalDuration = endSec - startSec;
+      const noteDuration = totalDuration / Math.max(noteNames.length, 1);
 
       noteNames.forEach((noteName, idx) => {
         notes.push({
-          time: section.startSec + idx * noteDuration,
+          time: startSec + idx * noteDuration,
           note: noteName,
           octave: 0,
           duration: noteDuration * 0.9,
@@ -62,7 +79,6 @@ export function useLesson(id: string | undefined) {
       return;
     }
 
-    // Re-fetch if id changes
     const fetchLesson = async () => {
       setLoading(true);
       setError(null);
@@ -72,28 +88,21 @@ export function useLesson(id: string | undefined) {
         const data = await api.get<Lesson>(`/api/lessons/${id}`);
         setLesson(data);
 
-        // Fetch notation if available
-        if ((data as any).notation_url) {
-          const notationUrl = (data as any).notation_url;
-          fetch(notationUrl)
-            .then((r) => r.json())
-            .then((notationData) => {
-              try {
-                const noteArray = convertSectionsToNotes(notationData);
-                setNotes(noteArray);
-              } catch {
-                setNotes([]);
-              }
-            })
-            .catch((err) => {
-              Log.apiError('notation fetch failed', err);
-              setNotes([]);
-            });
+        if (data.notation_url) {
+          try {
+            const res = await fetch(data.notation_url);
+            const notationData: unknown = await res.json();
+            const noteArray = convertSectionsToNotes(notationData);
+            setNotes(noteArray);
+          } catch (err) {
+            Log.apiError('notation fetch failed', err);
+            setNotes([]);
+          }
         } else {
           setNotes([]);
         }
-      } catch (e: any) {
-        setError(e.message ?? 'Failed to load lesson');
+      } catch (e: unknown) {
+        setError(e instanceof Error ? e.message : 'Failed to load lesson');
         setLesson(null);
         setNotes([]);
       } finally {

@@ -9,22 +9,23 @@ import {
 } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { useTheme, FontSize, Spacing, Radius } from '@/src/design';
+import type { Theme } from '@/src/design/themes';
 import { api } from '@/src/services/api';
 import type { Note } from '@/src/hooks/useLesson';
+import type { VideoPlayerHandle } from './VideoPlayer';
 
 const SPEED_STEPS = [0.25, 0.5, 0.75, 1.0] as const;
 type SpeedStep = (typeof SPEED_STEPS)[number];
 const SLIDER_WINDOW = 5;
 
-// ── Confidence color coding ───────────────────────────────────────────────────
 // green ≥ 0.85 | orange 0.6–0.85 | red < 0.6 | grey = untimed
-function confidenceColor(note: Note): string {
+function confidenceColorForNote(note: Note, theme: Theme): string {
   const timed = note.time > 0 || note.duration > 0;
-  if (!timed) return '#9CA3AF';
+  if (!timed) return theme.textDisabled;
   const c = note.confidence ?? 1.0;
-  if (c >= 0.85) return '#10B981';
-  if (c >= 0.60) return '#F59E0B';
-  return '#EF4444';
+  if (c >= 0.85) return theme.success;
+  if (c >= 0.60) return theme.warning;
+  return theme.error;
 }
 
 function confidenceLabel(note: Note): string {
@@ -49,7 +50,7 @@ interface RowTimingEditorProps {
   onPrevRow(): void;
   onNextRow(): void;
   totalRows: number;
-  videoRef: React.RefObject<any>;
+  videoRef: React.RefObject<VideoPlayerHandle | null>;
 }
 
 export function RowTimingEditor({
@@ -78,22 +79,18 @@ export function RowTimingEditor({
   const [aiError, setAiError] = useState<string | null>(null);
 
   const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const prevRowIndexRef = useRef(rowIndex);
 
-  // ── Reset only when row index changes, not on every render ───────────────
-  // Fix: rowNotes is a new array ref every render (getRowNotes in parent),
-  // so we key on rowIndex (a stable number) instead.
+  // Reset editor state only when the row index changes — rowNotes is a new
+  // array reference on many parent renders; including it in deps caused zoom/slider churn.
   useEffect(() => {
-    if (prevRowIndexRef.current !== rowIndex) {
-      prevRowIndexRef.current = rowIndex;
-      setEditingNotes([...rowNotes]);
-      setSelectedIdx(0);
-      setPausedByCapture(false);
-      setIsPreviewing(false);
-      setAiMessage(null);
-      setAiError(null);
-    }
-  }, [rowIndex, rowNotes]);
+    setEditingNotes([...rowNotes]);
+    setSelectedIdx(0);
+    setPausedByCapture(false);
+    setIsPreviewing(false);
+    setAiMessage(null);
+    setAiError(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- sync only when rowIndex changes
+  }, [rowIndex]);
 
   useEffect(() => {
     try { videoRef?.current?.setRate?.(speed); } catch {}
@@ -194,8 +191,8 @@ export function RowTimingEditor({
       // Refresh this row from merged result
       const start = rowIndex * 8;
       setEditingNotes(merged.slice(start, start + 8));
-    } catch (err: any) {
-      setAiError(err?.message ?? 'AI sync failed — try again');
+    } catch (err: unknown) {
+      setAiError(err instanceof Error ? err.message : 'AI sync failed — try again');
     } finally {
       setAiSyncing(false);
     }
@@ -244,8 +241,8 @@ export function RowTimingEditor({
         <View style={styles.iconGroup}>
           <TouchableOpacity
             style={[styles.iconBtn, {
-              backgroundColor: isPreviewing ? 'rgba(245,158,11,0.2)' : theme.surface,
-              borderColor: isPreviewing ? '#F59E0B' : theme.border,
+              backgroundColor: isPreviewing ? theme.warning + '33' : theme.surface,
+              borderColor: isPreviewing ? theme.warning : theme.border,
             }]}
             onPress={() => {
               if (isPreviewing) {
@@ -262,7 +259,7 @@ export function RowTimingEditor({
               );
             }}
           >
-            <Text style={{ fontSize: 13, color: '#F59E0B' }}>
+            <Text style={{ fontSize: FontSize.sm, color: theme.warning }}>
               {isPreviewing ? '■' : '▶'}
             </Text>
           </TouchableOpacity>
@@ -274,14 +271,14 @@ export function RowTimingEditor({
                 setSelectedIdx(selectedIdx + 1);
             }}
           >
-            <Text style={{ fontSize: 13, color: theme.textOnPrimary }}>→</Text>
+            <Text style={{ fontSize: FontSize.sm, color: theme.textOnPrimary }}>→</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.iconBtn, { backgroundColor: theme.surface, borderColor: theme.border }]}
             onPress={onClose}
           >
-            <Text style={{ fontSize: 13, color: theme.textSecondary }}>✕</Text>
+            <Text style={{ fontSize: FontSize.sm, color: theme.textSecondary }}>✕</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -298,7 +295,7 @@ export function RowTimingEditor({
       >
         {aiSyncing
           ? <ActivityIndicator size="small" color={theme.primary} />
-          : <Text style={{ fontSize: 15 }}>✨</Text>
+          : <Text style={{ fontSize: FontSize.md }}>✨</Text>
         }
         <Text style={{ fontSize: FontSize.sm, fontWeight: '700', color: theme.primary }}>
           {aiSyncing ? 'AI is timing notes…' : 'AI Sync — auto-time all notes'}
@@ -306,15 +303,15 @@ export function RowTimingEditor({
       </TouchableOpacity>
 
       {aiMessage !== null && (
-        <View style={[styles.aiBanner, { backgroundColor: '#10B98112', borderColor: '#10B981' }]}>
-          <Text style={{ fontSize: FontSize.xs, color: '#10B981', fontWeight: '600' }}>
+        <View style={[styles.aiBanner, { backgroundColor: theme.success + '12', borderColor: theme.success }]}>
+          <Text style={{ fontSize: FontSize.xs, color: theme.success, fontWeight: '600' }}>
             {aiMessage}
           </Text>
         </View>
       )}
       {aiError !== null && (
-        <View style={[styles.aiBanner, { backgroundColor: '#EF444412', borderColor: '#EF4444' }]}>
-          <Text style={{ fontSize: FontSize.xs, color: '#EF4444', fontWeight: '600' }}>
+        <View style={[styles.aiBanner, { backgroundColor: theme.error + '12', borderColor: theme.error }]}>
+          <Text style={{ fontSize: FontSize.xs, color: theme.error, fontWeight: '600' }}>
             {aiError}
           </Text>
         </View>
@@ -323,14 +320,14 @@ export function RowTimingEditor({
       {/* ── CAPTURE BUTTONS ───────────────────────────────────────────────── */}
       <View style={styles.captureRow}>
         <TouchableOpacity
-          style={[styles.captureBtn, { backgroundColor: '#10B98112', borderColor: '#10B981' }]}
+          style={[styles.captureBtn, { backgroundColor: theme.success + '12', borderColor: theme.success }]}
           onPress={handleCaptureStart}
           activeOpacity={0.7}
         >
-          <Text style={{ fontSize: FontSize.sm, fontWeight: '700', color: '#10B981' }}>
+          <Text style={{ fontSize: FontSize.sm, fontWeight: '700', color: theme.success }}>
             ▶ Set Start
           </Text>
-          <Text style={{ fontSize: FontSize.xs, color: '#10B981', fontVariant: ['tabular-nums'] }}>
+          <Text style={{ fontSize: FontSize.xs, color: theme.success, fontVariant: ['tabular-nums'] }}>
             {currentNote ? currentNote.time.toFixed(3) : '—'}s
           </Text>
         </TouchableOpacity>
@@ -354,19 +351,19 @@ export function RowTimingEditor({
               </Text>
             </TouchableOpacity>
           ) : (
-            <Text style={{ fontSize: 9, color: theme.textDisabled }}>pauses on tap</Text>
+            <Text style={{ fontSize: FontSize.xs, color: theme.textDisabled }}>pauses on tap</Text>
           )}
         </View>
 
         <TouchableOpacity
-          style={[styles.captureBtn, { backgroundColor: '#EF444412', borderColor: '#EF4444' }]}
+          style={[styles.captureBtn, { backgroundColor: theme.error + '12', borderColor: theme.error }]}
           onPress={handleCaptureEnd}
           activeOpacity={0.7}
         >
-          <Text style={{ fontSize: FontSize.sm, fontWeight: '700', color: '#EF4444' }}>
+          <Text style={{ fontSize: FontSize.sm, fontWeight: '700', color: theme.error }}>
             ■ Set End
           </Text>
-          <Text style={{ fontSize: FontSize.xs, color: '#EF4444', fontVariant: ['tabular-nums'] }}>
+          <Text style={{ fontSize: FontSize.xs, color: theme.error, fontVariant: ['tabular-nums'] }}>
             {currentNote ? currentEnd.toFixed(3) : '—'}s
           </Text>
         </TouchableOpacity>
@@ -386,7 +383,7 @@ export function RowTimingEditor({
         >
           {editingNotes.map((note, idx) => {
             const isSelected = idx === selectedIdx;
-            const color = confidenceColor(note);
+            const color = confidenceColorForNote(note, theme);
             const label = confidenceLabel(note);
             const progress = getNoteProgress(note);
             const isActive = progress > 0 && progress < 1;
@@ -410,12 +407,12 @@ export function RowTimingEditor({
                   {note.note}
                 </Text>
                 {label !== '' && (
-                  <Text style={{ fontSize: 8, color, lineHeight: 10 }}>{label}</Text>
+                  <Text style={{ fontSize: FontSize.xs, color, lineHeight: FontSize.sm }}>{label}</Text>
                 )}
                 {timed && (
                   <View style={styles.chipProgressTrack}>
                     <View style={[styles.chipProgressFill, {
-                      width: `${Math.min(100, progress * 100)}%` as any,
+                      width: `${Math.min(100, progress * 100)}%`,
                       backgroundColor: isActive ? color : color + '50',
                     }]} />
                   </View>
@@ -427,11 +424,11 @@ export function RowTimingEditor({
 
         {/* Confidence legend */}
         <View style={styles.legendRow}>
-          <View style={[styles.legendDot, { backgroundColor: '#10B981' }]} />
+          <View style={[styles.legendDot, { backgroundColor: theme.success }]} />
           <Text style={[styles.legendText, { color: theme.textDisabled }]}>confident</Text>
-          <View style={[styles.legendDot, { backgroundColor: '#F59E0B' }]} />
+          <View style={[styles.legendDot, { backgroundColor: theme.warning }]} />
           <Text style={[styles.legendText, { color: theme.textDisabled }]}>review</Text>
-          <View style={[styles.legendDot, { backgroundColor: '#EF4444' }]} />
+          <View style={[styles.legendDot, { backgroundColor: theme.error }]} />
           <Text style={[styles.legendText, { color: theme.textDisabled }]}>fix needed</Text>
         </View>
 
@@ -444,8 +441,8 @@ export function RowTimingEditor({
 
             <View style={styles.sliderRow}>
               <View style={styles.sliderHeader}>
-                <Text style={[styles.sliderLbl, { color: '#10B981' }]}>▶ Start</Text>
-                <Text style={[styles.sliderVal, { color: '#10B981' }]}>
+                <Text style={[styles.sliderLbl, { color: theme.success }]}>▶ Start</Text>
+                <Text style={[styles.sliderVal, { color: theme.success }]}>
                   {currentNote.time.toFixed(3)}s
                 </Text>
               </View>
@@ -459,16 +456,16 @@ export function RowTimingEditor({
                   if (v < currentEnd - 0.05)
                     updateNote(selectedIdx, { time: v, duration: currentEnd - v, confidence: 1.0 });
                 }}
-                minimumTrackTintColor="#10B981"
+                minimumTrackTintColor={theme.success}
                 maximumTrackTintColor={theme.border}
-                thumbTintColor="#10B981"
+                thumbTintColor={theme.success}
               />
             </View>
 
             <View style={styles.sliderRow}>
               <View style={styles.sliderHeader}>
-                <Text style={[styles.sliderLbl, { color: '#EF4444' }]}>■ End</Text>
-                <Text style={[styles.sliderVal, { color: '#EF4444' }]}>
+                <Text style={[styles.sliderLbl, { color: theme.error }]}>■ End</Text>
+                <Text style={[styles.sliderVal, { color: theme.error }]}>
                   {currentEnd.toFixed(3)}s
                 </Text>
               </View>
@@ -483,8 +480,8 @@ export function RowTimingEditor({
                     updateNote(selectedIdx, { duration: v - currentNote.time, confidence: 1.0 });
                 }}
                 minimumTrackTintColor={theme.border}
-                maximumTrackTintColor="#EF4444"
-                thumbTintColor="#EF4444"
+                maximumTrackTintColor={theme.error}
+                thumbTintColor={theme.error}
               />
             </View>
 
@@ -494,7 +491,7 @@ export function RowTimingEditor({
               borderColor: theme.border,
             }]}>
               <View style={styles.nudgeRow}>
-                <Text style={[styles.nudgeLabel, { color: '#10B981' }]}>Start</Text>
+                <Text style={[styles.nudgeLabel, { color: theme.success }]}>Start</Text>
                 {([-0.05, -0.01, 0.01, 0.05] as const).map((d) => (
                   <TouchableOpacity
                     key={d}
@@ -505,14 +502,14 @@ export function RowTimingEditor({
                     }}
                     style={[styles.nudgeBtn, { backgroundColor: theme.surface, borderColor: theme.border }]}
                   >
-                    <Text style={{ fontSize: 9, color: theme.textSecondary, fontFamily: 'monospace' }}>
+                    <Text style={{ fontSize: FontSize.xs, color: theme.textSecondary, fontFamily: 'monospace' }}>
                       {d > 0 ? '+' : ''}{(d * 1000).toFixed(0)}ms
                     </Text>
                   </TouchableOpacity>
                 ))}
               </View>
               <View style={styles.nudgeRow}>
-                <Text style={[styles.nudgeLabel, { color: '#EF4444' }]}>End</Text>
+                <Text style={[styles.nudgeLabel, { color: theme.error }]}>End</Text>
                 {([-0.05, -0.01, 0.01, 0.05] as const).map((d) => (
                   <TouchableOpacity
                     key={d}
@@ -523,7 +520,7 @@ export function RowTimingEditor({
                     }}
                     style={[styles.nudgeBtn, { backgroundColor: theme.surface, borderColor: theme.border }]}
                   >
-                    <Text style={{ fontSize: 9, color: theme.textSecondary, fontFamily: 'monospace' }}>
+                    <Text style={{ fontSize: FontSize.xs, color: theme.textSecondary, fontFamily: 'monospace' }}>
                       {d > 0 ? '+' : ''}{(d * 1000).toFixed(0)}ms
                     </Text>
                   </TouchableOpacity>
@@ -535,10 +532,10 @@ export function RowTimingEditor({
 
         {/* ── SAVE ROW ──────────────────────────────────────────────────── */}
         <TouchableOpacity
-          style={[styles.btnSaveRow, { backgroundColor: '#10B981', opacity: allTimed ? 1 : 0.4 }]}
+          style={[styles.btnSaveRow, { backgroundColor: theme.success, opacity: allTimed ? 1 : 0.4 }]}
           onPress={() => { if (allTimed) onSave(editingNotes); }}
         >
-          <Text style={{ color: '#fff', fontSize: FontSize.md, fontWeight: '700', textAlign: 'center' }}>
+          <Text style={{ color: theme.textOnPrimary, fontSize: FontSize.md, fontWeight: '700', textAlign: 'center' }}>
             Save Row {rowIndex + 1} to Cloud ↑
           </Text>
         </TouchableOpacity>
@@ -575,11 +572,17 @@ export function RowTimingEditor({
 const styles = StyleSheet.create({
   sheet: {
     flex: 1,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingBottom: 32,
+    borderTopLeftRadius: Radius.xl,
+    borderTopRightRadius: Radius.xl,
+    paddingBottom: Spacing.xxl,
   },
-  handle: { width: 36, height: 4, borderRadius: 2, alignSelf: 'center', marginVertical: 8 },
+  handle: {
+    width: Spacing.xxxl - Spacing.md,
+    height: Spacing.xs,
+    borderRadius: Radius.sm,
+    alignSelf: 'center',
+    marginVertical: Spacing.sm,
+  },
 
   topBar: {
     flexDirection: 'row',
@@ -590,20 +593,20 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     marginBottom: Spacing.sm,
   },
-  speedGroup: { flexDirection: 'row', gap: 4 },
+  speedGroup: { flexDirection: 'row', gap: Spacing.xs },
   speedChip: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xs,
     borderRadius: Radius.sm,
     borderWidth: 1,
     minWidth: 38,
     alignItems: 'center',
   },
   rowTitle: { flex: 1, fontSize: FontSize.xs, textAlign: 'center' },
-  iconGroup: { flexDirection: 'row', gap: 4 },
+  iconGroup: { flexDirection: 'row', gap: Spacing.xs },
   iconBtn: {
-    width: 30,
-    height: 30,
+    width: Spacing.xxxl - Spacing.md,
+    height: Spacing.xxxl - Spacing.md,
     borderRadius: Radius.sm,
     borderWidth: 1,
     alignItems: 'center',
@@ -643,9 +646,9 @@ const styles = StyleSheet.create({
     borderRadius: Radius.lg,
     borderWidth: 2,
     alignItems: 'center',
-    gap: 3,
+    gap: Spacing.xs,
   },
-  captureCenter: { alignItems: 'center', gap: 4 },
+  captureCenter: { alignItems: 'center', gap: Spacing.xs },
   liveTimePill: {
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
@@ -653,7 +656,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   liveTimeText: { fontSize: FontSize.sm, fontWeight: '700', fontVariant: ['tabular-nums'] },
-  resumeBtn: { paddingHorizontal: Spacing.sm, paddingVertical: 4, borderRadius: Radius.md },
+  resumeBtn: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs, borderRadius: Radius.md },
 
   chipsScroll: { maxHeight: 64 },
   chips: {
@@ -666,15 +669,15 @@ const styles = StyleSheet.create({
   chip: {
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.sm,
-    paddingBottom: 5,
+    paddingBottom: Spacing.xs + 1,
     borderRadius: Radius.sm,
     minWidth: 42,
     alignItems: 'center',
     overflow: 'hidden',
     gap: 1,
   },
-  chipProgressTrack: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 3 },
-  chipProgressFill: { height: 3, borderRadius: 1.5 },
+  chipProgressTrack: { position: 'absolute', bottom: 0, left: 0, right: 0, height: Spacing.xs - 1 },
+  chipProgressFill: { height: Spacing.xs - 1, borderRadius: Spacing.xs / 2 },
 
   legendRow: {
     flexDirection: 'row',
@@ -683,21 +686,21 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.xs,
     gap: Spacing.xs,
   },
-  legendDot: { width: 6, height: 6, borderRadius: 3 },
-  legendText: { fontSize: 9, marginRight: Spacing.sm },
+  legendDot: { width: Spacing.sm - 2, height: Spacing.sm - 2, borderRadius: Spacing.xs - 1 },
+  legendText: { fontSize: FontSize.xs, marginRight: Spacing.sm },
 
   sliderSection: { paddingHorizontal: Spacing.md, paddingBottom: Spacing.sm },
-  windowLabel: { fontSize: 9, fontFamily: 'monospace', textAlign: 'center', marginBottom: Spacing.xs },
+  windowLabel: { fontSize: FontSize.xs, fontFamily: 'monospace', textAlign: 'center', marginBottom: Spacing.xs },
   sliderRow: { marginBottom: Spacing.xs },
-  sliderHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 2 },
-  sliderLbl: { fontSize: 11, fontWeight: '600' },
-  sliderVal: { fontSize: 12, fontWeight: '700', fontFamily: 'monospace' },
-  slider: { width: '100%', height: 32 },
+  sliderHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: Spacing.xs / 2 },
+  sliderLbl: { fontSize: FontSize.xs, fontWeight: '600' },
+  sliderVal: { fontSize: FontSize.sm, fontWeight: '700', fontFamily: 'monospace' },
+  slider: { width: '100%', height: Spacing.xxxl },
 
   nudgeSection: { marginTop: Spacing.xs, padding: Spacing.sm, borderRadius: Radius.md, borderWidth: 1 },
-  nudgeRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 4 },
-  nudgeLabel: { fontSize: 10, fontWeight: '600', width: 32 },
-  nudgeBtn: { paddingHorizontal: 6, paddingVertical: 4, borderRadius: 6, borderWidth: 1 },
+  nudgeRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, marginBottom: Spacing.xs },
+  nudgeLabel: { fontSize: FontSize.xs, fontWeight: '600', width: Spacing.xxxl },
+  nudgeBtn: { paddingHorizontal: Spacing.sm - 2, paddingVertical: Spacing.xs, borderRadius: Radius.sm, borderWidth: 1 },
 
   btnSaveRow: {
     marginHorizontal: Spacing.md,
@@ -711,6 +714,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: Spacing.md,
-    paddingBottom: 4,
+    paddingBottom: Spacing.xs,
   },
 });

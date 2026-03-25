@@ -162,20 +162,20 @@ export function NoteTimingEditor({
                 ]}
                 {...startPan.panHandlers}
               >
-                <Text style={styles.handleLabel}>◀</Text>
+                <Text style={[styles.handleLabel, { color: theme.textOnPrimary }]}>◀</Text>
               </View>
 
               <View
                 style={[
                   styles.handle_end,
                   {
-                    backgroundColor: '#EF4444',
+                    backgroundColor: theme.error,
                     left: endX - HANDLE_SIZE / 2,
                   },
                 ]}
                 {...endPan.panHandlers}
               >
-                <Text style={styles.handleLabel}>▶</Text>
+                <Text style={[styles.handleLabel, { color: theme.textOnPrimary }]}>▶</Text>
               </View>
             </View>
 
@@ -186,7 +186,7 @@ export function NoteTimingEditor({
                 Start: {startTime.toFixed(3)}s
               </Text>
               <Text
-                style={[styles.timeLabel, { color: '#EF4444' }]}
+                style={[styles.timeLabel, { color: theme.error }]}
               >
                 End: {endTime.toFixed(3)}s
               </Text>
@@ -345,8 +345,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   handleLabel: {
-    color: '#fff',
-    fontSize: 10,
+    fontSize: FontSize.xs,
     fontWeight: '700',
   },
   timeLabels: {

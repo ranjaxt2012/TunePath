@@ -200,7 +200,7 @@ export default function OnboardingScreen() {
                             styles.levelDesc,
                             {
                               color: isSelected
-                                ? 'rgba(255,255,255,0.75)'
+                                ? theme.textOnPrimary + 'BF'
                                 : theme.textSecondary,
                             },
                           ]}

@@ -3,7 +3,7 @@ import { View, Image, Text, TouchableOpacity, StyleSheet, Platform } from 'react
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Video, ResizeMode } from 'expo-av';
-import type { AVPlaybackStatus } from 'expo-av';
+import type { AVPlaybackSource, AVPlaybackStatus } from 'expo-av';
 import { useTheme, Spacing, FontSize } from '@/src/design';
 
 export interface VideoPlayerHandle {
@@ -14,7 +14,7 @@ export interface VideoPlayerHandle {
 }
 
 interface VideoPlayerProps {
-  source: any;
+  source: AVPlaybackSource;
   thumbnailUrl?: string;
   started: boolean;
   onStarted(): void;
@@ -28,57 +28,66 @@ const VideoPlayerInner = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
     ref
   ) {
     const { theme } = useTheme();
-    const nativeVideoRef = useRef<any>(null);
+    type VideoNativeRef = React.ComponentRef<typeof Video>;
+    const webVideoRef = useRef<HTMLVideoElement | null>(null);
+    const nativeVideoRef = useRef<VideoNativeRef | null>(null);
 
     useImperativeHandle(ref, () => ({
       seekTo: (seconds: number) => {
-        if (!nativeVideoRef.current) return;
         try {
           if (Platform.OS === 'web') {
-            nativeVideoRef.current.currentTime = seconds;
+            const el = webVideoRef.current;
+            if (!el) return;
+            el.currentTime = seconds;
           } else {
-            nativeVideoRef.current.setPositionAsync(seconds * 1000);
+            const v = nativeVideoRef.current;
+            if (!v) return;
+            void v.setPositionAsync(seconds * 1000);
           }
         } catch {}
       },
 
       pause: () => {
-        if (!nativeVideoRef.current) return;
         try {
           if (Platform.OS === 'web') {
-            nativeVideoRef.current.pause();
+            webVideoRef.current?.pause();
           } else {
-            nativeVideoRef.current.pauseAsync();
+            void nativeVideoRef.current?.pauseAsync();
           }
         } catch {}
       },
 
       play: () => {
-        if (!nativeVideoRef.current) return;
         try {
           if (Platform.OS === 'web') {
-            nativeVideoRef.current.play();
+            void webVideoRef.current?.play();
           } else {
-            nativeVideoRef.current.playAsync();
+            void nativeVideoRef.current?.playAsync();
           }
         } catch {}
       },
 
       setRate: (rate: number) => {
-        if (!nativeVideoRef.current) return;
         try {
           if (Platform.OS === 'web') {
-            nativeVideoRef.current.playbackRate = rate;
+            const el = webVideoRef.current;
+            if (el) el.playbackRate = rate;
           } else {
             // shouldCorrectPitch=true keeps pitch natural at slow speeds
-            nativeVideoRef.current.setRateAsync(rate, true);
+            void nativeVideoRef.current?.setRateAsync(rate, true);
           }
         } catch {}
       },
     }));
 
     return (
-      <View style={[styles.container, isLandscape && styles.containerLandscape]}>
+      <View
+        style={[
+          styles.container,
+          { backgroundColor: theme.divider },
+          isLandscape && styles.containerLandscape,
+        ]}
+      >
         {!started ? (
           <TouchableOpacity
             style={[styles.poster, { backgroundColor: theme.surface }]}
@@ -92,7 +101,12 @@ const VideoPlayerInner = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
                   style={StyleSheet.absoluteFillObject}
                   resizeMode="cover"
                 />
-                <View style={styles.thumbOverlay} />
+                <View
+                  style={[
+                    StyleSheet.absoluteFillObject,
+                    { backgroundColor: theme.overlay, opacity: 0.33 },
+                  ]}
+                />
               </>
             ) : (
               <>
@@ -111,13 +125,13 @@ const VideoPlayerInner = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
                 name="play"
                 size={28}
                 color={theme.textOnPrimary}
-                style={{ marginLeft: 3 }}
+                style={{ marginLeft: Spacing.xs }}
               />
             </View>
           </TouchableOpacity>
         ) : Platform.OS === 'web' ? (
           <video
-            ref={nativeVideoRef}
+            ref={webVideoRef}
             src={
               typeof source === 'object' && source && 'uri' in source
                 ? (source as { uri?: string }).uri
@@ -128,24 +142,25 @@ const VideoPlayerInner = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
             style={{
               width: '100%',
               height: '100%',
-              backgroundColor: '#000',
+              backgroundColor: theme.divider,
               objectFit: 'contain',
-            } as any}
-            onTimeUpdate={(e: any) => {
-              const currentTime = (e.target as HTMLVideoElement).currentTime;
-              const duration = (e.target as HTMLVideoElement).duration;
+            }}
+            onTimeUpdate={(e: React.SyntheticEvent<HTMLVideoElement>) => {
+              const el = e.currentTarget;
+              const currentTime = el.currentTime;
+              const duration = el.duration;
               onPlaybackStatus({
                 isLoaded: true,
                 isPlaying: true,
                 positionMillis: currentTime * 1000,
-                durationMillis: duration ? duration * 1000 : 0,
+                durationMillis: Number.isFinite(duration) ? duration * 1000 : 0,
                 rate: 1,
                 shouldPlay: true,
                 volume: 1,
                 isMuted: false,
                 isBuffering: false,
                 didJustFinish: false,
-              } as any);
+              } as AVPlaybackStatus);
             }}
           />
         ) : (
@@ -173,7 +188,6 @@ const styles = StyleSheet.create({
   container: {
     width: '100%',
     aspectRatio: 16 / 9,
-    backgroundColor: '#000000',
     overflow: 'hidden',
   },
   containerLandscape: {
@@ -183,17 +197,13 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
   },
   poster: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  thumbOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.25)',
-  } as any,
   placeholder: { alignItems: 'center', gap: Spacing.sm },
   tapText: { fontSize: FontSize.sm, fontWeight: '500' },
   playBtn: {
     position: 'absolute',
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: Spacing.xxxl + Spacing.xl,
+    height: Spacing.xxxl + Spacing.xl,
+    borderRadius: (Spacing.xxxl + Spacing.xl) / 2,
     alignItems: 'center',
     justifyContent: 'center',
   },

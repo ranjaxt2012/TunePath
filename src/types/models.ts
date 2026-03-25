@@ -7,6 +7,8 @@ export interface Lesson {
   duration_seconds: number;
   status: string;
   creator_id: string;
+  /** Present for tutor-owned lessons; used to gate edit mode. */
+  tutor_id?: string;
   creator_name?: string;
   creator_verified?: boolean;
   instrument_slug?: string;

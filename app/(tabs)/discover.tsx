@@ -92,14 +92,14 @@ export default function DiscoverScreen() {
   const filteredTrending = useMemo(() => {
     if (!activeSlug) return trending;
     return trending.filter(
-      (l) => l.instrument_slug === activeSlug || (l as any).tags?.includes(activeSlug)
+      (l) => l.instrument_slug === activeSlug || l.tags?.includes(activeSlug)
     );
   }, [activeSlug, trending]);
 
   const filteredNew = useMemo(() => {
     if (!activeSlug) return newLessons;
     return newLessons.filter(
-      (l) => l.instrument_slug === activeSlug || (l as any).tags?.includes(activeSlug)
+      (l) => l.instrument_slug === activeSlug || l.tags?.includes(activeSlug)
     );
   }, [activeSlug, newLessons]);
 
@@ -111,11 +111,11 @@ export default function DiscoverScreen() {
 
   // ── Stable onPress callbacks ───────────────────────────────────────────────
   const handleFeaturedPress = useCallback(() => {
-    if (featuredLesson) router.push(`/lesson/${featuredLesson.id}` as any);
+    if (featuredLesson) router.push(`/lesson/${featuredLesson.id}`);
   }, [featuredLesson, router]);
 
   const handleCreatePress = useCallback(() => {
-    router.push('/(tabs)/create' as any);
+    router.push('/(tabs)/create');
   }, [router]);
 
   const handleRetry = useCallback(() => {
@@ -242,17 +242,21 @@ export default function DiscoverScreen() {
                 )}
 
                 <View style={[styles.heroDuration, { backgroundColor: theme.overlay }]}>
-                  <Text style={styles.heroDurationText}>
+                  <Text style={[styles.heroDurationText, { color: theme.textOnPrimary }]}>
                     {formatDuration(featuredLesson.duration_seconds)}
                   </Text>
                 </View>
 
-                <View style={styles.heroPlayBtn}>
-                  <Ionicons name="play" size={28} color="#FFFFFF" style={{ marginLeft: 3 }} />
+                <View style={[styles.heroPlayBtn, {
+                  backgroundColor: theme.textOnPrimary + '40',
+                  borderColor: theme.textOnPrimary + '99',
+                }]}
+                >
+                  <Ionicons name="play" size={FontSize.hero - 2} color={theme.textOnPrimary} style={{ marginLeft: Spacing.xs }} />
                 </View>
 
                 <LinearGradient
-                  colors={['transparent', 'rgba(0,0,0,0.8)']}
+                  colors={['transparent', theme.overlay]}
                   style={styles.heroGradient}
                 >
                   <View style={styles.heroMeta}>
@@ -264,11 +268,11 @@ export default function DiscoverScreen() {
                       </View>
                     )}
                   </View>
-                  <Text style={styles.heroTitle} numberOfLines={2}>
+                  <Text style={[styles.heroTitle, { color: theme.textOnPrimary }]} numberOfLines={2}>
                     {featuredLesson.title}
                   </Text>
                   <View style={styles.heroCreatorRow}>
-                    <Text style={styles.heroCreator} numberOfLines={1}>
+                    <Text style={[styles.heroCreator, { color: theme.textOnPrimary + 'D9' }]} numberOfLines={1}>
                       {featuredLesson.creator_name ?? 'Unknown'}
                     </Text>
                     {featuredLesson.creator_verified && (
@@ -298,7 +302,7 @@ export default function DiscoverScreen() {
                     size="mini"
                     width={cardWidth}
                     thumbHeight={thumbHeight}
-                    onPress={() => router.push(`/lesson/${lesson.id}` as any)}
+                    onPress={() => router.push(`/lesson/${lesson.id}`)}
                   />
                 ))}
           </ScrollView>
@@ -321,7 +325,7 @@ export default function DiscoverScreen() {
                     size="mini"
                     width={cardWidth}
                     thumbHeight={thumbHeight}
-                    onPress={() => router.push(`/lesson/${lesson.id}` as any)}
+                    onPress={() => router.push(`/lesson/${lesson.id}`)}
                   />
                 ))}
           </ScrollView>
@@ -344,7 +348,7 @@ export default function DiscoverScreen() {
                     size="mini"
                     width={cardWidth}
                     thumbHeight={thumbHeight}
-                    onPress={() => router.push(`/lesson/${lesson.id}` as any)}
+                    onPress={() => router.push(`/lesson/${lesson.id}`)}
                   />
                 ))}
           </ScrollView>
@@ -390,17 +394,14 @@ const styles = StyleSheet.create({
   heroDurationText: {
     fontSize: FontSize.xs,
     fontWeight: '600',
-    color: '#FFFFFF',
   },
   heroPlayBtn: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: 'rgba(255,255,255,0.25)',
+    width: Spacing.xxxl + Spacing.xl,
+    height: Spacing.xxxl + Spacing.xl,
+    borderRadius: (Spacing.xxxl + Spacing.xl) / 2,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.6)',
   },
   heroGradient: {
     position: 'absolute',
@@ -428,13 +429,11 @@ const styles = StyleSheet.create({
   heroTitle: {
     fontSize: FontSize.lg,
     fontWeight: '700',
-    color: '#FFFFFF',
-    lineHeight: 24,
+    lineHeight: FontSize.xl + Spacing.xs,
   },
   heroCreatorRow: { flexDirection: 'row', alignItems: 'center' },
   heroCreator: {
     fontSize: FontSize.sm,
-    color: 'rgba(255,255,255,0.85)',
     fontWeight: '500',
   },
   verifiedDot: { fontSize: FontSize.sm, fontWeight: '700' },

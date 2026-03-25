@@ -2,7 +2,7 @@ import React, { useEffect, useMemo } from 'react';
 import { View, ActivityIndicator, Text, StyleSheet, Platform } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import * as ScreenOrientation from 'expo-screen-orientation';
-import { useTheme } from '@/src/design';
+import { useTheme, FontSize, Spacing } from '@/src/design';
 import { useLesson } from '@/src/hooks/useLesson';
 import { useAuthStore } from '@/src/store/authStore';
 import { useProgressStore } from '@/src/store/progressStore';
@@ -18,15 +18,8 @@ export default function LessonPlayerScreen() {
 
   const canEdit = useMemo(() => {
     if (!lesson || !dbUserId) return false;
-    return isAdmin || (lesson as any).tutor_id === dbUserId;
+    return isAdmin || lesson.tutor_id === dbUserId;
   }, [lesson, dbUserId, isAdmin]);
-
-  console.log('canEdit debug:', {
-    dbUserId,
-    tutor_id: (lesson as any)?.tutor_id,
-    isAdmin,
-    canEdit,
-  });
 
   useEffect(() => {
     Log.nav('opening lesson', { id });
@@ -96,8 +89,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   errorText: {
-    fontSize: 16,
+    fontSize: FontSize.md,
     textAlign: 'center',
-    paddingHorizontal: 24,
+    paddingHorizontal: Spacing.xl,
   },
 });

@@ -30,14 +30,17 @@ export default function SignInScreen() {
   const [oauthLoading, setOauthLoading] = useState(false);
 
   const handleOAuth = useCallback(
-    async (startFlow: () => Promise<any>) => {
+    async (startFlow: () => Promise<unknown>) => {
       setError('');
       setOauthLoading(true);
       try {
-        const { createdSessionId, setActive: sa } = await startFlow();
-        if (createdSessionId && sa) {
-          await sa({ session: createdSessionId });
-          router.replace('/(tabs)/discover' as any);
+        const out = (await startFlow()) as {
+          createdSessionId?: string;
+          setActive?: (a: { session: string }) => Promise<void>;
+        };
+        if (out.createdSessionId && out.setActive) {
+          await out.setActive({ session: out.createdSessionId });
+          router.replace('/(tabs)/discover');
         }
       } catch (err) {
         Log.auth('OAuth error', err);
@@ -57,18 +60,25 @@ export default function SignInScreen() {
       const result = await signIn.create({ identifier: email.trim(), password });
       if (result.status === 'complete') {
         await setActive({ session: result.createdSessionId });
-        router.replace('/(tabs)/discover' as any);
+        router.replace('/(tabs)/discover');
       }
-    } catch (err: any) {
-      setError(err?.errors?.[0]?.message ?? 'Sign in failed. Please try again.');
+    } catch (err: unknown) {
+      const msg =
+        err &&
+        typeof err === 'object' &&
+        'errors' in err &&
+        Array.isArray((err as { errors: { message?: string }[] }).errors)
+          ? (err as { errors: { message?: string }[] }).errors[0]?.message
+          : undefined;
+      setError(msg ?? 'Sign in failed. Please try again.');
     } finally {
       setLoading(false);
     }
   }, [isLoaded, signIn, email, password, setActive, router]);
 
   const isWeb = Platform.OS === 'web';
-  const textColor = isWeb ? theme.textPrimary : '#FFFFFF';
-  const subtitleColor = isWeb ? theme.textSecondary : 'rgba(255,255,255,0.7)';
+  const textColor = isWeb ? theme.textPrimary : theme.textOnPrimary;
+  const subtitleColor = isWeb ? theme.textSecondary : theme.textOnPrimary + 'B3';
 
   const formContent = (
     <View style={styles.form}>
@@ -159,7 +169,7 @@ export default function SignInScreen() {
         <Text style={[styles.oauthText, { color: theme.textOnPrimary }]}>Continue with Facebook</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => router.push('/(auth)/sign-up' as any)} style={styles.linkBtn}>
+      <TouchableOpacity onPress={() => router.push('/(auth)/sign-up')} style={styles.linkBtn}>
         <Text style={[styles.linkText, { color: theme.primary }]}>Don't have an account? Sign up →</Text>
       </TouchableOpacity>
 
@@ -177,7 +187,7 @@ export default function SignInScreen() {
   }
 
   return (
-    <LinearGradient colors={THEMES.purple.gradient as any} style={styles.gradient}>
+    <LinearGradient colors={[...THEMES.purple.gradient]} style={styles.gradient}>
       <SafeAreaView style={styles.safeArea}>
         <KeyboardAvoidingView behavior="padding" style={styles.kav}>
           <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">

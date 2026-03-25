@@ -115,7 +115,7 @@ export function AppTour() {
   const styles = StyleSheet.create({
     overlay: {
       flex: 1,
-      backgroundColor: 'rgba(0,0,0,0.75)',
+      backgroundColor: theme.overlay,
     },
     contentWrapper: {
       flex: 1,
@@ -135,7 +135,7 @@ export function AppTour() {
       fontSize: 28,
     },
     speechBubble: {
-      backgroundColor: '#FFFFFF',
+      backgroundColor: theme.modalBg,
       borderRadius: Radius.lg,
       padding: Spacing.lg,
       maxWidth: 280,
@@ -143,9 +143,9 @@ export function AppTour() {
       marginBottom: Spacing.md,
     },
     bubbleText: {
-      color: '#000000',
+      color: theme.textPrimary,
       textAlign: 'center',
-      lineHeight: 22,
+      lineHeight: FontSize.lg + Spacing.sm,
       fontSize: FontSize.md,
     },
     youtubeCard: {

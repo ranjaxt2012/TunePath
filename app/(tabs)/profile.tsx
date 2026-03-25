@@ -162,7 +162,7 @@ export default function ProfileScreen() {
                   {t.id === 'holi' ? (
                     <HoliGradient style={styles.seasonalGradient}>
                       <Text style={styles.seasonalEmoji}>{t.seasonalEmoji}</Text>
-                      <Text style={[styles.seasonalCardLabel, { color: '#FFFFFF' }]}>{t.label}</Text>
+                      <Text style={[styles.seasonalCardLabel, { color: theme.textOnPrimary }]}>{t.label}</Text>
                     </HoliGradient>
                   ) : (
                     <LinearGradient
@@ -170,7 +170,7 @@ export default function ProfileScreen() {
                       style={styles.seasonalGradient}
                     >
                       <Text style={styles.seasonalEmoji}>{t.seasonalEmoji}</Text>
-                      <Text style={[styles.seasonalCardLabel, { color: '#FFFFFF' }]}>{t.label}</Text>
+                      <Text style={[styles.seasonalCardLabel, { color: theme.textOnPrimary }]}>{t.label}</Text>
                     </LinearGradient>
                   )}
                 </TouchableOpacity>
@@ -225,7 +225,7 @@ export default function ProfileScreen() {
       >
         <View style={[styles.pickerOverlay, { backgroundColor: theme.overlay }]}>
           <View style={[styles.pickerSheet, { backgroundColor: theme.modalBg }]}>
-            <View style={styles.handle} />
+            <View style={[styles.handle, { backgroundColor: theme.border }]} />
             <Text style={[styles.pickerTitle, { color: theme.textPrimary }]}>
               🎨 Pick your color
             </Text>
@@ -262,12 +262,11 @@ export default function ProfileScreen() {
                   width: 28,
                   height: 28,
                 }}
-                colors={[
-                  '#7C3AED', '#0EA5E9', '#16A34A',
-                  '#E11D48', '#D97706', '#6366F1',
-                  '#EC4899', '#14B8A6', '#F97316',
-                  '#8B5CF6', '#EF4444', '#10B981',
-                ]}
+                colors={Array.from(
+                  new Set(
+                    [...STANDARD_THEMES, ...SEASONAL_THEMES].map((t) => t.primary)
+                  )
+                )}
               />
             </ColorPicker>
 
@@ -285,12 +284,17 @@ export default function ProfileScreen() {
                     primary: selectedHex,
                     primaryLight: selectedHex,
                     primaryDark: selectedHex,
-                    gradient: [selectedHex, selectedHex, selectedHex, selectedHex] as any,
+                    gradient: [selectedHex, selectedHex, selectedHex, selectedHex] as [
+                      string,
+                      string,
+                      string,
+                      string,
+                    ],
                   });
                   setShowColorPicker(false);
                 }}
               >
-                <Text style={{ color: '#FFFFFF', fontSize: FontSize.md, fontWeight: '700' }}>
+                <Text style={{ color: theme.textOnPrimary, fontSize: FontSize.md, fontWeight: '700' }}>
                   Apply →
                 </Text>
               </TouchableOpacity>
@@ -426,10 +430,9 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.xxxl,
   },
   handle: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    width: Spacing.xxxl - Spacing.md,
+    height: Spacing.xs,
+    borderRadius: Radius.sm,
     alignSelf: 'center',
     marginBottom: Spacing.lg,
   },
