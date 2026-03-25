@@ -41,8 +41,8 @@ function formatTimeMs(seconds: number): string {
 }
 
 function getRowNotes(notes: Note[], rowIndex: number): Note[] {
-  const start = rowIndex * 8;
-  return notes.slice(start, start + 8);
+  const start = rowIndex * 4;
+  return notes.slice(start, start + 4);
 }
 
 export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: HarmoniumPlayerProps) {
@@ -309,7 +309,7 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
         allNotes={localNotes}
         videoDuration={videoDuration}
         currentVideoTime={currentTime}
-        totalRows={Math.ceil(localNotes.length / 8)}
+        totalRows={Math.ceil(localNotes.length / 4)}
         videoRef={videoRef}
         onSave={(updatedRowNotes) => {
           // Merge one row back into the full notes array
@@ -327,7 +327,7 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
         onPrevRow={() => setEditingRowIndex(Math.max(0, editingRowIndex - 1))}
         onNextRow={() =>
           setEditingRowIndex(
-            Math.min(Math.ceil(localNotes.length / 8) - 1, editingRowIndex + 1)
+            Math.min(Math.ceil(localNotes.length / 4) - 1, editingRowIndex + 1)
           )
         }
       />

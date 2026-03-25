@@ -10,7 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme, Spacing, FontSize, Radius } from '@/src/design';
 import type { Note } from '@/src/hooks/useLesson';
 
-const NOTES_PER_ROW = 8;
+const NOTES_PER_ROW = 4;
 const ROW_HEIGHT = 60;
 
 function snapTime(rawTime: number, bpm: number, firstBeat: number): number {
