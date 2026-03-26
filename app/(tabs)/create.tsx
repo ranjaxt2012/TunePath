@@ -108,7 +108,10 @@ async function removeDraft(id: string): Promise<Draft[]> {
 
 export default function CreateScreen() {
   const { theme } = useTheme();
-  const { trustTier, dbUserId } = useAuthStore();
+  const { trustTier, dbUserId, user } = useAuthStore();
+  const creatorName = user
+    ? [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email || ''
+    : '';
   const { getToken } = useAuth();
   const router = useRouter();
 
@@ -126,6 +129,8 @@ export default function CreateScreen() {
   const [uploadStep, setUploadStep] = useState<'preview' | 'details' | 'processing'>('preview');
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadPercent, setUploadPercent] = useState(0);
+  const [titleDuplicateWarning, setTitleDuplicateWarning] = useState<string | null>(null);
 
   const localVideoPlayer = useVideoPlayer(pickedVideoUri ?? '', (p) => { p.loop = true; });
 
@@ -157,6 +162,8 @@ export default function CreateScreen() {
   const [aiSyncing, setAiSyncing] = useState(false);
   const [processingStartTime, setProcessingStartTime] = useState<number | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [processingProgress, setProcessingProgress] = useState(0);
+  const [processingStageLabel, setProcessingStageLabel] = useState('');
   const elapsedTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const TIMEOUT_WARN_SECS = Math.max(120, (ytPreview?.duration_seconds ?? 60) * 4);
   const [defaultCourse, setDefaultCourse] = useState<DefaultCourse | null>(
@@ -244,19 +251,25 @@ export default function CreateScreen() {
     const isYouTubeImport = ytModalVisible && !uploadModalVisible;
     pollRef.current = setInterval(async () => {
       try {
-        const data = await api.get<{ status: string }>(`/api/tutor/lessons/${processingLessonId}/status`);
+        const data = await api.get<{
+          status: string;
+          stage_label: string;
+          progress_percent: number;
+          error_message: string | null;
+        }>(`/api/tutor/lessons/${processingLessonId}/status`);
         setProcessingStatus(data.status);
+        setProcessingProgress(data.progress_percent);
+        setProcessingStageLabel(data.stage_label);
         if (data.status === 'review_ready' || data.status === 'published') {
           clearInterval(pollRef.current!);
           pollRef.current = null;
 
-          // For YouTube imports, call ai-sync with detected notation
           if (isYouTubeImport) {
             const notation = getYtNotation();
             if (notation.trim()) {
               setAiSyncing(true);
               try { await api.post(`/api/tutor/lessons/${processingLessonId}/ai-sync`, { notation, shruti: 'C' }); }
-              catch (e) { /* ai-sync is optional */ }
+              catch { /* ai-sync is optional */ }
               finally { setAiSyncing(false); }
             }
             const lessonId = processingLessonId;
@@ -264,26 +277,30 @@ export default function CreateScreen() {
             resetYtModal();
             router.push(`/lesson/${lessonId}`);
           } else {
-            // Local uploads navigate immediately after upload; polling is best-effort cleanup.
+            const lessonId = processingLessonId;
+            setUploadModalVisible(false);
             setUploadStep('preview');
             setProcessingLessonId(null);
             setProcessingStatus('');
+            setProcessingProgress(0);
+            setProcessingStageLabel('');
             setElapsedSeconds(0);
             setProcessingStartTime(null);
+            router.push(`/lesson/${lessonId}`);
           }
         } else if (data.status === 'failed') {
           clearInterval(pollRef.current!);
           pollRef.current = null;
+          const errMsg = data.error_message ?? 'Something went wrong. Please try again.';
           if (isYouTubeImport) {
             setYtModalVisible(false);
             resetYtModal();
-            Alert.alert('Processing failed', 'Something went wrong. Please try again.');
           } else {
             setUploadModalVisible(false);
-            Alert.alert('Processing failed', 'Something went wrong. Please try again.');
           }
+          Alert.alert('Processing failed', errMsg);
         }
-      } catch (e) { /* polling error, will retry */ }
+      } catch { /* polling error, will retry */ }
     }, 5000);
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -334,13 +351,37 @@ export default function CreateScreen() {
     setDetectedNotes([]); setEditingChipIdx(null);
     setManualNotation(''); setNotationMode('text');
     setYtConfirmed(false); setProcessingLessonId(null);
-    setProcessingStatus(''); setAiSyncing(false); setYtLoading(false);
+    setProcessingStatus(''); setProcessingProgress(0); setProcessingStageLabel('');
+    setAiSyncing(false); setYtLoading(false);
     setProcessingStartTime(null); setElapsedSeconds(0);
     if (detectPollRef.current) { clearInterval(detectPollRef.current); detectPollRef.current = null; }
     if (elapsedTimerRef.current) { clearInterval(elapsedTimerRef.current); elapsedTimerRef.current = null; }
   };
 
   const isValidYtUrl = (s: string) => s.includes('youtube.com') || s.includes('youtu.be');
+
+  // ── Title duplicate check (UX hint; backend does the authoritative check) ─
+  const handleTitleBlur = async () => {
+    const t = uploadTitle.trim();
+    if (!t || t.length < 3 || !dbUserId) { setTitleDuplicateWarning(null); return; }
+    try {
+      const token = await getToken();
+      setAuthToken(token);
+      const results = await api.get<{ id: string; title: string }[]>(
+        `/api/lessons?tutor_id=${dbUserId}&title=${encodeURIComponent(t)}&limit=1`
+      );
+      if (results.length > 0 && results[0].title.toLowerCase() === t.toLowerCase()) {
+        setTitleDuplicateWarning('You already have a lesson with this title. Please use a different name.');
+      } else {
+        setTitleDuplicateWarning(null);
+      }
+    } catch { setTitleDuplicateWarning(null); }
+  };
+
+  const getTitleError = () => {
+    if (uploadTitle.length > 0 && uploadTitle.trim().length < 3) return 'Title must be at least 3 characters';
+    return null;
+  };
 
   // ── Pick video from library ───────────────────────────────────────────────
   const handlePickVideo = async () => {
@@ -413,60 +454,65 @@ export default function CreateScreen() {
 
   // ── Local upload ──────────────────────────────────────────────────────────
   const handleUploadLocal = async () => {
+    const title = uploadTitle.trim();
     if (!pickedVideoUri || !defaultCourse) return;
+    if (!title) { setUploadError('Please enter a lesson title'); return; }
+    if (title.length < 3) { setUploadError('Title must be at least 3 characters'); return; }
+    if (titleDuplicateWarning) { setUploadError(titleDuplicateWarning); return; }
     setUploading(true);
     setUploadError(null);
+    setUploadPercent(0);
     try {
       const token = await getToken();
       const formData = new FormData();
       if (Platform.OS === 'web' && pickedVideoFile) {
         formData.append('video', pickedVideoFile, pickedVideoFile.name);
       } else {
-        formData.append('video', { uri: pickedVideoUri, name: 'lesson.mp4', type: 'video/mp4' } as any);
+        formData.append('video', { uri: pickedVideoUri, name: 'lesson.mp4', type: 'video/mp4' } as unknown as Blob);
       }
-      formData.append('title', uploadTitle || 'My lesson');
+      formData.append('title', title);
       formData.append('course_id', defaultCourse.course_id);
       formData.append('instrument_id', defaultCourse.instrument_id);
       formData.append('level_id', defaultCourse.level_id);
       formData.append('shruti', 'C');
       const uploadUrl = `${process.env.EXPO_PUBLIC_API_URL}/api/tutor/lessons/upload`;
-      Log.api('local upload: starting request', {
-        url: uploadUrl,
-        platform: Platform.OS,
-        hasPickedVideoFile: Boolean(pickedVideoFile),
-        titleLen: uploadTitle.trim().length,
+      Log.api('local upload: starting', { platform: Platform.OS, titleLen: title.length });
+
+      const lessonId = await new Promise<string>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) setUploadPercent(Math.round((e.loaded / e.total) * 100));
+        };
+        xhr.onload = () => {
+          let data: Record<string, unknown> = {};
+          try { data = JSON.parse(xhr.responseText); } catch { /* ignore */ }
+          if (xhr.status >= 200 && xhr.status < 300) {
+            Log.api('local upload: succeeded', { lessonId: data.lesson_id });
+            resolve(data.lesson_id as string);
+          } else {
+            const detail = (data.detail as string) ?? `Upload failed (${xhr.status})`;
+            Log.apiError('local upload: error', { status: xhr.status, detail });
+            reject(new Error(detail));
+          }
+        };
+        xhr.onerror = () => reject(new Error('Network error during upload'));
+        xhr.open('POST', uploadUrl);
+        if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+        xhr.send(formData);
       });
-      const result = await fetch(uploadUrl, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
-      });
-      const data = await result.json().catch(() => ({}));
-      if (!result.ok) {
-        Log.apiError('local upload: request returned error', {
-          url: uploadUrl,
-          status: result.status,
-          detail: (data as any)?.detail,
-        });
-        throw new Error((data as any)?.detail ?? 'Upload failed');
-      }
-      const lessonId: string = data.lesson_id;
-      Log.api('local upload: request succeeded', { lessonId });
-      setUploadModalVisible(false);
-      setUploadStep('preview');
-      setProcessingStatus('');
-      setProcessingLessonId(null);
-      setProcessingStartTime(null);
+
+      setUploadStep('processing');
+      setProcessingLessonId(lessonId);
+      setProcessingStatus('queued');
+      setProcessingProgress(5);
+      setProcessingStageLabel('Queued for processing');
+      setProcessingStartTime(Date.now());
       setElapsedSeconds(0);
-      setUploading(false);
-      router.push(`/lesson/${lessonId}`);
-    } catch (e: any) {
-      Log.apiError('local upload: fetch failed', {
-        message: e?.message,
-        name: e?.name,
-        platform: Platform.OS,
-      });
-      setUploadError(e?.message ?? 'Upload failed. Try again.');
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Upload failed. Try again.';
+      Log.apiError('local upload: failed', { message: msg, platform: Platform.OS });
+      setUploadError(msg);
+    } finally {
       setUploading(false);
     }
   };
@@ -670,28 +716,58 @@ export default function CreateScreen() {
               <>
                 <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Lesson title</Text>
                 <TextInput
-                  style={[styles.fieldInput, { backgroundColor: theme.surface, color: theme.textPrimary, borderColor: theme.border, borderRadius: Radius.md }]}
+                  style={[styles.fieldInput, { backgroundColor: theme.surface, color: theme.textPrimary, borderColor: titleDuplicateWarning ? theme.warning : (getTitleError() ? theme.error : theme.border), borderRadius: Radius.md }]}
                   placeholder="e.g. Sa Re Ga Ma — Beginner scale"
                   placeholderTextColor={theme.textDisabled}
                   value={uploadTitle}
-                  onChangeText={setUploadTitle}
+                  onChangeText={(t) => { setUploadTitle(t); setTitleDuplicateWarning(null); }}
+                  onBlur={handleTitleBlur}
                 />
+                {getTitleError() && <Text style={[styles.inlineError, { color: theme.error }]}>{getTitleError()}</Text>}
+                {titleDuplicateWarning && (
+                  <View style={[styles.warningRow, { backgroundColor: theme.warning + '15', borderColor: theme.warning }]}>
+                    <Ionicons name="warning-outline" size={14} color={theme.warning} />
+                    <Text style={{ color: theme.warning, fontSize: FontSize.xs, flex: 1 }}>{titleDuplicateWarning}</Text>
+                  </View>
+                )}
+
+                <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Creator</Text>
+                <View style={[styles.readonlyField, { backgroundColor: theme.surface, borderColor: theme.border, borderRadius: Radius.md }]}>
+                  <Ionicons name="lock-closed-outline" size={14} color={theme.textDisabled} />
+                  <Text style={{ color: theme.textSecondary, fontSize: FontSize.md, flex: 1 }}>{creatorName || 'Unknown'}</Text>
+                </View>
+
+                {!defaultCourse && (
+                  <Text style={[styles.inlineError, { color: theme.error }]}>No course found. Please create a course first.</Text>
+                )}
                 <View style={{ backgroundColor: theme.primary + '15', borderRadius: Radius.md, padding: Spacing.md, borderColor: theme.primary, borderWidth: 1, marginBottom: Spacing.lg }}>
                   <Text style={{ color: theme.primary, fontSize: FontSize.sm, fontWeight: '600' }}>✨ Notation will be detected automatically</Text>
                   <Text style={{ color: theme.textSecondary, fontSize: FontSize.xs, marginTop: Spacing.xs }}>CREPE will analyze your audio and detect the musical notes</Text>
                 </View>
                 {uploadError && <Text style={[styles.errorText, { color: theme.error }]}>{uploadError}</Text>}
+
+                {uploading && (
+                  <View style={styles.progressBarWrap}>
+                    <View style={[styles.progressBarTrack, { backgroundColor: theme.border }]}>
+                      <View style={[styles.progressBarFill, { backgroundColor: theme.primary, width: `${uploadPercent}%` as `${number}%` }]} />
+                    </View>
+                    <Text style={{ color: theme.textSecondary, fontSize: FontSize.xs, marginTop: Spacing.xs }}>
+                      Uploading… {uploadPercent}%
+                    </Text>
+                  </View>
+                )}
+
                 <View style={styles.detailsActions}>
                   <TouchableOpacity style={[styles.detailsBtn, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={handleSaveDraft} disabled={uploading}>
                     <Ionicons name="bookmark-outline" size={16} color={theme.textSecondary} />
                     <Text style={{ color: theme.textSecondary, fontSize: FontSize.sm, fontWeight: '600' }}>Save Draft</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.detailsBtn, { flex: 2, backgroundColor: defaultCourse && !uploading ? theme.primary : theme.surface, borderColor: defaultCourse ? theme.primary : theme.border }]}
-                    onPress={handleUploadLocal} disabled={!defaultCourse || uploading}>
-                    {uploading ? <ActivityIndicator size="small" color={theme.textOnPrimary} /> : <Ionicons name="cloud-upload-outline" size={16} color={defaultCourse ? theme.textOnPrimary : theme.textDisabled} />}
-                    <Text style={{ color: defaultCourse && !uploading ? theme.textOnPrimary : theme.textDisabled, fontSize: FontSize.sm, fontWeight: '700' }}>
-                      {uploading ? 'Converting…' : 'Convert-To-TunePath Format'}
+                    style={[styles.detailsBtn, { flex: 2, backgroundColor: (defaultCourse && !uploading && !titleDuplicateWarning) ? theme.primary : theme.surface, borderColor: defaultCourse ? theme.primary : theme.border }]}
+                    onPress={handleUploadLocal} disabled={!defaultCourse || uploading || !!titleDuplicateWarning}>
+                    {uploading ? <ActivityIndicator size="small" color={theme.textOnPrimary} /> : <Ionicons name="cloud-upload-outline" size={16} color={(defaultCourse && !titleDuplicateWarning) ? theme.textOnPrimary : theme.textDisabled} />}
+                    <Text style={{ color: (defaultCourse && !uploading && !titleDuplicateWarning) ? theme.textOnPrimary : theme.textDisabled, fontSize: FontSize.sm, fontWeight: '700' }}>
+                      {uploading ? 'Uploading…' : 'Upload to TunePath'}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -700,17 +776,21 @@ export default function CreateScreen() {
 
             {uploadStep === 'processing' && (
               <View style={styles.processingState}>
-                {/* Title */}
-                <Text style={[styles.processingText, { color: theme.textPrimary }]}>
-                  Processing your lesson
-                </Text>
-
-                {/* Elapsed time */}
+                <Ionicons name="time-outline" size={32} color={theme.primary} />
+                <Text style={[styles.processingText, { color: theme.textPrimary }]}>Processing your lesson</Text>
                 <Text style={[styles.processingElapsed, { color: theme.textDisabled }]}>
                   {Math.floor(elapsedSeconds / 60)}:{String(elapsedSeconds % 60).padStart(2, '0')} elapsed
                 </Text>
 
-                {/* Step indicators */}
+                <View style={[styles.progressBarWrap, { alignSelf: 'stretch' }]}>
+                  <View style={[styles.progressBarTrack, { backgroundColor: theme.border }]}>
+                    <View style={[styles.progressBarFill, { backgroundColor: theme.primary, width: `${processingProgress}%` as `${number}%` }]} />
+                  </View>
+                  <Text style={{ color: theme.textSecondary, fontSize: FontSize.xs, marginTop: Spacing.xs, textAlign: 'center' }}>
+                    {processingStageLabel || 'Processing…'} — {processingProgress}%
+                  </Text>
+                </View>
+
                 <View style={styles.processingSteps}>
                   {[
                     { key: 'uploaded', label: 'Video uploaded' },
@@ -721,14 +801,10 @@ export default function CreateScreen() {
                     const { isDone, isActive } = getProcessingStepState(processingStatus, idx);
                     return (
                       <View key={step.key} style={styles.processingStep}>
-                        <Text style={{ fontSize: 14, width: 20 }}>
-                          {isDone ? '✅' : isActive ? '⏳' : '○'}
-                        </Text>
-                        <Text style={{
-                          fontSize: FontSize.sm,
-                          color: isDone ? theme.success : isActive ? theme.textPrimary : theme.textDisabled,
-                          fontWeight: isActive ? '600' : '400',
-                        }}>
+                        {isDone
+                          ? <Ionicons name="checkmark-circle" size={16} color={theme.success} />
+                          : <Text style={{ fontSize: 14, width: 16 }}>{isActive ? '⏳' : '○'}</Text>}
+                        <Text style={{ fontSize: FontSize.sm, color: isDone ? theme.success : isActive ? theme.textPrimary : theme.textDisabled, fontWeight: isActive ? '600' : '400' }}>
                           {step.label}{isActive ? '…' : ''}
                         </Text>
                       </View>
@@ -736,14 +812,9 @@ export default function CreateScreen() {
                   })}
                 </View>
 
-                {/* Cancel button */}
-                <TouchableOpacity
-                  style={[styles.cancelProcessingBtn, { borderColor: theme.border }]}
-                  onPress={handleCancelProcessing}
-                >
-                  <Text style={{ color: theme.error, fontSize: FontSize.sm, fontWeight: '600' }}>
-                    Cancel Upload
-                  </Text>
+                <TouchableOpacity style={[styles.cancelProcessingBtn, { borderColor: theme.error }]} onPress={handleCancelProcessing}>
+                  <Ionicons name="close-circle-outline" size={16} color={theme.error} />
+                  <Text style={{ color: theme.error, fontSize: FontSize.sm, fontWeight: '600' }}>Cancel Upload</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -762,26 +833,33 @@ export default function CreateScreen() {
 
             {ytStep === 'processing' ? (
               <View style={styles.processingState}>
-                {/* Title */}
+                <Ionicons name="time-outline" size={32} color={theme.primary} />
                 <Text style={[styles.processingText, { color: theme.textPrimary }]}>
                   {aiSyncing ? '✨ AI timing notes…' : 'Processing your lesson'}
                 </Text>
-
-                {/* Elapsed time */}
                 <Text style={[styles.processingElapsed, { color: theme.textDisabled }]}>
                   {Math.floor(elapsedSeconds / 60)}:{String(elapsedSeconds % 60).padStart(2, '0')} elapsed
                 </Text>
 
-                {/* Timeout warning */}
                 {elapsedSeconds >= TIMEOUT_WARN_SECS && (
-                  <View style={[styles.timeoutBanner, { backgroundColor: '#F59E0B15', borderColor: '#F59E0B' }]}>
-                    <Text style={{ color: '#F59E0B', fontSize: FontSize.xs, fontWeight: '600', textAlign: 'center' }}>
+                  <View style={[styles.timeoutBanner, { backgroundColor: theme.warning + '15', borderColor: theme.warning }]}>
+                    <Text style={{ color: theme.warning, fontSize: FontSize.xs, fontWeight: '600', textAlign: 'center' }}>
                       Taking longer than expected — long videos can take up to 15 minutes. Still working…
                     </Text>
                   </View>
                 )}
 
-                {/* Step indicators */}
+                {!aiSyncing && (
+                  <View style={[styles.progressBarWrap, { alignSelf: 'stretch' }]}>
+                    <View style={[styles.progressBarTrack, { backgroundColor: theme.border }]}>
+                      <View style={[styles.progressBarFill, { backgroundColor: theme.primary, width: `${processingProgress}%` as `${number}%` }]} />
+                    </View>
+                    <Text style={{ color: theme.textSecondary, fontSize: FontSize.xs, marginTop: Spacing.xs, textAlign: 'center' }}>
+                      {processingStageLabel || 'Processing…'} — {processingProgress}%
+                    </Text>
+                  </View>
+                )}
+
                 {!aiSyncing && (
                   <View style={styles.processingSteps}>
                     {[
@@ -793,14 +871,10 @@ export default function CreateScreen() {
                       const { isDone, isActive } = getProcessingStepState(processingStatus, idx);
                       return (
                         <View key={step.key} style={styles.processingStep}>
-                          <Text style={{ fontSize: 14, width: 20 }}>
-                            {isDone ? '✅' : isActive ? '⏳' : '○'}
-                          </Text>
-                          <Text style={{
-                            fontSize: FontSize.sm,
-                            color: isDone ? theme.success : isActive ? theme.textPrimary : theme.textDisabled,
-                            fontWeight: isActive ? '600' : '400',
-                          }}>
+                          {isDone
+                            ? <Ionicons name="checkmark-circle" size={16} color={theme.success} />
+                            : <Text style={{ fontSize: 14, width: 16 }}>{isActive ? '⏳' : '○'}</Text>}
+                          <Text style={{ fontSize: FontSize.sm, color: isDone ? theme.success : isActive ? theme.textPrimary : theme.textDisabled, fontWeight: isActive ? '600' : '400' }}>
                             {step.label}{isActive ? '…' : ''}
                           </Text>
                         </View>
@@ -812,7 +886,7 @@ export default function CreateScreen() {
                 {aiSyncing && (
                   <View style={styles.processingSteps}>
                     <View style={styles.processingStep}>
-                      <Text style={{ fontSize: 14, width: 20 }}>⏳</Text>
+                      <Text style={{ fontSize: 14, width: 16 }}>⏳</Text>
                       <Text style={{ fontSize: FontSize.sm, color: theme.textPrimary, fontWeight: '600' }}>
                         Matching notes to detected pitches…
                       </Text>
@@ -820,14 +894,9 @@ export default function CreateScreen() {
                   </View>
                 )}
 
-                {/* Cancel button */}
-                <TouchableOpacity
-                  style={[styles.cancelProcessingBtn, { borderColor: theme.border }]}
-                  onPress={handleCancelProcessing}
-                >
-                  <Text style={{ color: theme.error, fontSize: FontSize.sm, fontWeight: '600' }}>
-                    Cancel Import
-                  </Text>
+                <TouchableOpacity style={[styles.cancelProcessingBtn, { borderColor: theme.error }]} onPress={handleCancelProcessing}>
+                  <Ionicons name="close-circle-outline" size={16} color={theme.error} />
+                  <Text style={{ color: theme.error, fontSize: FontSize.sm, fontWeight: '600' }}>Cancel Import</Text>
                 </TouchableOpacity>
               </View>
             ) : (
@@ -942,7 +1011,7 @@ export default function CreateScreen() {
                           <View style={styles.chipsWrap}>
                             {detectedNotes.map((note, idx) => {
                               const isEditing = editingChipIdx === idx;
-                              const color = note.confidence >= 0.85 ? '#10B981' : note.confidence >= 0.6 ? '#F59E0B' : '#EF4444';
+                              const color = note.confidence >= 0.85 ? theme.success : note.confidence >= 0.6 ? theme.warning : theme.error;
                               return (
                                 <View key={idx}>
                                   <TouchableOpacity
@@ -1143,7 +1212,16 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     borderRadius: Radius.lg,
     borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
   },
+  inlineError: { fontSize: FontSize.xs, marginBottom: Spacing.xs },
+  warningRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, padding: Spacing.sm, borderRadius: Radius.sm, borderWidth: 1, marginBottom: Spacing.sm },
+  readonlyField: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, padding: Spacing.md, borderWidth: 1, marginBottom: Spacing.md },
+  progressBarWrap: { marginVertical: Spacing.sm },
+  progressBarTrack: { height: 8, borderRadius: 4, overflow: 'hidden' },
+  progressBarFill: { height: 8, borderRadius: 4 },
   sheetActions: { flexDirection: 'row', gap: Spacing.md, marginTop: Spacing.md },
   cancelButton: { flex: 1, padding: Spacing.md, borderWidth: 1, alignItems: 'center' },
   cancelText: { fontSize: FontSize.md, fontWeight: '600' },
