@@ -16,7 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
-import { documentDirectory, getInfoAsync, readAsStringAsync, writeAsStringAsync, deleteAsync } from 'expo-file-system/legacy';
+import * as FileSystem from 'expo-file-system';
 import { useTheme, Spacing, FontSize, Radius } from '@/src/design';
 import { useAuthStore } from '@/src/store/authStore';
 import { api, setAuthToken } from '@/src/services/api';
@@ -25,7 +25,7 @@ import { VideoView, useVideoPlayer } from 'expo-video';
 
 const WEB_CONTENT_MAX = 960;
 const SARGAM_NOTES = ['Sa', 'Re', 'Ga', 'Ma', 'Pa', 'Dha', 'Ni'] as const;
-const DRAFTS_FILE = `${documentDirectory}tunepath_drafts.json`;
+const DRAFTS_FILE = `${FileSystem.documentDirectory}tunepath_drafts.json`;
 
 interface Draft {
   id: string;
@@ -46,13 +46,13 @@ type YtStep = 'url' | 'notation' | 'confirm' | 'processing';
 // ── Draft helpers ─────────────────────────────────────────────────────────────
 async function loadDrafts(): Promise<Draft[]> {
   try {
-    const info = await getInfoAsync(DRAFTS_FILE);
+    const info = await FileSystem.getInfoAsync(DRAFTS_FILE);
     if (!info.exists) return [];
-    return JSON.parse(await readAsStringAsync(DRAFTS_FILE));
+    return JSON.parse(await FileSystem.readAsStringAsync(DRAFTS_FILE));
   } catch { return []; }
 }
 async function saveDrafts(drafts: Draft[]) {
-  await writeAsStringAsync(DRAFTS_FILE, JSON.stringify(drafts));
+  await FileSystem.writeAsStringAsync(DRAFTS_FILE, JSON.stringify(drafts));
 }
 async function addDraft(draft: Draft) {
   const existing = await loadDrafts();
@@ -113,6 +113,10 @@ export default function CreateScreen() {
   const [processingLessonId, setProcessingLessonId] = useState<string | null>(null);
   const [processingStatus, setProcessingStatus] = useState('');
   const [aiSyncing, setAiSyncing] = useState(false);
+  const [processingStartTime, setProcessingStartTime] = useState<number | null>(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const elapsedTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const TIMEOUT_WARN_SECS = Math.max(120, (ytPreview?.duration_seconds ?? 60) * 4);
   const [defaultCourse, setDefaultCourse] = useState<{
     course_id: string; instrument_id: string; level_id: string;
   } | null>(null);
@@ -142,6 +146,23 @@ export default function CreateScreen() {
     })();
     return () => { cancelled = true; };
   }, [ytModalVisible, getToken, dbUserId]);
+
+  // ── Elapsed timer while processing ───────────────────────────────────────
+  useEffect(() => {
+    if (!processingStartTime) return;
+    elapsedTimerRef.current = setInterval(() => {
+      setElapsedSeconds(Math.floor((Date.now() - processingStartTime) / 1000));
+    }, 1000);
+    return () => { if (elapsedTimerRef.current) clearInterval(elapsedTimerRef.current); };
+  }, [processingStartTime]);
+
+  // ── Cancel processing ─────────────────────────────────────────────────────
+  const handleCancelProcessing = () => {
+    if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+    if (elapsedTimerRef.current) { clearInterval(elapsedTimerRef.current); elapsedTimerRef.current = null; }
+    setYtModalVisible(false);
+    resetYtModal();
+  };
 
   // ── Poll lesson processing status ─────────────────────────────────────────
   useEffect(() => {
@@ -223,7 +244,9 @@ export default function CreateScreen() {
     setManualNotation(''); setNotationMode('text');
     setYtConfirmed(false); setProcessingLessonId(null);
     setProcessingStatus(''); setAiSyncing(false); setYtLoading(false);
+    setProcessingStartTime(null); setElapsedSeconds(0);
     if (detectPollRef.current) { clearInterval(detectPollRef.current); detectPollRef.current = null; }
+    if (elapsedTimerRef.current) { clearInterval(elapsedTimerRef.current); elapsedTimerRef.current = null; }
   };
 
   const isValidYtUrl = (s: string) => s.includes('youtube.com') || s.includes('youtu.be');
@@ -361,6 +384,8 @@ export default function CreateScreen() {
   const handleYtImport = async () => {
     if (!ytUrl.trim() || !ytConfirmed || !defaultCourse) return;
     setYtStep('processing'); setProcessingStatus('queued');
+    setProcessingStartTime(Date.now());
+    setElapsedSeconds(0);
     try {
       const token = await getToken();
       setAuthToken(token);
@@ -379,15 +404,6 @@ export default function CreateScreen() {
   };
 
   const formatDuration = (sec: number) => `${Math.floor(sec / 60)}:${(sec % 60).toString().padStart(2, '0')}`;
-
-  const processingLabel = () => {
-    if (aiSyncing) return 'AI is timing your notes…';
-    switch (processingStatus) {
-      case 'queued': return 'Queued for processing…';
-      case 'processing': return 'Analysing audio…';
-      default: return 'Processing your lesson…';
-    }
-  };
 
   const YtStepDots = () => (
     <View style={styles.stepDots}>
@@ -575,11 +591,78 @@ export default function CreateScreen() {
 
             {ytStep === 'processing' ? (
               <View style={styles.processingState}>
-                <ActivityIndicator size="large" color={theme.primary} />
-                <Text style={[styles.processingText, { color: theme.textPrimary }]}>{processingLabel()}</Text>
-                <Text style={[styles.processingSubtext, { color: theme.textDisabled }]}>
-                  {aiSyncing ? 'Matching notes to audio' : 'CREPE detecting pitches · Whisper transcribing'}
+                {/* Title */}
+                <Text style={[styles.processingText, { color: theme.textPrimary }]}>
+                  {aiSyncing ? '✨ AI timing notes…' : 'Processing your lesson'}
                 </Text>
+
+                {/* Elapsed time */}
+                <Text style={[styles.processingElapsed, { color: theme.textDisabled }]}>
+                  {Math.floor(elapsedSeconds / 60)}:{String(elapsedSeconds % 60).padStart(2, '0')} elapsed
+                </Text>
+
+                {/* Timeout warning */}
+                {elapsedSeconds >= TIMEOUT_WARN_SECS && (
+                  <View style={[styles.timeoutBanner, { backgroundColor: '#F59E0B15', borderColor: '#F59E0B' }]}>
+                    <Text style={{ color: '#F59E0B', fontSize: FontSize.xs, fontWeight: '600', textAlign: 'center' }}>
+                      Taking longer than expected — long videos can take up to 15 minutes. Still working…
+                    </Text>
+                  </View>
+                )}
+
+                {/* Step indicators */}
+                {!aiSyncing && (
+                  <View style={styles.processingSteps}>
+                    {[
+                      { key: 'queued',        label: 'Downloading audio',      steps: ['queued', 'processing', 'review_ready'] },
+                      { key: 'processing',    label: 'Detecting pitches (CREPE)', steps: ['processing', 'review_ready'] },
+                      { key: 'transcribing',  label: 'Transcribing lyrics',    steps: ['review_ready'] },
+                      { key: 'review_ready',  label: 'Finalising notation',    steps: ['review_ready'] },
+                    ].map((step, idx) => {
+                      const statusOrder = ['queued', 'processing', 'review_ready'];
+                      const currentIdx = statusOrder.indexOf(processingStatus);
+                      const isDone = currentIdx > idx;
+                      const isActive = currentIdx === idx ||
+                        (idx === 2 && processingStatus === 'processing' && elapsedSeconds > 30) ||
+                        (idx === 3 && processingStatus === 'review_ready');
+                      return (
+                        <View key={step.key} style={styles.processingStep}>
+                          <Text style={{ fontSize: 14, width: 20 }}>
+                            {isDone ? '✅' : isActive ? '⏳' : '○'}
+                          </Text>
+                          <Text style={{
+                            fontSize: FontSize.sm,
+                            color: isDone ? theme.success : isActive ? theme.textPrimary : theme.textDisabled,
+                            fontWeight: isActive ? '600' : '400',
+                          }}>
+                            {step.label}{isActive ? '…' : ''}
+                          </Text>
+                        </View>
+                      );
+                    })}
+                  </View>
+                )}
+
+                {aiSyncing && (
+                  <View style={styles.processingSteps}>
+                    <View style={styles.processingStep}>
+                      <Text style={{ fontSize: 14, width: 20 }}>⏳</Text>
+                      <Text style={{ fontSize: FontSize.sm, color: theme.textPrimary, fontWeight: '600' }}>
+                        Matching notes to detected pitches…
+                      </Text>
+                    </View>
+                  </View>
+                )}
+
+                {/* Cancel button */}
+                <TouchableOpacity
+                  style={[styles.cancelProcessingBtn, { borderColor: theme.border }]}
+                  onPress={handleCancelProcessing}
+                >
+                  <Text style={{ color: theme.error, fontSize: FontSize.sm, fontWeight: '600' }}>
+                    Cancel Import
+                  </Text>
+                </TouchableOpacity>
               </View>
             ) : (
               <>
@@ -881,9 +964,20 @@ const styles = StyleSheet.create({
   checkbox: { width: 22, height: 22, borderWidth: 2, justifyContent: 'center', alignItems: 'center' },
   checkMark: { fontSize: FontSize.sm, fontWeight: 'bold' },
   checkboxLabel: { flex: 1, fontSize: FontSize.sm },
-  processingState: { alignItems: 'center', paddingVertical: Spacing.xxl, gap: Spacing.md },
+  processingState: { alignItems: 'center', paddingVertical: Spacing.xl, gap: Spacing.md, paddingHorizontal: Spacing.md },
   processingText: { fontSize: FontSize.lg, fontWeight: '600', textAlign: 'center' },
   processingSubtext: { fontSize: FontSize.sm, textAlign: 'center' },
+  processingElapsed: { fontSize: FontSize.xs, fontVariant: ['tabular-nums'] },
+  timeoutBanner: { padding: Spacing.sm, borderRadius: Radius.md, borderWidth: 1, width: '100%' },
+  processingSteps: { alignSelf: 'stretch', gap: Spacing.sm, marginTop: Spacing.sm },
+  processingStep: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  cancelProcessingBtn: {
+    marginTop: Spacing.lg,
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radius.lg,
+    borderWidth: 1,
+  },
   sheetActions: { flexDirection: 'row', gap: Spacing.md, marginTop: Spacing.md },
   cancelButton: { flex: 1, padding: Spacing.md, borderWidth: 1, alignItems: 'center' },
   cancelText: { fontSize: FontSize.md, fontWeight: '600' },
