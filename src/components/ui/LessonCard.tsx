@@ -48,7 +48,7 @@ export function LessonCard({ lesson, size, onPress, width = 140, thumbHeight = 9
     setMenuVisible(false);
     Alert.alert(
       'Delete lesson?',
-      `"${lesson.title}" will be permanently deleted.`,
+      `"${lesson.title}" will be permanently deleted from TunePath and cannot be recovered.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -58,11 +58,23 @@ export function LessonCard({ lesson, size, onPress, width = 140, thumbHeight = 9
             setIsDeleting(true);
             try {
               const token = await getToken();
+              if (!token) {
+                throw new Error('Not authenticated. Please log in again.');
+              }
               setAuthToken(token);
+
+              // Log the request for debugging
+              console.log(`[LessonCard] Deleting lesson ${lesson.id}`);
+
               await api.delete(`/api/tutor/lessons/${lesson.id}`);
+
+              // Success — notify parent to remove from list
+              console.log(`[LessonCard] Delete successful for ${lesson.id}`);
               onDelete?.(lesson.id);
             } catch (e: any) {
-              Alert.alert('Delete failed', e?.message ?? 'Something went wrong');
+              console.error(`[LessonCard] Delete failed:`, e);
+              const errorMsg = e?.message ?? 'Something went wrong. Please try again.';
+              Alert.alert('Delete failed', errorMsg);
             } finally {
               setIsDeleting(false);
             }
