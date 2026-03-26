@@ -1,4 +1,5 @@
 import { createAudioPlayer, AudioPlayer } from 'expo-audio';
+import type { AVPlaybackSource } from 'expo-av';
 
 export interface Note {
   note: string;
@@ -12,7 +13,7 @@ export class SargamPlayerEngine {
   onError?: (error: Error) => void;
 
   private notes: Note[] = [];
-  private sampleMap: Record<string, any> = {};
+  private sampleMap: Record<string, AVPlaybackSource> = {};
   private players: Map<string, AudioPlayer> = new Map();
   private lastIndex = -1;
   private lastProgress = -1;
@@ -22,7 +23,7 @@ export class SargamPlayerEngine {
     this._soundEnabled = enabled;
   }
 
-  load(notes: Note[], sampleMap: Record<string, any>): void {
+  load(notes: Note[], sampleMap: Record<string, AVPlaybackSource>): void {
     this.notes = notes;
     this.sampleMap = sampleMap;
     // Preload players for unique notes
@@ -98,6 +99,15 @@ export class SargamPlayerEngine {
       }
     }
     return result;
+  }
+
+  private _stopSound(): void {
+    // Stop all currently playing audio players
+    for (const player of this.players.values()) {
+      try {
+        player.pause();
+      } catch { /* ignore */ }
+    }
   }
 
   pause(): void {
