@@ -20,7 +20,6 @@ import { SargamPlayerEngine } from './SargamPlayerEngine';
 import { HARMONIUM_SAMPLE_MAP } from './sampleMap';
 import type { Lesson } from '@/src/types/models';
 import { api } from '@/src/services/api';
-import type { AVPlaybackStatus } from 'expo-av';
 import { useOrientation } from '@/src/hooks/useOrientation';
 import { Log } from '@/src/utils/log';
 
@@ -57,7 +56,6 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
   const [playbackSpeed, setPlaybackSpeed] = useState(1.0);
   const [videoStarted, setVideoStarted] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-  const isPlayingRef = React.useRef(false);
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [videoDuration, setVideoDuration] = useState(0);
   const [localNotes, setLocalNotes] = useState<Note[]>(notes);
@@ -78,12 +76,123 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
   const currentTimeRef = useRef(0);
   const videoRef = useRef<VideoPlayerHandle | null>(null);
 
-  // DEBUG: log every render
-  console.log('[HP] RENDER, isPlaying:', isPlaying, 'videoStarted:', videoStarted, 'videoRef:', !!videoRef.current);
+  // ── isPlaying ref — avoids stale closure in togglePlay ───────────────
+  // isPlaying state drives UI, isPlayingRef drives logic
+  const isPlayingRef = useRef(false);
+
+  // ── playbackSpeed ref — avoids stale closure in handlePlaybackStatus ─
+  const playbackSpeedRef = useRef(playbackSpeed);
+  useEffect(() => { playbackSpeedRef.current = playbackSpeed; }, [playbackSpeed]);
 
   const savePosition = useProgressStore((s) => s.savePosition);
   const getPosition = useProgressStore((s) => s.getPosition);
 
+  // ── Init engine ───────────────────────────────────────────────────────
+  useEffect(() => {
+    const engine = new SargamPlayerEngine();
+    engine.load(localNotes, HARMONIUM_SAMPLE_MAP);
+    engine.setSoundEnabled(false); // sound off by default
+    engine.onComplete = () => { onComplete?.(); };
+    engineRef.current = engine;
+    return () => {
+      engine.destroy();
+      engineRef.current = null;
+    };
+  // Only run once on mount — notes updates handled by the effect below
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (engineRef.current && localNotes.length > 0) {
+      engineRef.current.load(localNotes, HARMONIUM_SAMPLE_MAP);
+    }
+  }, [localNotes]);
+
+  // ── Video started handler ────────────────────────────────────────────
+  const handleVideoStarted = useCallback(() => {
+    setVideoStarted(true);
+    Log.player('video started');
+    // Sound is off by default — mute video on start
+    videoRef.current?.setVolume(0);
+  }, []);
+
+  // ── Playback status handler ──────────────────────────────────────────
+  // IMPORTANT: no isPlaying in deps — use isPlayingRef to avoid stale closure.
+  // This function is called every 100ms from the video timer.
+  const handlePlaybackStatus = useCallback(
+    (status: { isLoaded: boolean; isPlaying?: boolean; positionMillis?: number; durationMillis?: number }) => {
+      if (!status.isLoaded) return;
+
+      const now = Date.now();
+      const positionSecs = (status.positionMillis ?? 0) / 1000;
+      setCurrentTime(positionSecs);
+      currentTimeRef.current = positionSecs;
+      if (status.durationMillis) setVideoDuration(status.durationMillis / 1000);
+
+      // Sync engine to video position — gated on isPlayingRef (not status.isPlaying)
+      // because YouTube timer always fires isPlaying:true even when we've paused
+      if (now - lastSyncRef.current >= 100) {
+        lastSyncRef.current = now;
+        if (isPlayingRef.current) {
+          engineRef.current?.syncToTime(positionSecs, playbackSpeedRef.current);
+        } else {
+          engineRef.current?.pause();
+        }
+      }
+
+      // Auto-save position every 10 seconds
+      if (now - lastSaveRef.current >= 10_000) {
+        lastSaveRef.current = now;
+        savePosition(lesson.id, positionSecs);
+      }
+    },
+    [lesson.id, savePosition]
+  // deliberately omitting isPlaying and playbackSpeed — use refs instead
+  );
+
+  // ── Toggle play/pause ─────────────────────────────────────────────────
+  // Uses isPlayingRef to avoid stale closure — empty deps intentional
+  const togglePlay = useCallback(() => {
+    if (isPlayingRef.current) {
+      // Pause
+      isPlayingRef.current = false;
+      setIsPlaying(false);
+      videoRef.current?.pause();
+      engineRef.current?.pause();
+    } else {
+      // Play
+      isPlayingRef.current = true;
+      setIsPlaying(true);
+      videoRef.current?.play();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // empty deps — reads ref not state, no stale closure
+
+  // ── Save notation ────────────────────────────────────────────────────
+  const handleNotesEdit = useCallback(
+    async (updatedNotes: Note[]) => {
+      setLocalNotes(updatedNotes);
+      engineRef.current?.load(updatedNotes, HARMONIUM_SAMPLE_MAP);
+      try {
+        await api.put(`/api/tutor/lessons/${lesson.id}/notation/direct`, {
+          notes: updatedNotes,
+        });
+        Log.player('notation saved');
+      } catch (err) {
+        Log.apiError('notation save failed', err);
+      }
+    },
+    [lesson.id]
+  );
+
+  const speedLabel = playbackSpeed.toFixed(2).replace(/\.?0+$/, '') + 'x';
+
+  const videoSource = useMemo(
+    () => (lesson.video_url ? { uri: lesson.video_url } : MOCK_VIDEO_URL),
+    [lesson.video_url]
+  );
+
+  // ── Header ────────────────────────────────────────────────────────────
   const header = (
     <View style={[styles.header, { backgroundColor: theme.background, borderBottomColor: theme.border }]}>
       <TouchableOpacity
@@ -105,117 +214,7 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
     </View>
   );
 
-  const videoSource = useMemo(
-    () => (lesson.video_url ? { uri: lesson.video_url } : MOCK_VIDEO_URL),
-    [lesson.video_url]
-  );
-
-  // Init engine
-  useEffect(() => {
-    console.log('[HP] engine useEffect running, notes count:', localNotes.length);
-    const engine = new SargamPlayerEngine();
-    engine.load(localNotes, HARMONIUM_SAMPLE_MAP);
-    engine.setSoundEnabled(false); // sound off by default
-    engine.onComplete = () => { onComplete?.(); };
-    engineRef.current = engine;
-    return () => {
-      engine.destroy();
-      engineRef.current = null;
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    if (engineRef.current && localNotes.length > 0) {
-      engineRef.current.load(localNotes, HARMONIUM_SAMPLE_MAP);
-    }
-  }, [localNotes]);
-
-  const handleVideoStarted = useCallback(() => {
-    console.log('[HP] handleVideoStarted, setting videoStarted=true');
-    setVideoStarted(true);
-    Log.player('video started');
-    // Apply initial mute state — sound is off by default
-    videoRef.current?.setVolume(soundEnabled ? 1 : 0);
-    const savedPosition = getPosition(lesson.id);
-    void savedPosition;
-  }, [getPosition, lesson.id]);
-
-  const handlePlaybackStatus = useCallback(
-    (status: AVPlaybackStatus) => {
-      if (!status.isLoaded) {
-        console.log('[HP] handlePlaybackStatus, status not loaded');
-        return;
-      }
-      console.log('[HP] handlePlaybackStatus, isPlaying:', status.isPlaying, 'pos:', status.positionMillis?.toFixed(0));
-      const now = Date.now();
-      const positionSecs = (status.positionMillis ?? 0) / 1000;
-      setCurrentTime(positionSecs);
-      currentTimeRef.current = positionSecs;
-      if (status.durationMillis) setVideoDuration(status.durationMillis / 1000);
-      // Sync isPlaying state with video
-      if (false) { // disabled: isPlaying owned by togglePlay via ref
-        if ('isPlaying' in status) setIsPlaying((status as {isPlaying: boolean}).isPlaying);
-      }
-      if (now - lastSyncRef.current >= 100) {
-        lastSyncRef.current = now;
-        if (status.isPlaying) {
-          engineRef.current?.syncToTime(positionSecs, playbackSpeed);
-        } else {
-          engineRef.current?.pause();
-        }
-      }
-      if (now - lastSaveRef.current >= 10_000) {
-        lastSaveRef.current = now;
-        savePosition(lesson.id, positionSecs);
-      }
-    },
-    [lesson.id, playbackSpeed, savePosition, isPlaying]
-  );
-
-  const togglePlay = useCallback(() => {
-    console.log('[HP] togglePlay ENTER, isPlayingRef:', isPlayingRef.current, 'videoRef.current:', !!videoRef.current, 'engineRef.current:', !!engineRef.current);
-    if (isPlayingRef.current) {
-      console.log('[HP] pausing...');
-      isPlayingRef.current = false;
-      setIsPlaying(false);
-      videoRef.current?.pause();
-      console.log('[HP] videoRef command sent');
-      engineRef.current?.pause();
-      console.log('[HP] engineRef command sent');
-    } else {
-      console.log('[HP] playing...');
-      isPlayingRef.current = true;
-      setIsPlaying(true);
-      videoRef.current?.play();
-      console.log('[HP] videoRef command sent');
-    }
-  }, []); // no deps — reads ref not state
-
-  // DEBUG: stale closure check
-  useEffect(() => {
-    console.log('[HP] togglePlay recreated, isPlaying:', isPlaying);
-  }, [isPlaying]);
-
-  // Save a full updated notes array to state + engine + R2
-  const handleNotesEdit = useCallback(
-    async (updatedNotes: Note[]) => {
-      setLocalNotes(updatedNotes);
-      engineRef.current?.load(updatedNotes, HARMONIUM_SAMPLE_MAP);
-      try {
-        await api.put(`/api/tutor/lessons/${lesson.id}/notation/direct`, {
-          notes: updatedNotes,
-        });
-        Log.player('notation saved');
-      } catch (err) {
-        Log.apiError('notation save failed', err);
-      }
-    },
-    [lesson.id]
-  );
-
-  const speedLabel = playbackSpeed.toFixed(2).replace(/\.?0+$/, '') + 'x';
-
+  // ── Speed + sound controls ────────────────────────────────────────────
   const speedSlider = (
     <View>
       <Text style={[styles.timeDisplay, { color: theme.textSecondary }]}>
@@ -229,7 +228,10 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
           maximumValue={2.0}
           step={0.05}
           value={playbackSpeed}
-          onValueChange={setPlaybackSpeed}
+          onValueChange={(v) => {
+            setPlaybackSpeed(v);
+            videoRef.current?.setRate(v);
+          }}
           minimumTrackTintColor={theme.primary}
           maximumTrackTintColor={theme.border}
           thumbTintColor={theme.textPrimary}
@@ -258,6 +260,7 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
     </View>
   );
 
+  // ── Edit toolbar (tutor only) ─────────────────────────────────────────
   const editToolbar = isTutor ? (
     <View style={[styles.editToolbar, { backgroundColor: theme.surface, borderColor: theme.border }]}>
       <TouchableOpacity
@@ -311,9 +314,7 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
             onPress={() => setFirstBeat(currentTimeRef.current)}
             style={[styles.snapBtn, { backgroundColor: theme.surface, borderColor: theme.border }]}
           >
-            <Text style={{ color: theme.textSecondary, fontSize: FontSize.xs }}>
-              Set Beat 1
-            </Text>
+            <Text style={{ color: theme.textSecondary, fontSize: FontSize.xs }}>Set Beat 1</Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={async () => {
@@ -329,6 +330,7 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
     </View>
   ) : null;
 
+  // ── Notation panel ────────────────────────────────────────────────────
   const notationPanel = (
     <NotationContainer
       engineRef={engineRef}
@@ -359,7 +361,6 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
         totalRows={Math.ceil(localNotes.length / 8)}
         videoRef={videoRef}
         onSave={(updatedRowNotes) => {
-          // Merge one row back into the full notes array
           const allNotes = [...localNotes];
           const start = editingRowIndex * 8;
           updatedRowNotes.forEach((n, i) => { allNotes[start + i] = n; });
@@ -367,7 +368,6 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
           setEditingRowIndex(null);
         }}
         onSaveAll={(updatedAllNotes) => {
-          // AI sync updates all notes at once — save directly
           handleNotesEdit(updatedAllNotes);
         }}
         onClose={() => setEditingRowIndex(null)}
@@ -382,25 +382,28 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
       notationPanel
     );
 
+  // ── Shared VideoPlayer props ──────────────────────────────────────────
+  const videoPlayerProps = {
+    ref: videoRef,
+    source: videoSource,
+    thumbnailUrl: lesson.thumbnail_url ?? undefined,
+    started: videoStarted,
+    onStarted: handleVideoStarted,
+    onPlaybackStatus: handlePlaybackStatus,
+    isPlaying,
+    onTogglePlay: togglePlay,
+    currentTimeSeconds: currentTime,
+    durationSeconds: videoDuration,
+    onSeek: (s: number) => videoRef.current?.seekTo(s),
+  };
+
+  // ── Side-by-side layout (landscape / web) ─────────────────────────────
   if (showSideBySide) {
     return (
       <View style={[styles.container, { backgroundColor: theme.background }]}>
         {header}
         <View style={styles.sideBySideVideo}>
-          <VideoPlayer
-            ref={videoRef}
-            source={videoSource}
-            thumbnailUrl={lesson.thumbnail_url ?? undefined}
-            started={videoStarted}
-            onStarted={handleVideoStarted}
-            onPlaybackStatus={handlePlaybackStatus}
-            isLandscape
-            isPlaying={isPlaying}
-            onTogglePlay={togglePlay}
-            currentTimeSeconds={currentTime}
-            durationSeconds={videoDuration}
-            onSeek={(s) => videoRef.current?.seekTo(s)}
-          />
+          <VideoPlayer {...videoPlayerProps} isLandscape />
         </View>
         <View style={[styles.verticalDivider, { backgroundColor: theme.divider }]} />
         <View style={styles.sideBySideNotation}>
@@ -412,23 +415,11 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
     );
   }
 
+  // ── Portrait layout ───────────────────────────────────────────────────
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       {header}
-      <VideoPlayer
-        ref={videoRef}
-        source={videoSource}
-        thumbnailUrl={lesson.thumbnail_url ?? undefined}
-        started={videoStarted}
-        onStarted={handleVideoStarted}
-        onPlaybackStatus={handlePlaybackStatus}
-        isLandscape={false}
-        isPlaying={isPlaying}
-        onTogglePlay={togglePlay}
-        currentTimeSeconds={currentTime}
-        durationSeconds={videoDuration}
-        onSeek={(s) => videoRef.current?.seekTo(s)}
-      />
+      <VideoPlayer {...videoPlayerProps} isLandscape={false} />
       <View style={[styles.horizontalDivider, { backgroundColor: theme.divider }]} />
       {editingRowIndex === null && speedSlider}
       {editingRowIndex === null && editToolbar}
