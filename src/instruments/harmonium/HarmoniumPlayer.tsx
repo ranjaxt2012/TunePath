@@ -155,7 +155,7 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
       if (status.durationMillis) setVideoDuration(status.durationMillis / 1000);
       // Sync isPlaying state with video
       if (false) { // disabled: isPlaying owned by togglePlay via ref
-        setIsPlaying(status.isPlaying);
+        if ('isPlaying' in status) setIsPlaying(status.isPlaying);
       }
       if (now - lastSyncRef.current >= 100) {
         lastSyncRef.current = now;
