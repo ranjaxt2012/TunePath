@@ -33,6 +33,65 @@ interface VideoPlayerProps {
   isLandscape: boolean;
 }
 
+
+// YouTube player with local timer for notation sync
+function YouTubePlayer({
+  videoId,
+  onPlaybackStatus,
+  onStarted,
+}: {
+  videoId: string;
+  onPlaybackStatus: (s: any) => void;
+  onStarted: () => void;
+}) {
+  const timerRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
+  const startTimeRef = React.useRef<number | null>(null);
+  const hasStartedRef = React.useRef(false);
+
+  React.useEffect(() => {
+    // Start timer after a short delay (iframe autoplay kicks in ~1s)
+    const startDelay = setTimeout(() => {
+      if (!hasStartedRef.current) {
+        hasStartedRef.current = true;
+        startTimeRef.current = Date.now();
+        onStarted();
+      }
+      timerRef.current = setInterval(() => {
+        if (startTimeRef.current === null) return;
+        const elapsed = (Date.now() - startTimeRef.current) / 1000;
+        onPlaybackStatus({
+          isLoaded: true,
+          isPlaying: true,
+          positionMillis: elapsed * 1000,
+          durationMillis: 0,
+          rate: 1,
+          shouldPlay: true,
+          volume: 1,
+          isMuted: false,
+          isBuffering: false,
+          didJustFinish: false,
+        } as any);
+      }, 100);
+    }, 1500);
+
+    return () => {
+      clearTimeout(startDelay);
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [videoId]);
+
+  return (
+    <iframe
+      width="100%"
+      height="100%"
+      src={`https://www.youtube.com/embed/${videoId}?autoplay=1&controls=1`}
+      frameBorder="0"
+      allowFullScreen
+      style={{ border: 'none' } as any}
+    />
+  );
+}
+
 const VideoPlayerInner = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
   function VideoPlayerInner(
     { source, thumbnailUrl, started, onStarted, onPlaybackStatus, isLandscape },
@@ -150,13 +209,10 @@ const VideoPlayerInner = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
           if (isYoutube) {
             const videoId = getYouTubeVideoId(videoUrl);
             return (
-              <iframe
-                width="100%"
-                height="100%"
-                src={`https://www.youtube.com/embed/${videoId}?autoplay=1&controls=1`}
-                frameBorder="0"
-                allowFullScreen
-                style={{ border: 'none' }}
+              <YouTubePlayer
+                videoId={videoId!}
+                onPlaybackStatus={onPlaybackStatus}
+                onStarted={onStarted}
               />
             );
           }
