@@ -228,7 +228,13 @@ const VideoPlayerInner = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
                   <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(0,0,0,0.4)' }]} />
                   <TouchableOpacity
                     style={styles.watchYouTubeBtn}
-                    onPress={() => Linking.openURL(videoUrl!)}
+                    onPress={() => {
+                      if (Platform.OS === 'web') {
+                        window.open(videoUrl!, '_blank');
+                      } else {
+                        void Linking.openURL(videoUrl!);
+                      }
+                    }}
                   >
                     <Text style={styles.watchYouTubeBtnText}>▶ Watch on YouTube</Text>
                   </TouchableOpacity>
