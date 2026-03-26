@@ -47,142 +47,6 @@ interface VideoPlayerProps {
 }
 
 
-// Handle exported by YouTubePlayer via forwardRef
-interface YouTubePlayerHandle {
-  pause(): void;
-  play(): void;
-  seekTo(seconds: number): void;
-}
-
-// YouTube player controlled via postMessage — no native controls
-const YouTubePlayer = forwardRef<
-  YouTubePlayerHandle,
-  {
-    videoId: string;
-    onPlaybackStatus: (s: AVPlaybackStatus) => void;
-    onStarted: () => void;
-  }
->(function YouTubePlayer({ videoId, onPlaybackStatus, onStarted }, ref) {
-  const iframeRef = React.useRef<HTMLIFrameElement | null>(null);
-  const timerRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
-  const startTimeRef = React.useRef<number | null>(null);
-  const pausedAtRef = React.useRef<number | null>(null);
-  const iframeReadyRef = React.useRef(false);
-  const pendingPlayRef = React.useRef(false);
-
-  // Helper to send commands to YouTube iframe via postMessage
-  function sendCommand(func: string, args: unknown[] = []) {
-    if (!iframeReadyRef.current) return;
-    iframeRef.current?.contentWindow?.postMessage(
-      JSON.stringify({ event: 'command', func, args }),
-      '*'
-    );
-  }
-
-  // Called when iframe finishes loading
-  function handleIframeLoad() {
-    iframeReadyRef.current = true;
-    // If play was called before iframe was ready, execute it now
-    if (pendingPlayRef.current) {
-      pendingPlayRef.current = false;
-      startTimer();
-    }
-  }
-
-  // stopTimer function — sends pauseVideo, clears interval, fires isPlaying:false
-  const stopTimer = React.useCallback(() => {
-    sendCommand('pauseVideo');
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-    if (startTimeRef.current !== null) {
-      pausedAtRef.current = (Date.now() - startTimeRef.current) / 1000;
-    }
-    onPlaybackStatus({
-      isLoaded: true,
-      isPlaying: false,
-      positionMillis: (pausedAtRef.current ?? 0) * 1000,
-      durationMillis: 0,
-      rate: 1,
-      shouldPlay: false,
-      volume: 1,
-      isMuted: false,
-      isBuffering: false,
-      didJustFinish: false,
-    } as AVPlaybackStatus);
-  }, [onPlaybackStatus]);
-
-  // startTimer function — sends playVideo, startserval from pausedAt position
-  const startTimer = React.useCallback(() => {
-    console.log('[YT] startTimer called, iframeReady:', iframeReadyRef.current, 'pendingPlay:', pendingPlayRef.current);
-    if (!iframeReadyRef.current) {
-      pendingPlayRef.current = true;
-      console.log('[YT] iframe not ready, queuing play');
-      return;
-    }
-    sendCommand('playVideo');
-    if (timerRef.current) return;
-    const offset = pausedAtRef.current ?? 0;
-    startTimeRef.current = Date.now() - offset * 1000;
-    timerRef.current = setInterval(() => {
-      if (startTimeRef.current === null) return;
-      const elapsed = (Date.now() - startTimeRef.current) / 1000;
-      onPlaybackStatus({
-        isLoaded: true,
-        isPlaying: true,
-        positionMillis: elapsed * 1000,
-        durationMillis: 0,
-        rate: 1,
-        shouldPlay: true,
-        volume: 1,
-        isMuted: false,
-        isBuffering: false,
-        didJustFinish: false,
-      } as AVPlaybackStatus);
-    }, 100);
-  }, [onPlaybackStatus]);
-
-  useImperativeHandle(
-    ref,
-    () => ({
-      pause: stopTimer,
-      play: startTimer,
-      seekTo: (seconds: number) => {
-        sendCommand('seekTo', [seconds, true]);
-        pausedAtRef.current = seconds;
-        startTimeRef.current = Date.now() - seconds * 1000;
-      },
-    }),
-    [stopTimer, startTimer]
-  );
-
-  // No autostart — wait for parent to call play()
-  React.useEffect(() => {
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, []);
-
-  return (
-    <iframe
-      ref={iframeRef}
-      width="100%"
-      height="100%"
-      src={`https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=0&controls=0&disablekb=1&rel=0&modestbranding=1`}
-      frameBorder="0"
-      onLoad={handleIframeLoad}
-      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-      style={{
-        width: '100%',
-        height: '100%',
-        border: 'none',
-        display: 'block',
-        pointerEvents: 'none',
-      } as React.CSSProperties}
-    />
-  );
-});
 
 const VideoPlayerInner = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
   function VideoPlayerInner(
@@ -193,26 +57,39 @@ const VideoPlayerInner = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
     type VideoNativeRef = React.ComponentRef<typeof Video>;
     const webVideoRef = useRef<HTMLVideoElement | null>(null);
     const nativeVideoRef = useRef<VideoNativeRef | null>(null);
-    const youtubeRef = useRef<YouTubePlayerHandle | null>(null);
+
+    // YouTube timer refs — tracks notation timer for YouTube lessons
+    const ytPlayingRef = React.useRef(false);
+    const ytElapsedRef = React.useRef(0);
+    const ytTimerRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
+    const ytStartTimeRef = React.useRef<number | null>(null);
 
     useImperativeHandle(ref, () => ({
       seekTo: (seconds: number) => {
         try {
+          // For YouTube lessons, update the local timer position
+          ytElapsedRef.current = seconds;
+          ytStartTimeRef.current = Date.now() - seconds * 1000;
+
           if (Platform.OS === 'web') {
             const el = webVideoRef.current;
-            if (!el) return;
-            el.currentTime = seconds;
+            if (el) el.currentTime = seconds;
           } else {
             const v = nativeVideoRef.current;
-            if (!v) return;
-            void v.setPositionAsync(seconds * 1000);
+            if (v) void v.setPositionAsync(seconds * 1000);
           }
         } catch {}
       },
 
       pause: () => {
         try {
-          youtubeRef.current?.pause();
+          // Stop YouTube notation timer
+          ytPlayingRef.current = false;
+          if (ytTimerRef.current) {
+            clearInterval(ytTimerRef.current);
+            ytTimerRef.current = null;
+          }
+
           if (Platform.OS === 'web') {
             webVideoRef.current?.pause();
           } else {
@@ -223,7 +100,28 @@ const VideoPlayerInner = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
 
       play: () => {
         try {
-          youtubeRef.current?.play();
+          // Start YouTube notation timer
+          ytPlayingRef.current = true;
+          const offset = ytElapsedRef.current;
+          ytStartTimeRef.current = Date.now() - offset * 1000;
+          ytTimerRef.current = setInterval(() => {
+            if (!ytStartTimeRef.current) return;
+            const elapsed = (Date.now() - ytStartTimeRef.current) / 1000;
+            ytElapsedRef.current = elapsed;
+            onPlaybackStatus({
+              isLoaded: true,
+              isPlaying: true,
+              positionMillis: elapsed * 1000,
+              durationMillis: 0,
+              rate: 1,
+              shouldPlay: true,
+              volume: 1,
+              isMuted: false,
+              isBuffering: false,
+              didJustFinish: false,
+            } as AVPlaybackStatus);
+          }, 100);
+
           if (Platform.OS === 'web') {
             void webVideoRef.current?.play();
           } else {
@@ -316,16 +214,25 @@ const VideoPlayerInner = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
           const isYoutube = videoUrl && isYouTubeUrl(videoUrl);
 
           if (isYoutube) {
-            const videoId = getYouTubeVideoId(videoUrl);
             const progressPercent = durationSeconds > 0 ? (currentTimeSeconds / durationSeconds) * 100 : 0;
             return (
               <View style={styles.videoContainer}>
-                <YouTubePlayer
-                  ref={youtubeRef}
-                  videoId={videoId!}
-                  onPlaybackStatus={onPlaybackStatus}
-                  onStarted={onStarted}
-                />
+                <View style={styles.youtubeCard}>
+                  {thumbnailUrl && (
+                    <Image
+                      source={{ uri: thumbnailUrl }}
+                      style={StyleSheet.absoluteFillObject}
+                      resizeMode="cover"
+                    />
+                  )}
+                  <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(0,0,0,0.4)' }]} />
+                  <TouchableOpacity
+                    style={styles.watchYouTubeBtn}
+                    onPress={() => Linking.openURL(videoUrl!)}
+                  >
+                    <Text style={styles.watchYouTubeBtnText}>▶ Watch on YouTube</Text>
+                  </TouchableOpacity>
+                </View>
                 <TouchableOpacity
                   style={styles.controlsOverlay}
                   onPress={onTogglePlay}
@@ -575,5 +482,23 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: FontSize.sm,
     fontWeight: '500',
+  },
+  youtubeCard: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  watchYouTubeBtn: {
+    backgroundColor: '#FF0000',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    zIndex: 2,
+  },
+  watchYouTubeBtnText: {
+    color: 'white',
+    fontWeight: '700',
+    fontSize: 16,
   },
 });
