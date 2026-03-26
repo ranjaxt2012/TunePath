@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@clerk/clerk-expo';
 import { api, setAuthToken } from '@/src/services/api';
 
@@ -22,41 +22,37 @@ export function useProgress() {
   const [summary, setSummary] = useState<ProgressSummary | null>(null);
   const [inProgress, setInProgress] = useState<InProgressLesson[]>([]);
   const [loading, setLoading] = useState(true);
-  const [retryCount, setRetryCount] = useState(0);
-  const MAX_RETRIES = 1;
 
-  const fetchProgress = useCallback(async () => {
-    try {
-      const token = await getToken();
-      setAuthToken(token);
-      const [s, p] = await Promise.allSettled([
-        api.get<ProgressSummary>('/api/progress/summary'),
-        api.get<InProgressLesson[]>('/api/progress/in-progress'),
-      ]);
-      if (s.status === 'fulfilled') setSummary(s.value);
-      if (p.status === 'fulfilled') setInProgress(p.value);
-    } finally {
-      setLoading(false);
-    }
-  }, [getToken]);
+  // Store getToken in a ref so the useEffect never needs it as a dep
+  const getTokenRef = useRef(getToken);
+  useEffect(() => { getTokenRef.current = getToken; });
+
+  // Fetch only once on mount (when signed in)
+  const fetchedRef = useRef(false);
 
   useEffect(() => {
-    if (!isSignedIn) return;
-    if (retryCount >= MAX_RETRIES) return;
+    if (!isSignedIn) { setLoading(false); return; }
+    if (fetchedRef.current) return;
+    fetchedRef.current = true;
 
-    fetchProgress().catch(() => {
-      setRetryCount(r => r + 1);
-      setLoading(false);
-    });
-  }, [isSignedIn, fetchProgress, retryCount]);
+    (async () => {
+      try {
+        const token = await getTokenRef.current();
+        setAuthToken(token);
+        const [s, p] = await Promise.allSettled([
+          api.get<ProgressSummary>('/api/progress/summary'),
+          api.get<InProgressLesson[]>('/api/progress/in-progress'),
+        ]);
+        if (s.status === 'fulfilled') setSummary(s.value);
+        if (p.status === 'fulfilled') setInProgress(p.value);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  // Only re-run if isSignedIn changes (login/logout)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSignedIn]);
 
-  if (!isSignedIn) {
-    return {
-      summary: null,
-      inProgress: [],
-      loading: false,
-    };
-  }
-
+  if (!isSignedIn) return { summary: null, inProgress: [], loading: false };
   return { summary, inProgress, loading };
 }
