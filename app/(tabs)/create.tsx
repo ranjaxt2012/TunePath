@@ -16,7 +16,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system';
+import {
+  documentDirectory,
+  getInfoAsync,
+  readAsStringAsync,
+  writeAsStringAsync,
+} from 'expo-file-system/legacy';
 import { useTheme, Spacing, FontSize, Radius } from '@/src/design';
 import { useAuthStore } from '@/src/store/authStore';
 import { api, setAuthToken } from '@/src/services/api';
@@ -25,7 +30,7 @@ import { VideoView, useVideoPlayer } from 'expo-video';
 
 const WEB_CONTENT_MAX = 960;
 const SARGAM_NOTES = ['Sa', 'Re', 'Ga', 'Ma', 'Pa', 'Dha', 'Ni'] as const;
-const DRAFTS_FILE = `${FileSystem.documentDirectory}tunepath_drafts.json`;
+const DRAFTS_FILE = `${documentDirectory}tunepath_drafts.json`;
 
 interface Draft {
   id: string;
@@ -46,13 +51,13 @@ type YtStep = 'url' | 'notation' | 'confirm' | 'processing';
 // ── Draft helpers ─────────────────────────────────────────────────────────────
 async function loadDrafts(): Promise<Draft[]> {
   try {
-    const info = await FileSystem.getInfoAsync(DRAFTS_FILE);
+    const info = await getInfoAsync(DRAFTS_FILE);
     if (!info.exists) return [];
-    return JSON.parse(await FileSystem.readAsStringAsync(DRAFTS_FILE));
+    return JSON.parse(await readAsStringAsync(DRAFTS_FILE));
   } catch { return []; }
 }
 async function saveDrafts(drafts: Draft[]) {
-  await FileSystem.writeAsStringAsync(DRAFTS_FILE, JSON.stringify(drafts));
+  await writeAsStringAsync(DRAFTS_FILE, JSON.stringify(drafts));
 }
 async function addDraft(draft: Draft) {
   const existing = await loadDrafts();
