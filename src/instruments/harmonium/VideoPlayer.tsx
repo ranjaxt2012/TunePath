@@ -234,7 +234,11 @@ const VideoPlayerInner = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
         {!started ? (
           <TouchableOpacity
             style={[styles.poster, { backgroundColor: theme.surface }]}
-            onPress={onStarted}
+            onPress={() => {
+              onStarted();
+              // For YouTube: start the timer + send playVideo command
+              youtubeRef.current?.play();
+            }}
             activeOpacity={0.9}
           >
             {thumbnailUrl ? (
