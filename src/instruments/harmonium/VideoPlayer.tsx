@@ -115,8 +115,10 @@ const YouTubePlayer = forwardRef<
 
   // startTimer function — sends playVideo, startserval from pausedAt position
   const startTimer = React.useCallback(() => {
+    console.log('[YT] startTimer called, iframeReady:', iframeReadyRef.current, 'pendingPlay:', pendingPlayRef.current);
     if (!iframeReadyRef.current) {
       pendingPlayRef.current = true;
+      console.log('[YT] iframe not ready, queuing play');
       return;
     }
     sendCommand('playVideo');
