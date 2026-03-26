@@ -35,19 +35,88 @@ interface VideoPlayerProps {
 }
 
 
+// Handle exported by YouTubePlayer via forwardRef
+interface YouTubePlayerHandle {
+  pause(): void;
+  play(): void;
+  seekTo(seconds: number): void;
+}
+
 // YouTube player with local timer for notation sync
-function YouTubePlayer({
-  videoId,
-  onPlaybackStatus,
-  onStarted,
-}: {
-  videoId: string;
-  onPlaybackStatus: (s: any) => void;
-  onStarted: () => void;
-}) {
+const YouTubePlayer = forwardRef<
+  YouTubePlayerHandle,
+  {
+    videoId: string;
+    onPlaybackStatus: (s: AVPlaybackStatus) => void;
+    onStarted: () => void;
+  }
+>(function YouTubePlayer({ videoId, onPlaybackStatus, onStarted }, ref) {
   const timerRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = React.useRef<number | null>(null);
   const hasStartedRef = React.useRef(false);
+  const pausedAtRef = React.useRef<number | null>(null);
+  const isPlayingRef = React.useRef(false);
+
+  // stopTimer function — clears interval, saves position, fires isPlaying:false
+  const stopTimer = React.useCallback(() => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    if (startTimeRef.current !== null) {
+      pausedAtRef.current = (Date.now() - startTimeRef.current) / 1000;
+    }
+    isPlayingRef.current = false;
+    onPlaybackStatus({
+      isLoaded: true,
+      isPlaying: false,
+      positionMillis: (pausedAtRef.current ?? 0) * 1000,
+      durationMillis: 0,
+      rate: 1,
+      shouldPlay: false,
+      volume: 1,
+      isMuted: false,
+      isBuffering: false,
+      didJustFinish: false,
+    } as AVPlaybackStatus);
+  }, [onPlaybackStatus]);
+
+  // startTimer function — resumes from pausedAt position
+  const startTimer = React.useCallback(() => {
+    if (timerRef.current) return;
+    const offset = pausedAtRef.current ?? 0;
+    startTimeRef.current = Date.now() - offset * 1000;
+    isPlayingRef.current = true;
+    timerRef.current = setInterval(() => {
+      if (startTimeRef.current === null) return;
+      const elapsed = (Date.now() - startTimeRef.current) / 1000;
+      onPlaybackStatus({
+        isLoaded: true,
+        isPlaying: true,
+        positionMillis: elapsed * 1000,
+        durationMillis: 0,
+        rate: 1,
+        shouldPlay: true,
+        volume: 1,
+        isMuted: false,
+        isBuffering: false,
+        didJustFinish: false,
+      } as AVPlaybackStatus);
+    }, 100);
+  }, [onPlaybackStatus]);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      pause: stopTimer,
+      play: startTimer,
+      seekTo: (seconds: number) => {
+        pausedAtRef.current = seconds;
+        startTimeRef.current = Date.now() - seconds * 1000;
+      },
+    }),
+    [stopTimer, startTimer]
+  );
 
   React.useEffect(() => {
     // Start timer after a short delay (iframe autoplay kicks in ~1s)
@@ -71,7 +140,7 @@ function YouTubePlayer({
           isMuted: false,
           isBuffering: false,
           didJustFinish: false,
-        } as any);
+        } as AVPlaybackStatus);
       }, 100);
     }, 1500);
 
@@ -88,10 +157,10 @@ function YouTubePlayer({
       src={`https://www.youtube.com/embed/${videoId}?autoplay=1&controls=1`}
       frameBorder="0"
       allowFullScreen
-      style={{ border: 'none' } as any}
+      style={{ border: 'none' } as React.CSSProperties}
     />
   );
-}
+});
 
 const VideoPlayerInner = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
   function VideoPlayerInner(
@@ -102,6 +171,7 @@ const VideoPlayerInner = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
     type VideoNativeRef = React.ComponentRef<typeof Video>;
     const webVideoRef = useRef<HTMLVideoElement | null>(null);
     const nativeVideoRef = useRef<VideoNativeRef | null>(null);
+    const youtubeRef = useRef<YouTubePlayerHandle | null>(null);
 
     useImperativeHandle(ref, () => ({
       seekTo: (seconds: number) => {
@@ -120,6 +190,7 @@ const VideoPlayerInner = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
 
       pause: () => {
         try {
+          youtubeRef.current?.pause();
           if (Platform.OS === 'web') {
             webVideoRef.current?.pause();
           } else {
@@ -130,6 +201,7 @@ const VideoPlayerInner = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
 
       play: () => {
         try {
+          youtubeRef.current?.play();
           if (Platform.OS === 'web') {
             void webVideoRef.current?.play();
           } else {
@@ -222,6 +294,7 @@ const VideoPlayerInner = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
             const videoId = getYouTubeVideoId(videoUrl);
             return (
               <YouTubePlayer
+                ref={youtubeRef}
                 videoId={videoId!}
                 onPlaybackStatus={onPlaybackStatus}
                 onStarted={onStarted}
