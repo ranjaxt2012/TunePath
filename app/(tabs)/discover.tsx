@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { View, Text, ScrollView, StyleSheet, Platform, TouchableOpacity, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@clerk/clerk-expo';
@@ -54,36 +54,45 @@ export default function DiscoverScreen() {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const hasFetched = useRef(false);
 
+  const fetchAll = useCallback(async () => {
+    setLoading(true);
+    setFetchError(null);
+    try {
+      const token = await getToken();
+      setAuthToken(token);
+      const [t, n, h] = await Promise.all([
+        api.get<Lesson[]>('/api/lessons?sort=trending&limit=10'),
+        api.get<Lesson[]>('/api/lessons?sort=new&limit=10'),
+        api.get<Lesson[]>('/api/lessons?instrument=harmonium&limit=10'),
+      ]);
+      setTrending(t);
+      setNewLessons(n);
+      setHarmonium(h);
+      Log.api('discover fetch ok', { trending: t.length, new: n.length, harmonium: h.length });
+    } catch (err: unknown) {
+      Log.apiError('discover fetch failed', err);
+      setFetchError((err as Error)?.message ?? 'Failed to load lessons');
+    } finally {
+      setLoading(false);
+    }
+  }, [getToken]);
+
+  // Initial fetch on mount.
   useEffect(() => {
     if (hasFetched.current) return;
     hasFetched.current = true;
-
     Log.ui('discover mounted');
-
-    const fetchAll = async () => {
-      try {
-        const token = await getToken();
-        setAuthToken(token);
-        const [t, n, h] = await Promise.all([
-          api.get<Lesson[]>('/api/lessons?sort=trending&limit=10'),
-          api.get<Lesson[]>('/api/lessons?sort=new&limit=10'),
-          api.get<Lesson[]>('/api/lessons?instrument=harmonium&limit=10'),
-        ]);
-        setTrending(t);
-        setNewLessons(n);
-        setHarmonium(h);
-        Log.api('discover fetch ok', { trending: t.length, new: n.length, harmonium: h.length });
-      } catch (err: any) {
-        Log.apiError('discover fetch failed', err);
-        setFetchError(err?.message ?? 'Failed to load lessons');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     void fetchAll();
   // eslint-disable-next-line react-hooks/exhaustive-deps -- fetch once on mount
   }, []);
+
+  // Re-fetch when navigating back to this screen (e.g. after a lesson is deleted).
+  useFocusEffect(
+    useCallback(() => {
+      if (!hasFetched.current) return; // skip — initial useEffect handles first load
+      void fetchAll();
+    }, [fetchAll])
+  );
 
   // ── Client-side tag filter (no re-fetch) ───────────────────────────────────
   const [activeTag, setActiveTag] = useState('All');
@@ -119,30 +128,8 @@ export default function DiscoverScreen() {
   }, [router]);
 
   const handleRetry = useCallback(() => {
-    hasFetched.current = false;
-    setFetchError(null);
-    setLoading(true);
-    // Re-trigger by resetting the guard — component will re-mount or we manually re-call
-    const refetch = async () => {
-      try {
-        const token = await getToken();
-        setAuthToken(token);
-        const [t, n, h] = await Promise.all([
-          api.get<Lesson[]>('/api/lessons?sort=trending&limit=10'),
-          api.get<Lesson[]>('/api/lessons?sort=new&limit=10'),
-          api.get<Lesson[]>('/api/lessons?instrument=harmonium&limit=10'),
-        ]);
-        setTrending(t);
-        setNewLessons(n);
-        setHarmonium(h);
-      } catch (err: any) {
-        setFetchError(err?.message ?? 'Failed to load lessons');
-      } finally {
-        setLoading(false);
-      }
-    };
-    void refetch();
-  }, [getToken]);
+    void fetchAll();
+  }, [fetchAll]);
 
   // ── Error state ────────────────────────────────────────────────────────────
   if (!loading && fetchError) {

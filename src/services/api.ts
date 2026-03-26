@@ -46,8 +46,12 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     throw new Error((err as any).detail ?? `HTTP ${res.status}`);
   }
   Log.api(`✅ ${path}`, { status: res.status });
+  if (res.status === 204) return undefined as unknown as T;
   return res.json() as Promise<T>;
 }
+
+export const deleteLesson = (lessonId: string) =>
+  api.delete<void>(`/api/tutor/lessons/${lessonId}`);
 
 export const api = {
   get: <T>(path: string) => request<T>(path),

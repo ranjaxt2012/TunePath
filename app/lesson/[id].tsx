@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { View, ActivityIndicator, Text, StyleSheet, Platform } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { View, ActivityIndicator, Text, StyleSheet, Platform, TouchableOpacity, Alert } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { useTheme, FontSize, Spacing } from '@/src/design';
 import { useLesson } from '@/src/hooks/useLesson';
@@ -8,15 +8,18 @@ import { useAuthStore } from '@/src/store/authStore';
 import { useProgressStore } from '@/src/store/progressStore';
 import { getPlayer } from '@/src/instruments/registry';
 import { Log } from '@/src/utils/log';
-import { api, setAuthToken } from '@/src/services/api';
+import { api, setAuthToken, deleteLesson } from '@/src/services/api';
 import { useAuth } from '@clerk/clerk-expo';
+import { Ionicons } from '@expo/vector-icons';
 import type { LessonProcessingState } from '@/src/types/models';
 
 export default function LessonPlayerScreen() {
   const { theme } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
   const isAdmin = useAuthStore((s) => s.isAdmin);
   const dbUserId = useAuthStore((s) => s.dbUserId);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [lessonRefreshKey, setLessonRefreshKey] = useState(0);
   const lastProcessingStatusRef = useRef<string | null>(null);
   const statusPollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -135,6 +138,35 @@ export default function LessonPlayerScreen() {
     };
   }, [id]);
 
+  const handleDelete = async () => {
+    if (!id) return;
+    setIsDeleting(true);
+    try {
+      const token = await getToken();
+      setAuthToken(token);
+      await deleteLesson(id);
+      Log.api('lesson deleted', { id });
+      router.back();
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Could not delete lesson';
+      Log.apiError('lesson delete failed', { id, message: msg });
+      Alert.alert('Delete failed', msg);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const confirmDelete = () => {
+    Alert.alert(
+      'Delete lesson?',
+      'This will permanently delete this lesson and cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: handleDelete },
+      ]
+    );
+  };
+
   const showProcessingWatermark =
     processingStatus !== null &&
     processingStatus !== 'review_ready' &&
@@ -181,6 +213,17 @@ export default function LessonPlayerScreen() {
           </Text>
         </View>
       )}
+      {canEdit && (
+        <TouchableOpacity
+          style={[styles.deleteBtn, { backgroundColor: theme.overlay }]}
+          onPress={confirmDelete}
+          disabled={isDeleting}
+        >
+          {isDeleting
+            ? <ActivityIndicator size="small" color={theme.error} />
+            : <Ionicons name="trash-outline" size={18} color={theme.error} />}
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -211,5 +254,15 @@ const styles = StyleSheet.create({
     fontSize: FontSize.xs,
     fontWeight: '700',
     letterSpacing: 0.3,
+  },
+  deleteBtn: {
+    position: 'absolute',
+    top: Spacing.lg,
+    left: Spacing.lg,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
