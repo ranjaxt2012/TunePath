@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@clerk/clerk-expo';
 import { api, setAuthToken } from '@/src/services/api';
 import type { Lesson } from '@/src/types/models';
@@ -12,6 +12,8 @@ interface UseLessonsOptions {
 
 export function useLessons(options: UseLessonsOptions = {}) {
   const { getToken } = useAuth();
+  const getTokenRef = useRef(getToken);
+  useEffect(() => { getTokenRef.current = getToken; }, [getToken]);
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +22,7 @@ export function useLessons(options: UseLessonsOptions = {}) {
     setLoading(true);
     setError(null);
     try {
-      const token = await getToken();
+      const token = await getTokenRef.current();
       if (cancelled?.value) return;
       setAuthToken(token);
       const params = new URLSearchParams();
@@ -38,8 +40,7 @@ export function useLessons(options: UseLessonsOptions = {}) {
     } finally {
       if (!cancelled?.value) setLoading(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [getToken, options.instrument, options.tag, options.sort, options.limit]);
+  }, [options.instrument, options.tag, options.sort, options.limit]);
 
   useEffect(() => {
     const cancelled = { value: false };

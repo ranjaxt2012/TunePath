@@ -93,13 +93,13 @@ export function RowTimingEditor({
   }, [rowIndex]);
 
   useEffect(() => {
-    try { videoRef?.current?.setRate?.(speed); } catch {}
+    try { videoRef?.current?.setRate?.(speed); } catch { /* noop */ }
   }, [speed, videoRef]);
 
   useEffect(() => {
     return () => {
       if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
-      try { videoRef?.current?.setRate?.(1.0); } catch {}
+      try { videoRef?.current?.setRate?.(1.0); } catch { /* noop */ }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -126,7 +126,7 @@ export function RowTimingEditor({
   };
 
   const handleCaptureStart = () => {
-    try { videoRef?.current?.pause?.(); } catch {}
+    try { videoRef?.current?.pause?.(); } catch { /* noop */ }
     setPausedByCapture(true);
     const t = currentVideoTime;
     const existingEnd = currentNote
@@ -138,7 +138,7 @@ export function RowTimingEditor({
 
   const handleCaptureEnd = () => {
     if (!currentNote) return;
-    try { videoRef?.current?.pause?.(); } catch {}
+    try { videoRef?.current?.pause?.(); } catch { /* noop */ }
     setPausedByCapture(true);
     const t = currentVideoTime;
     if (t > currentNote.time + 0.05)
@@ -149,7 +149,7 @@ export function RowTimingEditor({
     try {
       videoRef?.current?.setRate?.(speed);
       videoRef?.current?.play?.();
-    } catch {}
+    } catch { /* noop */ }
     setPausedByCapture(false);
   };
 
@@ -252,7 +252,7 @@ export function RowTimingEditor({
               }
               if (!currentNote) return;
               setIsPreviewing(true);
-              try { videoRef?.current?.seekTo?.(currentNote.time); } catch {}
+              try { videoRef?.current?.seekTo?.(currentNote.time); } catch { /* noop */ }
               previewTimerRef.current = setTimeout(
                 () => setIsPreviewing(false),
                 currentNote.duration * 1000 + 300

@@ -91,7 +91,7 @@ const VideoPlayerInner = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
           } else {
             void nativeVideoRef.current?.setPositionAsync(seconds * 1000);
           }
-        } catch {}
+        } catch { /* noop */ }
       },
 
       pause: () => {
@@ -124,7 +124,7 @@ const VideoPlayerInner = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
           } else {
             void nativeVideoRef.current?.pauseAsync();
           }
-        } catch {}
+        } catch { /* noop */ }
       },
 
       play: () => {
@@ -161,7 +161,7 @@ const VideoPlayerInner = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
           } else {
             void nativeVideoRef.current?.playAsync();
           }
-        } catch {}
+        } catch { /* noop */ }
       },
 
       setRate: (rate: number) => {
@@ -174,7 +174,7 @@ const VideoPlayerInner = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
               void nativeVideoRef.current?.setRateAsync(rate, true);
             }
           }
-        } catch {}
+        } catch { /* noop */ }
       },
 
       setVolume: (volume: number) => {
@@ -190,7 +190,7 @@ const VideoPlayerInner = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
               void nativeVideoRef.current?.setVolumeAsync(Math.max(0, Math.min(1, volume)));
             }
           }
-        } catch {}
+        } catch { /* noop */ }
       },
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps

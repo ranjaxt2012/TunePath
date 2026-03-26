@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, Platform, TouchableOpacity, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -44,6 +44,8 @@ export default function DiscoverScreen() {
   const { theme } = useTheme();
   const router = useRouter();
   const { getToken } = useAuth();
+  const getTokenRef = useRef(getToken);
+  useEffect(() => { getTokenRef.current = getToken; }, [getToken]);
   const isWeb = Platform.OS === 'web';
 
   // ── Single fetch, single loading flag ──────────────────────────────────────
@@ -65,7 +67,7 @@ export default function DiscoverScreen() {
     if (!hasLoadedRef.current) setLoading(true);
     setFetchError(null);
     try {
-      const token = await getToken();
+      const token = await getTokenRef.current();
       setAuthToken(token);
       const [t, n, h] = await Promise.all([
         api.get<Lesson[]>('/api/lessons?sort=trending&limit=10'),
@@ -84,14 +86,16 @@ export default function DiscoverScreen() {
       setLoading(false);
       fetchInFlightRef.current = false;
     }
-  }, [getToken]);
+  }, []);
 
   // Single effect handles both initial load and re-fetch on focus (e.g. after delete).
-  // The in-flight guard in fetchAll prevents concurrent calls from StrictMode double-invoke.
+  // Empty deps — fetchAll is stable (uses getTokenRef internally), so this never re-fires
+  // due to a render cycle, only when the screen comes into focus.
   useFocusEffect(
     useCallback(() => {
       void fetchAll();
-    }, [fetchAll])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
   );
 
   // ── Client-side tag filter (no re-fetch) ───────────────────────────────────
