@@ -22,6 +22,7 @@ export interface VideoPlayerHandle {
   pause(): void;
   play(): void;
   setRate(rate: number): void;
+  setVolume(volume: number): void;
 }
 
 interface VideoPlayerProps {

@@ -127,6 +127,8 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
   const handleVideoStarted = useCallback(() => {
     setVideoStarted(true);
     Log.player('video started');
+    // Apply initial mute state — sound is off by default
+    videoRef.current?.setVolume(soundEnabled ? 1 : 0);
     const savedPosition = getPosition(lesson.id);
     void savedPosition;
   }, [getPosition, lesson.id]);
@@ -195,6 +197,7 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
             const next = !soundEnabled;
             setSoundEnabled(next);
             engineRef.current?.setSoundEnabled(next);
+            videoRef.current?.setVolume(next ? 1 : 0);
           }}
           style={[styles.soundBtn, {
             backgroundColor: soundEnabled ? theme.primary : theme.surface,
