@@ -149,6 +149,17 @@ const VideoPlayerInner = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
           }
         } catch {}
       },
+
+      setVolume: (volume: number) => {
+        try {
+          if (Platform.OS === 'web') {
+            const el = webVideoRef.current;
+            if (el) el.volume = Math.max(0, Math.min(1, volume));
+          } else {
+            void nativeVideoRef.current?.setVolumeAsync(Math.max(0, Math.min(1, volume)));
+          }
+        } catch {}
+      },
     }));
 
     return (
