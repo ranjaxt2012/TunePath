@@ -42,7 +42,7 @@ interface YouTubePlayerHandle {
   seekTo(seconds: number): void;
 }
 
-// YouTube player with local timer for notation sync
+// YouTube player controlled via postMessage — no native controls
 const YouTubePlayer = forwardRef<
   YouTubePlayerHandle,
   {
@@ -51,14 +51,22 @@ const YouTubePlayer = forwardRef<
     onStarted: () => void;
   }
 >(function YouTubePlayer({ videoId, onPlaybackStatus, onStarted }, ref) {
+  const iframeRef = React.useRef<HTMLIFrameElement | null>(null);
   const timerRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = React.useRef<number | null>(null);
-  const hasStartedRef = React.useRef(false);
   const pausedAtRef = React.useRef<number | null>(null);
-  const isPlayingRef = React.useRef(false);
 
-  // stopTimer function — clears interval, saves position, fires isPlaying:false
+  // Helper to send commands to YouTube iframe via postMessage
+  function sendCommand(func: string, args: unknown[] = []) {
+    iframeRef.current?.contentWindow?.postMessage(
+      JSON.stringify({ event: 'command', func, args }),
+      '*'
+    );
+  }
+
+  // stopTimer function — sends pauseVideo, clears interval, fires isPlaying:false
   const stopTimer = React.useCallback(() => {
+    sendCommand('pauseVideo');
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
@@ -66,7 +74,6 @@ const YouTubePlayer = forwardRef<
     if (startTimeRef.current !== null) {
       pausedAtRef.current = (Date.now() - startTimeRef.current) / 1000;
     }
-    isPlayingRef.current = false;
     onPlaybackStatus({
       isLoaded: true,
       isPlaying: false,
@@ -81,12 +88,12 @@ const YouTubePlayer = forwardRef<
     } as AVPlaybackStatus);
   }, [onPlaybackStatus]);
 
-  // startTimer function — resumes from pausedAt position
+  // startTimer function — sends playVideo, starts interval from pausedAt position
   const startTimer = React.useCallback(() => {
+    sendCommand('playVideo');
     if (timerRef.current) return;
     const offset = pausedAtRef.current ?? 0;
     startTimeRef.current = Date.now() - offset * 1000;
-    isPlayingRef.current = true;
     timerRef.current = setInterval(() => {
       if (startTimeRef.current === null) return;
       const elapsed = (Date.now() - startTimeRef.current) / 1000;
@@ -111,6 +118,7 @@ const YouTubePlayer = forwardRef<
       pause: stopTimer,
       play: startTimer,
       seekTo: (seconds: number) => {
+        sendCommand('seekTo', [seconds, true]);
         pausedAtRef.current = seconds;
         startTimeRef.current = Date.now() - seconds * 1000;
       },
@@ -118,46 +126,27 @@ const YouTubePlayer = forwardRef<
     [stopTimer, startTimer]
   );
 
+  // No autostart — wait for parent to call play()
   React.useEffect(() => {
-    // Start timer after a short delay (iframe autoplay kicks in ~1s)
-    const startDelay = setTimeout(() => {
-      if (!hasStartedRef.current) {
-        hasStartedRef.current = true;
-        startTimeRef.current = Date.now();
-        onStarted();
-      }
-      timerRef.current = setInterval(() => {
-        if (startTimeRef.current === null) return;
-        const elapsed = (Date.now() - startTimeRef.current) / 1000;
-        onPlaybackStatus({
-          isLoaded: true,
-          isPlaying: true,
-          positionMillis: elapsed * 1000,
-          durationMillis: 0,
-          rate: 1,
-          shouldPlay: true,
-          volume: 1,
-          isMuted: false,
-          isBuffering: false,
-          didJustFinish: false,
-        } as AVPlaybackStatus);
-      }, 100);
-    }, 1500);
-
     return () => {
-      clearTimeout(startDelay);
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [videoId]);
+  }, []);
 
   return (
     <iframe
+      ref={iframeRef}
       width="100%"
       height="100%"
-      src={`https://www.youtube.com/embed/${videoId}?autoplay=1&controls=1`}
+      src={`https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=0&controls=0&disablekb=1&rel=0&modestbranding=1`}
       frameBorder="0"
-      allowFullScreen
-      style={{ border: 'none' } as React.CSSProperties}
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+      style={{
+        width: '100%',
+        height: '100%',
+        border: 'none',
+        display: 'block',
+      } as React.CSSProperties}
     />
   );
 });
