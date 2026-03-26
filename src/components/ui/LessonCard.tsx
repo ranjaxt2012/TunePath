@@ -44,7 +44,7 @@ export function LessonCard({ lesson, size, onPress, width = 140, thumbHeight = 9
     router.push(`/lesson/${lesson.id}`);
   };
 
-  const handleDeletePress = () => {
+  const handleDelete = () => {
     setMenuVisible(false);
     Alert.alert(
       'Delete lesson?',
@@ -54,34 +54,47 @@ export function LessonCard({ lesson, size, onPress, width = 140, thumbHeight = 9
         {
           text: 'Delete',
           style: 'destructive',
-          onPress: async () => {
-            setIsDeleting(true);
-            try {
-              const token = await getToken();
-              if (!token) {
-                throw new Error('Not authenticated. Please log in again.');
-              }
-              setAuthToken(token);
-
-              // Log the request for debugging
-              console.log(`[LessonCard] Deleting lesson ${lesson.id}`);
-
-              await api.delete(`/api/tutor/lessons/${lesson.id}`);
-
-              // Success — notify parent to remove from list
-              console.log(`[LessonCard] Delete successful for ${lesson.id}`);
-              onDelete?.(lesson.id);
-            } catch (e: any) {
-              console.error(`[LessonCard] Delete failed:`, e);
-              const errorMsg = e?.message ?? 'Something went wrong. Please try again.';
-              Alert.alert('Delete failed', errorMsg);
-            } finally {
-              setIsDeleting(false);
-            }
-          },
+          onPress: executeDelete,
         },
       ]
     );
+  };
+
+  const executeDelete = async () => {
+    setIsDeleting(true);
+    try {
+      const token = await getToken();
+      if (!token) throw new Error('Not authenticated');
+      setAuthToken(token);
+
+      console.log(`[LessonCard] DELETE ${lesson.id}`);
+
+      // Call DELETE endpoint
+      const response = await fetch(
+        `${process.env.EXPO_PUBLIC_API_URL}/api/tutor/lessons/${lesson.id}`,
+        {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (response.status === 204 || response.ok) {
+        // Success — notify parent to remove from list
+        console.log(`[LessonCard] DELETE success ${lesson.id}`);
+        onDelete?.(lesson.id);
+      } else {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.detail ?? `Delete failed: HTTP ${response.status}`);
+      }
+    } catch (e: any) {
+      console.error(`[LessonCard] DELETE error:`, e);
+      Alert.alert('Delete failed', e?.message ?? 'Something went wrong. Please try again.');
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const handleMenuPress = (e: any) => {
@@ -148,12 +161,27 @@ export function LessonCard({ lesson, size, onPress, width = 140, thumbHeight = 9
             </View>
           </View>
         </TouchableOpacity>
+        {isDeleting && (
+          <View style={[
+            StyleSheet.absoluteFillObject,
+            {
+              backgroundColor: 'rgba(0,0,0,0.5)',
+              justifyContent: 'center',
+              alignItems: 'center',
+              borderRadius: Radius.lg,
+              zIndex: 100,
+            }
+          ]}>
+            <ActivityIndicator size="large" color="white" />
+            <Text style={{ color: 'white', marginTop: 8, fontSize: 13 }}>Deleting...</Text>
+          </View>
+        )}
         <LessonCardMenu
           visible={menuVisible}
           onDismiss={() => setMenuVisible(false)}
           onPlay={handlePlay}
           onEdit={isOwner ? handleEdit : undefined}
-          onDelete={isOwner ? handleDeletePress : undefined}
+          onDelete={isOwner ? handleDelete : undefined}
           theme={theme}
           isDeleting={isDeleting}
         />
@@ -220,12 +248,27 @@ export function LessonCard({ lesson, size, onPress, width = 140, thumbHeight = 9
             )}
           </View>
         </TouchableOpacity>
+        {isDeleting && (
+          <View style={[
+            StyleSheet.absoluteFillObject,
+            {
+              backgroundColor: 'rgba(0,0,0,0.5)',
+              justifyContent: 'center',
+              alignItems: 'center',
+              borderRadius: Radius.lg,
+              zIndex: 100,
+            }
+          ]}>
+            <ActivityIndicator size="large" color="white" />
+            <Text style={{ color: 'white', marginTop: 8, fontSize: 13 }}>Deleting...</Text>
+          </View>
+        )}
         <LessonCardMenu
           visible={menuVisible}
           onDismiss={() => setMenuVisible(false)}
           onPlay={handlePlay}
           onEdit={isOwner ? handleEdit : undefined}
-          onDelete={isOwner ? handleDeletePress : undefined}
+          onDelete={isOwner ? handleDelete : undefined}
           theme={theme}
           isDeleting={isDeleting}
         />
@@ -290,12 +333,27 @@ export function LessonCard({ lesson, size, onPress, width = 140, thumbHeight = 9
           </View>
         </LinearGradient>
       </TouchableOpacity>
+      {isDeleting && (
+        <View style={[
+          StyleSheet.absoluteFillObject,
+          {
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            justifyContent: 'center',
+            alignItems: 'center',
+            borderRadius: Radius.lg,
+            zIndex: 100,
+          }
+        ]}>
+          <ActivityIndicator size="large" color="white" />
+          <Text style={{ color: 'white', marginTop: 8, fontSize: 13 }}>Deleting...</Text>
+        </View>
+      )}
       <LessonCardMenu
         visible={menuVisible}
         onDismiss={() => setMenuVisible(false)}
         onPlay={handlePlay}
         onEdit={isOwner ? handleEdit : undefined}
-        onDelete={isOwner ? handleDeletePress : undefined}
+        onDelete={isOwner ? handleDelete : undefined}
         theme={theme}
         isDeleting={isDeleting}
       />
