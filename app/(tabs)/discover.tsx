@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@clerk/clerk-expo';
 import { useTheme, Spacing, FontSize, Radius } from '@/src/design';
 import { api, setAuthToken } from '@/src/services/api';
+import { useAuthStore } from '@/src/store/authStore';
 import { LessonCard } from '@/src/components/ui/LessonCard';
 import { TagChip } from '@/src/components/ui/TagChip';
 import { SectionHeader } from '@/src/components/ui/SectionHeader';
@@ -47,6 +48,7 @@ export default function DiscoverScreen() {
   const getTokenRef = useRef(getToken);
   useEffect(() => { getTokenRef.current = getToken; }, [getToken]);
   const isWeb = Platform.OS === 'web';
+  const { dbUserId, isAdmin } = useAuthStore();
 
   // ── Single fetch, single loading flag ──────────────────────────────────────
   const [trending, setTrending] = useState<Lesson[]>([]);
@@ -134,6 +136,13 @@ export default function DiscoverScreen() {
   const handleRetry = useCallback(() => {
     void fetchAll(true); // force = true bypasses in-flight guard
   }, [fetchAll]);
+
+  const handleDeleteLesson = useCallback((lessonId: string) => {
+    // Optimistically remove from all lists
+    setTrending(prev => prev.filter(l => l.id !== lessonId));
+    setNewLessons(prev => prev.filter(l => l.id !== lessonId));
+    setHarmonium(prev => prev.filter(l => l.id !== lessonId));
+  }, []);
 
   // ── Error state ────────────────────────────────────────────────────────────
   if (!loading && fetchError) {
@@ -294,6 +303,9 @@ export default function DiscoverScreen() {
                     width={cardWidth}
                     thumbHeight={thumbHeight}
                     onPress={() => router.push(`/lesson/${lesson.id}`)}
+                    dbUserId={dbUserId}
+                    isAdmin={isAdmin}
+                    onDelete={handleDeleteLesson}
                   />
                 ))}
           </ScrollView>
@@ -317,6 +329,9 @@ export default function DiscoverScreen() {
                     width={cardWidth}
                     thumbHeight={thumbHeight}
                     onPress={() => router.push(`/lesson/${lesson.id}`)}
+                    dbUserId={dbUserId}
+                    isAdmin={isAdmin}
+                    onDelete={handleDeleteLesson}
                   />
                 ))}
           </ScrollView>
@@ -340,6 +355,9 @@ export default function DiscoverScreen() {
                     width={cardWidth}
                     thumbHeight={thumbHeight}
                     onPress={() => router.push(`/lesson/${lesson.id}`)}
+                    dbUserId={dbUserId}
+                    isAdmin={isAdmin}
+                    onDelete={handleDeleteLesson}
                   />
                 ))}
           </ScrollView>

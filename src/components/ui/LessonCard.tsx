@@ -1,8 +1,11 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, Image, StyleSheet, Modal, Alert, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, Spacing, Radius, FontSize } from '@/src/design';
+import { useRouter } from 'expo-router';
+import { api, setAuthToken } from '@/src/services/api';
+import { useAuth } from '@clerk/clerk-expo';
 import type { Lesson } from '@/src/types/models';
 
 interface LessonCardProps {
@@ -11,6 +14,9 @@ interface LessonCardProps {
   onPress: () => void;
   width?: number;
   thumbHeight?: number;
+  dbUserId?: string | null;
+  isAdmin?: boolean;
+  onDelete?: (lessonId: string) => void;
 }
 
 function formatDuration(seconds: number): string {
@@ -19,151 +25,318 @@ function formatDuration(seconds: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
-export function LessonCard({ lesson, size, onPress, width = 140, thumbHeight = 90 }: LessonCardProps) {
+export function LessonCard({ lesson, size, onPress, width = 140, thumbHeight = 90, dbUserId, isAdmin, onDelete }: LessonCardProps) {
   const { theme } = useTheme();
+  const router = useRouter();
+  const { getToken } = useAuth();
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const isOwner = lesson.tutor_id && (lesson.tutor_id === dbUserId || isAdmin);
+
+  const handlePlay = () => {
+    setMenuVisible(false);
+    router.push(`/lesson/${lesson.id}`);
+  };
+
+  const handleEdit = () => {
+    setMenuVisible(false);
+    router.push(`/lesson/${lesson.id}`);
+  };
+
+  const handleDeletePress = () => {
+    setMenuVisible(false);
+    Alert.alert(
+      'Delete lesson?',
+      `"${lesson.title}" will be permanently deleted.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            setIsDeleting(true);
+            try {
+              const token = await getToken();
+              setAuthToken(token);
+              await api.delete(`/api/tutor/lessons/${lesson.id}`);
+              onDelete?.(lesson.id);
+            } catch (e: any) {
+              Alert.alert('Delete failed', e?.message ?? 'Something went wrong');
+            } finally {
+              setIsDeleting(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleMenuPress = (e: any) => {
+    e.stopPropagation?.();
+    setMenuVisible(true);
+  };
 
   if (size === 'mini') {
     return (
-      <TouchableOpacity
-        style={[styles.miniCard, {
-          backgroundColor: theme.surface,
-          width,
-          shadowColor: theme.cardShadow,
-          shadowOpacity: theme.isDark ? 0 : 1,
-          shadowOffset: { width: 0, height: 2 },
-          shadowRadius: 8,
-          elevation: theme.isDark ? 0 : 3,
-        }]}
-        onPress={onPress}
-        activeOpacity={0.8}
-      >
-        {/* Thumbnail */}
-        <View style={[styles.miniThumbContainer, { height: thumbHeight }]}>
-          {lesson.thumbnail_url ? (
-            <Image source={{ uri: lesson.thumbnail_url }} style={[styles.miniThumb, { height: thumbHeight }]} resizeMode="cover" />
-          ) : (
-            <View style={[styles.miniThumb, { height: thumbHeight, backgroundColor: theme.surfaceHigh, alignItems: 'center', justifyContent: 'center' }]}>
-              <Ionicons name="musical-notes" size={24} color={theme.textDisabled} />
-            </View>
-          )}
-          {/* Duration badge top-right */}
-          <View style={[styles.durationBadge, { backgroundColor: theme.overlay }]}>
-            <Text style={[styles.durationText, { color: theme.textOnPrimary }]}>
-              {formatDuration(lesson.duration_seconds)}
-            </Text>
-          </View>
-        </View>
-        {/* Info */}
-        <View style={styles.miniInfo}>
-          <Text style={[styles.miniTitle, { color: theme.textPrimary }]} numberOfLines={2}>
-            {lesson.title}
-          </Text>
-          <View style={styles.creatorRow}>
-            <Text style={[styles.creatorName, { color: theme.textSecondary }]} numberOfLines={1}>
-              {lesson.creator_name ?? 'Unknown'}
-            </Text>
-            {lesson.creator_verified && (
-              <Text style={[styles.verifiedDot, { color: theme.primary }]}> •</Text>
+      <>
+        <TouchableOpacity
+          style={[styles.miniCard, {
+            backgroundColor: theme.surface,
+            width,
+            shadowColor: theme.cardShadow,
+            shadowOpacity: theme.isDark ? 0 : 1,
+            shadowOffset: { width: 0, height: 2 },
+            shadowRadius: 8,
+            elevation: theme.isDark ? 0 : 3,
+          }]}
+          onPress={onPress}
+          activeOpacity={0.8}
+        >
+          {/* Thumbnail */}
+          <View style={[styles.miniThumbContainer, { height: thumbHeight }]}>
+            {lesson.thumbnail_url ? (
+              <Image source={{ uri: lesson.thumbnail_url }} style={[styles.miniThumb, { height: thumbHeight }]} resizeMode="cover" />
+            ) : (
+              <View style={[styles.miniThumb, { height: thumbHeight, backgroundColor: theme.surfaceHigh, alignItems: 'center', justifyContent: 'center' }]}>
+                <Ionicons name="musical-notes" size={24} color={theme.textDisabled} />
+              </View>
             )}
+            {/* Duration badge top-right */}
+            <View style={[styles.durationBadge, { backgroundColor: theme.overlay }]}>
+              <Text style={[styles.durationText, { color: theme.textOnPrimary }]}>
+                {formatDuration(lesson.duration_seconds)}
+              </Text>
+            </View>
+            {/* Three-dot menu button */}
+            <TouchableOpacity
+              style={[styles.menuBtn, { backgroundColor: 'rgba(0,0,0,0.4)' }]}
+              onPress={handleMenuPress}
+            >
+              <Ionicons name="ellipsis-vertical" size={16} color="white" />
+            </TouchableOpacity>
           </View>
-        </View>
-      </TouchableOpacity>
+          {/* Info */}
+          <View style={styles.miniInfo}>
+            <Text style={[styles.miniTitle, { color: theme.textPrimary }]} numberOfLines={2}>
+              {lesson.title}
+            </Text>
+            <View style={styles.creatorRow}>
+              <Text style={[styles.creatorName, { color: theme.textSecondary }]} numberOfLines={1}>
+                {lesson.creator_name ?? 'Unknown'}
+              </Text>
+              {lesson.creator_verified && (
+                <Text style={[styles.verifiedDot, { color: theme.primary }]}> •</Text>
+              )}
+            </View>
+          </View>
+        </TouchableOpacity>
+        <LessonCardMenu
+          visible={menuVisible}
+          onDismiss={() => setMenuVisible(false)}
+          onPlay={handlePlay}
+          onEdit={isOwner ? handleEdit : undefined}
+          onDelete={isOwner ? handleDeletePress : undefined}
+          theme={theme}
+          isDeleting={isDeleting}
+        />
+      </>
     );
   }
 
   if (size === 'regular') {
     return (
-      <TouchableOpacity
-        style={[styles.regularCard, {
-          backgroundColor: theme.surface,
-          shadowColor: theme.cardShadow,
-          shadowOpacity: theme.isDark ? 0 : 1,
-          shadowOffset: { width: 0, height: 2 },
-          shadowRadius: 8,
-          elevation: theme.isDark ? 0 : 3,
-        }]}
-        onPress={onPress}
-        activeOpacity={0.8}
-      >
-        {/* Left thumbnail */}
-        <View style={styles.regularThumbContainer}>
-          {lesson.thumbnail_url ? (
-            <Image source={{ uri: lesson.thumbnail_url }} style={styles.regularThumb} resizeMode="cover" />
-          ) : (
-            <View style={[styles.regularThumb, { backgroundColor: theme.surfaceHigh, alignItems: 'center', justifyContent: 'center' }]}>
-              <Ionicons name="musical-notes" size={20} color={theme.textDisabled} />
+      <>
+        <TouchableOpacity
+          style={[styles.regularCard, {
+            backgroundColor: theme.surface,
+            shadowColor: theme.cardShadow,
+            shadowOpacity: theme.isDark ? 0 : 1,
+            shadowOffset: { width: 0, height: 2 },
+            shadowRadius: 8,
+            elevation: theme.isDark ? 0 : 3,
+          }]}
+          onPress={onPress}
+          activeOpacity={0.8}
+        >
+          {/* Left thumbnail */}
+          <View style={styles.regularThumbContainer}>
+            {lesson.thumbnail_url ? (
+              <Image source={{ uri: lesson.thumbnail_url }} style={styles.regularThumb} resizeMode="cover" />
+            ) : (
+              <View style={[styles.regularThumb, { backgroundColor: theme.surfaceHigh, alignItems: 'center', justifyContent: 'center' }]}>
+                <Ionicons name="musical-notes" size={20} color={theme.textDisabled} />
+              </View>
+            )}
+          </View>
+          {/* Right info */}
+          <View style={styles.regularInfo}>
+            <Text style={[styles.regularTitle, { color: theme.textPrimary }]} numberOfLines={2}>
+              {lesson.title}
+            </Text>
+            <View style={styles.creatorRow}>
+              <Text style={[styles.creatorName, { color: theme.textSecondary }]} numberOfLines={1}>
+                {lesson.creator_name ?? 'Unknown'}
+              </Text>
+              {lesson.creator_verified && (
+                <Text style={[styles.verifiedDot, { color: theme.primary }]}> •</Text>
+              )}
             </View>
-          )}
+            {lesson.level_slug && (
+              <View style={[styles.levelBadge, { backgroundColor: theme.primaryLight }]}>
+                <Text style={[styles.levelText, { color: theme.primary }]}>
+                  {lesson.level_slug}
+                </Text>
+              </View>
+            )}
+          </View>
+          {/* Three-dot menu button */}
+          <TouchableOpacity
+            style={[styles.regularMenuBtn, { backgroundColor: 'rgba(0,0,0,0.4)' }]}
+            onPress={handleMenuPress}
+          >
+            <Ionicons name="ellipsis-vertical" size={16} color="white" />
+          </TouchableOpacity>
+        </TouchableOpacity>
+        <LessonCardMenu
+          visible={menuVisible}
+          onDismiss={() => setMenuVisible(false)}
+          onPlay={handlePlay}
+          onEdit={isOwner ? handleEdit : undefined}
+          onDelete={isOwner ? handleDeletePress : undefined}
+          theme={theme}
+          isDeleting={isDeleting}
+        />
+      </>
+    );
+  }
+
+  // featured
+  return (
+    <>
+      <TouchableOpacity style={styles.featuredCard} onPress={onPress} activeOpacity={0.9}>
+        {/* Background thumbnail */}
+        {lesson.thumbnail_url ? (
+          <Image
+            source={{ uri: lesson.thumbnail_url }}
+            style={StyleSheet.absoluteFillObject}
+            resizeMode="cover"
+          />
+        ) : (
+          <View style={[StyleSheet.absoluteFillObject, { backgroundColor: theme.surfaceHigh }]} />
+        )}
+
+        {/* Duration badge top-right */}
+        <View style={[styles.featuredDurationBadge, { backgroundColor: theme.overlay }]}>
+          <Text style={[styles.durationText, { color: theme.textOnPrimary }]}>
+            {formatDuration(lesson.duration_seconds)}
+          </Text>
         </View>
-        {/* Right info */}
-        <View style={styles.regularInfo}>
-          <Text style={[styles.regularTitle, { color: theme.textPrimary }]} numberOfLines={2}>
+
+        {/* Three-dot menu button */}
+        <TouchableOpacity
+          style={[styles.featuredMenuBtn, { backgroundColor: 'rgba(0,0,0,0.4)' }]}
+          onPress={handleMenuPress}
+        >
+          <Ionicons name="ellipsis-vertical" size={16} color="white" />
+        </TouchableOpacity>
+
+        {/* Center play button */}
+        <View style={[styles.featuredPlayBtn, { backgroundColor: theme.primary }]}>
+          <Ionicons name="play" size={28} color={theme.textOnPrimary} style={{ marginLeft: 3 }} />
+        </View>
+
+        {/* Bottom gradient overlay with title + creator */}
+        <LinearGradient
+          colors={['transparent', 'rgba(0,0,0,0.75)']}
+          style={styles.featuredGradient}
+        >
+          <Text style={[styles.featuredTitle, { color: theme.textOnPrimary }]} numberOfLines={2}>
             {lesson.title}
           </Text>
           <View style={styles.creatorRow}>
-            <Text style={[styles.creatorName, { color: theme.textSecondary }]} numberOfLines={1}>
+            <Text style={[styles.featuredCreator, { color: theme.textOnPrimary }]} numberOfLines={1}>
               {lesson.creator_name ?? 'Unknown'}
             </Text>
             {lesson.creator_verified && (
               <Text style={[styles.verifiedDot, { color: theme.primary }]}> •</Text>
             )}
           </View>
-          {lesson.level_slug && (
-            <View style={[styles.levelBadge, { backgroundColor: theme.primaryLight }]}>
-              <Text style={[styles.levelText, { color: theme.primary }]}>
-                {lesson.level_slug}
-              </Text>
-            </View>
-          )}
+        </LinearGradient>
+      </TouchableOpacity>
+      <LessonCardMenu
+        visible={menuVisible}
+        onDismiss={() => setMenuVisible(false)}
+        onPlay={handlePlay}
+        onEdit={isOwner ? handleEdit : undefined}
+        onDelete={isOwner ? handleDeletePress : undefined}
+        theme={theme}
+        isDeleting={isDeleting}
+      />
+    </>
+  );
+}
+
+interface LessonCardMenuProps {
+  visible: boolean;
+  onDismiss: () => void;
+  onPlay: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
+  theme: any;
+  isDeleting: boolean;
+}
+
+function LessonCardMenu({ visible, onDismiss, onPlay, onEdit, onDelete, theme, isDeleting }: LessonCardMenuProps) {
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
+      <TouchableOpacity
+        style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(0,0,0,0.5)' }]}
+        onPress={onDismiss}
+      >
+        <View style={styles.menuOverlay}>
+          <View style={[styles.menuSheet, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            {/* Play */}
+            <TouchableOpacity style={styles.menuItem} onPress={onPlay}>
+              <Ionicons name="play-circle-outline" size={20} color={theme.primary} style={styles.menuIcon} />
+              <Text style={[styles.menuText, { color: theme.textPrimary }]}>Play lesson</Text>
+            </TouchableOpacity>
+
+            {/* Edit — tutor only */}
+            {onEdit && (
+              <>
+                <View style={[styles.menuDivider, { backgroundColor: theme.border }]} />
+                <TouchableOpacity style={styles.menuItem} onPress={onEdit}>
+                  <Ionicons name="pencil-outline" size={20} color={theme.primary} style={styles.menuIcon} />
+                  <Text style={[styles.menuText, { color: theme.textPrimary }]}>Edit notation</Text>
+                </TouchableOpacity>
+              </>
+            )}
+
+            {/* Delete — tutor only, red */}
+            {onDelete && (
+              <>
+                <View style={[styles.menuDivider, { backgroundColor: theme.border }]} />
+                <TouchableOpacity style={styles.menuItem} onPress={onDelete} disabled={isDeleting}>
+                  {isDeleting ? (
+                    <ActivityIndicator size="small" color={theme.error} style={styles.menuIcon} />
+                  ) : (
+                    <Ionicons name="trash-outline" size={20} color={theme.error} style={styles.menuIcon} />
+                  )}
+                  <Text style={[styles.menuText, { color: theme.error }]}>Delete lesson</Text>
+                </TouchableOpacity>
+              </>
+            )}
+
+            {/* Cancel */}
+            <View style={[styles.menuDivider, { backgroundColor: theme.border }]} />
+            <TouchableOpacity style={styles.menuItem} onPress={onDismiss}>
+              <Text style={[styles.menuText, { color: theme.textSecondary }]}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </TouchableOpacity>
-    );
-  }
-
-  // featured
-  return (
-    <TouchableOpacity style={styles.featuredCard} onPress={onPress} activeOpacity={0.9}>
-      {/* Background thumbnail */}
-      {lesson.thumbnail_url ? (
-        <Image
-          source={{ uri: lesson.thumbnail_url }}
-          style={StyleSheet.absoluteFillObject}
-          resizeMode="cover"
-        />
-      ) : (
-        <View style={[StyleSheet.absoluteFillObject, { backgroundColor: theme.surfaceHigh }]} />
-      )}
-
-      {/* Duration badge top-right */}
-      <View style={[styles.featuredDurationBadge, { backgroundColor: theme.overlay }]}>
-        <Text style={[styles.durationText, { color: theme.textOnPrimary }]}>
-          {formatDuration(lesson.duration_seconds)}
-        </Text>
-      </View>
-
-      {/* Center play button */}
-      <View style={[styles.featuredPlayBtn, { backgroundColor: theme.primary }]}>
-        <Ionicons name="play" size={28} color={theme.textOnPrimary} style={{ marginLeft: 3 }} />
-      </View>
-
-      {/* Bottom gradient overlay with title + creator */}
-      <LinearGradient
-        colors={['transparent', 'rgba(0,0,0,0.75)']}
-        style={styles.featuredGradient}
-      >
-        <Text style={[styles.featuredTitle, { color: theme.textOnPrimary }]} numberOfLines={2}>
-          {lesson.title}
-        </Text>
-        <View style={styles.creatorRow}>
-          <Text style={[styles.featuredCreator, { color: theme.textOnPrimary }]} numberOfLines={1}>
-            {lesson.creator_name ?? 'Unknown'}
-          </Text>
-          {lesson.creator_verified && (
-            <Text style={[styles.verifiedDot, { color: theme.primary }]}> •</Text>
-          )}
-        </View>
-      </LinearGradient>
-    </TouchableOpacity>
+    </Modal>
   );
 }
 
@@ -299,5 +472,68 @@ const styles = StyleSheet.create({
   verifiedDot: {
     fontSize: FontSize.xs,
     fontWeight: '700',
+  },
+
+  // Menu button
+  menuBtn: {
+    position: 'absolute',
+    top: Spacing.xs,
+    right: Spacing.xs,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  regularMenuBtn: {
+    position: 'absolute',
+    top: Spacing.xs,
+    right: Spacing.xs,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  featuredMenuBtn: {
+    position: 'absolute',
+    top: Spacing.md,
+    right: Spacing.md,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  // Menu sheet
+  menuOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    paddingBottom: Spacing.xl,
+  },
+  menuSheet: {
+    borderRadius: Radius.lg,
+    minWidth: 200,
+    overflow: 'hidden',
+    borderWidth: 1,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    minHeight: 44,
+  },
+  menuIcon: {
+    marginRight: Spacing.sm,
+  },
+  menuText: {
+    fontSize: FontSize.sm,
+    fontWeight: '500',
+  },
+  menuDivider: {
+    height: 1,
   },
 });
