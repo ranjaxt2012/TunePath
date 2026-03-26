@@ -1,4 +1,4 @@
-import React, { memo, forwardRef, useImperativeHandle, useRef } from 'react';
+import React, { memo, forwardRef, useImperativeHandle, useRef, useCallback } from 'react';
 import { View, Image, Text, TouchableOpacity, StyleSheet, Platform, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -17,6 +17,13 @@ function isYouTubeUrl(url: string): boolean {
   return /(?:youtube\.com|youtu\.be)/.test(url);
 }
 
+// Format seconds to "m:ss" format
+function formatTime(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
 export interface VideoPlayerHandle {
   seekTo(seconds: number): void;
   pause(): void;
@@ -32,6 +39,11 @@ interface VideoPlayerProps {
   onStarted(): void;
   onPlaybackStatus(status: AVPlaybackStatus): void;
   isLandscape: boolean;
+  isPlaying: boolean;
+  onTogglePlay(): void;
+  currentTimeSeconds: number;
+  durationSeconds: number;
+  onSeek(seconds: number): void;
 }
 
 
@@ -171,7 +183,7 @@ const YouTubePlayer = forwardRef<
 
 const VideoPlayerInner = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
   function VideoPlayerInner(
-    { source, thumbnailUrl, started, onStarted, onPlaybackStatus, isLandscape },
+    { source, thumbnailUrl, started, onStarted, onPlaybackStatus, isLandscape, isPlaying, onTogglePlay, currentTimeSeconds, durationSeconds, onSeek },
     ref
   ) {
     const { theme } = useTheme();
@@ -254,8 +266,7 @@ const VideoPlayerInner = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
             style={[styles.poster, { backgroundColor: theme.surface }]}
             onPress={() => {
               onStarted();
-              // For YouTube: start the timer + send playVideo command
-              youtubeRef.current?.play();
+              onTogglePlay();
             }}
             activeOpacity={0.9}
           >
@@ -303,46 +314,108 @@ const VideoPlayerInner = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
 
           if (isYoutube) {
             const videoId = getYouTubeVideoId(videoUrl);
+            const progressPercent = durationSeconds > 0 ? (currentTimeSeconds / durationSeconds) * 100 : 0;
             return (
-              <YouTubePlayer
-                ref={youtubeRef}
-                videoId={videoId!}
-                onPlaybackStatus={onPlaybackStatus}
-                onStarted={onStarted}
-              />
+              <View style={styles.videoContainer}>
+                <YouTubePlayer
+                  ref={youtubeRef}
+                  videoId={videoId!}
+                  onPlaybackStatus={onPlaybackStatus}
+                  onStarted={onStarted}
+                />
+                <TouchableOpacity
+                  style={styles.controlsOverlay}
+                  onPress={onTogglePlay}
+                  activeOpacity={1}
+                >
+                  <View style={styles.centerIcon}>
+                    <Ionicons
+                      name={isPlaying ? 'pause-circle' : 'play-circle'}
+                      size={64}
+                      color="rgba(255,255,255,0.9)"
+                    />
+                  </View>
+                  <View style={[styles.seekBarContainer, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+                    <View style={styles.seekBar}>
+                      <View
+                        style={[
+                          styles.seekProgress,
+                          {
+                            backgroundColor: theme.primary,
+                            width: `${progressPercent}%`,
+                          },
+                        ]}
+                      />
+                    </View>
+                    <Text style={styles.timeText}>{formatTime(currentTimeSeconds)}</Text>
+                    <Text style={styles.timeText}>/</Text>
+                    <Text style={styles.timeText}>{formatTime(durationSeconds)}</Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
             );
           }
 
           return (
-            <video
-              ref={webVideoRef}
-              src={videoUrl}
-              controls
-              autoPlay
-              style={{
-                width: '100%',
-                height: '100%',
-                backgroundColor: theme.divider,
-                objectFit: 'contain',
-              }}
-              onTimeUpdate={(e: React.SyntheticEvent<HTMLVideoElement>) => {
-                const el = e.currentTarget;
-                const currentTime = el.currentTime;
-                const duration = el.duration;
-                onPlaybackStatus({
-                  isLoaded: true,
-                  isPlaying: true,
-                  positionMillis: currentTime * 1000,
-                  durationMillis: Number.isFinite(duration) ? duration * 1000 : 0,
-                  rate: 1,
-                  shouldPlay: true,
-                  volume: 1,
-                  isMuted: false,
-                  isBuffering: false,
-                  didJustFinish: false,
-                } as AVPlaybackStatus);
-              }}
-            />
+            <View style={styles.videoContainer}>
+              <video
+                ref={webVideoRef}
+                src={videoUrl}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  backgroundColor: theme.divider,
+                  objectFit: 'contain',
+                  display: 'block',
+                }}
+                onTimeUpdate={(e: React.SyntheticEvent<HTMLVideoElement>) => {
+                  const el = e.currentTarget;
+                  const currentTime = el.currentTime;
+                  const duration = el.duration;
+                  onPlaybackStatus({
+                    isLoaded: true,
+                    isPlaying: !el.paused,
+                    positionMillis: currentTime * 1000,
+                    durationMillis: Number.isFinite(duration) ? duration * 1000 : 0,
+                    rate: 1,
+                    shouldPlay: !el.paused,
+                    volume: 1,
+                    isMuted: false,
+                    isBuffering: false,
+                    didJustFinish: false,
+                  } as AVPlaybackStatus);
+                }}
+              />
+              <TouchableOpacity
+                style={styles.controlsOverlay}
+                onPress={onTogglePlay}
+                activeOpacity={1}
+              >
+                <View style={styles.centerIcon}>
+                  <Ionicons
+                    name={isPlaying ? 'pause-circle' : 'play-circle'}
+                    size={64}
+                    color="rgba(255,255,255,0.9)"
+                  />
+                </View>
+                <View style={[styles.seekBarContainer, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+                  <View style={styles.seekBar}>
+                    <View
+                      style={[
+                        styles.seekProgress,
+                        {
+                          backgroundColor: theme.primary,
+                          width: `${Math.max(0, Math.min(100, (currentTimeSeconds / durationSeconds) * 100))}%`,
+                        },
+                      ]}
+                    />
+                  </View>
+                  <Text style={styles.timeText}>{formatTime(currentTimeSeconds)}</Text>
+                  <Text style={styles.timeText}>/</Text>
+                  <Text style={styles.timeText}>{formatTime(durationSeconds)}</Text>
+                </View>
+              </TouchableOpacity>
+            </View>
           );
         })() : (() => {
           const videoUrl =
@@ -421,7 +494,13 @@ const VideoPlayerInner = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
 
 export const VideoPlayer = memo(VideoPlayerInner, (p, n) => {
   if (p.started && n.started) return true;
-  return p.started === n.started && p.isLandscape === n.isLandscape && p.source === n.source;
+  return (
+    p.started === n.started &&
+    p.isLandscape === n.isLandscape &&
+    p.source === n.source &&
+    p.isPlaying === n.isPlaying &&
+    p.currentTimeSeconds === n.currentTimeSeconds
+  );
 });
 
 const styles = StyleSheet.create({
@@ -448,4 +527,48 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   video: { width: '100%', height: '100%', flex: 1 },
+  videoContainer: {
+    width: '100%',
+    height: '100%',
+    position: 'relative',
+  },
+  controlsOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.0)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  centerIcon: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  seekBarContainer: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    gap: Spacing.xs,
+  },
+  seekBar: {
+    flex: 1,
+    height: 4,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  seekProgress: {
+    height: '100%',
+    borderRadius: 2,
+  },
+  timeText: {
+    color: 'white',
+    fontSize: FontSize.sm,
+    fontWeight: '500',
+  },
 });

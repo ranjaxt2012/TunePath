@@ -56,6 +56,7 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
 
   const [playbackSpeed, setPlaybackSpeed] = useState(1.0);
   const [videoStarted, setVideoStarted] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [videoDuration, setVideoDuration] = useState(0);
   const [localNotes, setLocalNotes] = useState<Note[]>(notes);
@@ -142,6 +143,10 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
       setCurrentTime(positionSecs);
       currentTimeRef.current = positionSecs;
       if (status.durationMillis) setVideoDuration(status.durationMillis / 1000);
+      // Sync isPlaying state with video
+      if (status.isPlaying !== isPlaying) {
+        setIsPlaying(status.isPlaying);
+      }
       if (now - lastSyncRef.current >= 100) {
         lastSyncRef.current = now;
         if (status.isPlaying) {
@@ -155,8 +160,19 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
         savePosition(lesson.id, positionSecs);
       }
     },
-    [lesson.id, playbackSpeed, savePosition]
+    [lesson.id, playbackSpeed, savePosition, isPlaying]
   );
+
+  const togglePlay = useCallback(() => {
+    if (isPlaying) {
+      videoRef.current?.pause();
+      engineRef.current?.pause();
+      setIsPlaying(false);
+    } else {
+      videoRef.current?.play();
+      setIsPlaying(true);
+    }
+  }, [isPlaying]);
 
   // Save a full updated notes array to state + engine + R2
   const handleNotesEdit = useCallback(
@@ -356,6 +372,11 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
             onStarted={handleVideoStarted}
             onPlaybackStatus={handlePlaybackStatus}
             isLandscape
+            isPlaying={isPlaying}
+            onTogglePlay={togglePlay}
+            currentTimeSeconds={currentTime}
+            durationSeconds={videoDuration}
+            onSeek={(s) => videoRef.current?.seekTo(s)}
           />
         </View>
         <View style={[styles.verticalDivider, { backgroundColor: theme.divider }]} />
@@ -379,6 +400,11 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
         onStarted={handleVideoStarted}
         onPlaybackStatus={handlePlaybackStatus}
         isLandscape={false}
+        isPlaying={isPlaying}
+        onTogglePlay={togglePlay}
+        currentTimeSeconds={currentTime}
+        durationSeconds={videoDuration}
+        onSeek={(s) => videoRef.current?.seekTo(s)}
       />
       <View style={[styles.horizontalDivider, { backgroundColor: theme.divider }]} />
       {editingRowIndex === null && speedSlider}
