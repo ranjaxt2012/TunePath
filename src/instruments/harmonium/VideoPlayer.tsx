@@ -55,26 +55,37 @@ const VideoPlayerInner = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
     const webVideoRef = useRef<HTMLVideoElement | null>(null);
     const nativeVideoRef = useRef<VideoNativeRef | null>(null);
 
-    // ── YouTube local timer refs (all outside useImperativeHandle so they
-    //    persist across re-renders when onPlaybackStatus prop changes) ──────
+    // ── YouTube-only timer refs ───────────────────────────────────────────
+    // These only run when source URL is a YouTube URL.
+    // For R2 videos, time comes from onTimeUpdate — no timer needed.
     const ytElapsedRef = useRef(0);
     const ytTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const ytStartTimeRef = useRef<number | null>(null);
 
-    // Store onPlaybackStatus in a ref so the setInterval callback always
-    // calls the latest version without needing to recreate the interval
+    // ── Always-current ref for onPlaybackStatus ──────────────────────────
+    // Prevents stale closure inside setInterval without recreating the interval.
     const onPlaybackStatusRef = useRef(onPlaybackStatus);
     React.useLayoutEffect(() => {
       onPlaybackStatusRef.current = onPlaybackStatus;
     });
 
+    // ── Determine if source is YouTube ────────────────────────────────────
+    const sourceUrl =
+      typeof source === 'object' && source && 'uri' in source
+        ? (source as { uri?: string }).uri ?? ''
+        : '';
+    const isYoutube = isYouTubeUrl(sourceUrl);
+
     // ── Handle ────────────────────────────────────────────────────────────
     useImperativeHandle(ref, () => ({
       seekTo: (seconds: number) => {
         try {
-          ytElapsedRef.current = seconds;
-          ytStartTimeRef.current = Date.now() - seconds * 1000;
-          if (Platform.OS === 'web') {
+          if (isYoutube) {
+            ytElapsedRef.current = seconds;
+            if (ytStartTimeRef.current !== null) {
+              ytStartTimeRef.current = Date.now() - seconds * 1000;
+            }
+          } else if (Platform.OS === 'web') {
             const el = webVideoRef.current;
             if (el) el.currentTime = seconds;
           } else {
@@ -85,30 +96,30 @@ const VideoPlayerInner = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
 
       pause: () => {
         try {
-          // Stop YouTube notation timer
-          if (ytTimerRef.current) {
-            clearInterval(ytTimerRef.current);
-            ytTimerRef.current = null;
-          }
-          // Save elapsed position so resume starts from here
-          if (ytStartTimeRef.current !== null) {
-            ytElapsedRef.current = (Date.now() - ytStartTimeRef.current) / 1000;
-          }
-          // Fire one final isPlaying:false status so engine pauses
-          onPlaybackStatusRef.current({
-            isLoaded: true,
-            isPlaying: false,
-            positionMillis: ytElapsedRef.current * 1000,
-            durationMillis: 0,
-            rate: 1,
-            shouldPlay: false,
-            volume: 1,
-            isMuted: false,
-            isBuffering: false,
-            didJustFinish: false,
-          } as AVPlaybackStatus);
-
-          if (Platform.OS === 'web') {
+          if (isYoutube) {
+            // Stop YouTube notation timer and save position
+            if (ytTimerRef.current) {
+              clearInterval(ytTimerRef.current);
+              ytTimerRef.current = null;
+            }
+            if (ytStartTimeRef.current !== null) {
+              ytElapsedRef.current = (Date.now() - ytStartTimeRef.current) / 1000;
+              ytStartTimeRef.current = null;
+            }
+            // Fire isPlaying:false so engine pauses
+            onPlaybackStatusRef.current({
+              isLoaded: true,
+              isPlaying: false,
+              positionMillis: ytElapsedRef.current * 1000,
+              durationMillis: 0,
+              rate: 1,
+              shouldPlay: false,
+              volume: 1,
+              isMuted: false,
+              isBuffering: false,
+              didJustFinish: false,
+            } as AVPlaybackStatus);
+          } else if (Platform.OS === 'web') {
             webVideoRef.current?.pause();
           } else {
             void nativeVideoRef.current?.pauseAsync();
@@ -118,35 +129,34 @@ const VideoPlayerInner = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
 
       play: () => {
         try {
-          // Stop any existing timer before starting a new one
-          if (ytTimerRef.current) {
-            clearInterval(ytTimerRef.current);
-            ytTimerRef.current = null;
-          }
-          // Resume from saved position
-          const offset = ytElapsedRef.current;
-          ytStartTimeRef.current = Date.now() - offset * 1000;
+          if (isYoutube) {
+            // Stop any existing timer first
+            if (ytTimerRef.current) {
+              clearInterval(ytTimerRef.current);
+              ytTimerRef.current = null;
+            }
+            // Resume from saved position
+            const offset = ytElapsedRef.current;
+            ytStartTimeRef.current = Date.now() - offset * 1000;
 
-          ytTimerRef.current = setInterval(() => {
-            if (ytStartTimeRef.current === null) return;
-            const elapsed = (Date.now() - ytStartTimeRef.current) / 1000;
-            ytElapsedRef.current = elapsed;
-            // Always call latest onPlaybackStatus via ref — no stale closure
-            onPlaybackStatusRef.current({
-              isLoaded: true,
-              isPlaying: true,
-              positionMillis: elapsed * 1000,
-              durationMillis: 0,
-              rate: 1,
-              shouldPlay: true,
-              volume: 1,
-              isMuted: false,
-              isBuffering: false,
-              didJustFinish: false,
-            } as AVPlaybackStatus);
-          }, 100);
-
-          if (Platform.OS === 'web') {
+            ytTimerRef.current = setInterval(() => {
+              if (ytStartTimeRef.current === null) return;
+              const elapsed = (Date.now() - ytStartTimeRef.current) / 1000;
+              ytElapsedRef.current = elapsed;
+              onPlaybackStatusRef.current({
+                isLoaded: true,
+                isPlaying: true,
+                positionMillis: elapsed * 1000,
+                durationMillis: 0,
+                rate: 1,
+                shouldPlay: true,
+                volume: 1,
+                isMuted: false,
+                isBuffering: false,
+                didJustFinish: false,
+              } as AVPlaybackStatus);
+            }, 100);
+          } else if (Platform.OS === 'web') {
             void webVideoRef.current?.play();
           } else {
             void nativeVideoRef.current?.playAsync();
@@ -156,42 +166,54 @@ const VideoPlayerInner = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
 
       setRate: (rate: number) => {
         try {
-          if (Platform.OS === 'web') {
-            const el = webVideoRef.current;
-            if (el) el.playbackRate = rate;
-          } else {
-            void nativeVideoRef.current?.setRateAsync(rate, true);
+          if (!isYoutube) {
+            if (Platform.OS === 'web') {
+              const el = webVideoRef.current;
+              if (el) el.playbackRate = rate;
+            } else {
+              void nativeVideoRef.current?.setRateAsync(rate, true);
+            }
           }
         } catch {}
       },
 
       setVolume: (volume: number) => {
         try {
-          if (Platform.OS === 'web') {
-            const el = webVideoRef.current;
-            if (el) {
-              el.volume = Math.max(0, Math.min(1, volume));
-              el.muted = volume === 0;
+          if (!isYoutube) {
+            if (Platform.OS === 'web') {
+              const el = webVideoRef.current;
+              if (el) {
+                el.volume = Math.max(0, Math.min(1, volume));
+                el.muted = volume === 0;
+              }
+            } else {
+              void nativeVideoRef.current?.setVolumeAsync(Math.max(0, Math.min(1, volume)));
             }
-          } else {
-            void nativeVideoRef.current?.setVolumeAsync(Math.max(0, Math.min(1, volume)));
           }
         } catch {}
       },
     }),
-    // Empty deps — all refs, no stale closure risk
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    []);
+    []); // empty deps — all refs, no stale closure
 
-    // ── Poster (first tap) ────────────────────────────────────────────────
+    // ── Poster (before first play) ────────────────────────────────────────
     if (!started) {
       return (
         <View style={[styles.container, { backgroundColor: theme.divider }, isLandscape && styles.containerLandscape]}>
           <TouchableOpacity
             style={[styles.poster, { backgroundColor: theme.surface }]}
             onPress={() => {
+              // onStarted mounts the video element (sets started=true)
+              // onTogglePlay starts playback — for R2 videos the element
+              // isn't mounted yet so we give React one frame to mount it
               onStarted();
-              onTogglePlay();
+              if (isYoutube) {
+                // YouTube has no real video element — toggle immediately
+                onTogglePlay();
+              } else {
+                // R2 video: wait one frame for the video element to mount
+                requestAnimationFrame(() => onTogglePlay());
+              }
             }}
             activeOpacity={0.9}
           >
@@ -219,37 +241,44 @@ const VideoPlayerInner = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
 
     // ── Web platform ──────────────────────────────────────────────────────
     if (Platform.OS === 'web') {
-      const videoUrl =
-        typeof source === 'object' && source && 'uri' in source
-          ? (source as { uri?: string }).uri
-          : undefined;
-      const isYoutube = videoUrl && isYouTubeUrl(videoUrl);
       const progressPercent =
-        durationSeconds > 0 ? Math.max(0, Math.min(100, (currentTimeSeconds / durationSeconds) * 100)) : 0;
+        durationSeconds > 0
+          ? Math.max(0, Math.min(100, (currentTimeSeconds / durationSeconds) * 100))
+          : 0;
 
       return (
         <View style={[styles.container, { backgroundColor: theme.divider }, isLandscape && styles.containerLandscape]}>
           <View style={styles.videoContainer}>
             {isYoutube ? (
-              // YouTube: show thumbnail + Watch button, notation timer runs locally
+              // YouTube: thumbnail + Watch on YouTube button
+              // Notation timer runs locally and independently
               <View style={styles.youtubeCard}>
-                {thumbnailUrl && (
+                {thumbnailUrl ? (
                   <Image source={{ uri: thumbnailUrl }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
+                ) : (
+                  <LinearGradient colors={[theme.surfaceHigh, theme.background]} style={StyleSheet.absoluteFill} />
                 )}
-                <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(0,0,0,0.4)' }]} />
+                <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(0,0,0,0.45)' }]} />
                 <TouchableOpacity
                   style={styles.watchYouTubeBtn}
-                  onPress={() => window.open(videoUrl!, '_blank')}
+                  onPress={() => window.open(sourceUrl, '_blank')}
                 >
-                  <Text style={styles.watchYouTubeBtnText}>▶ Watch on YouTube</Text>
+                  <Ionicons name="logo-youtube" size={18} color="white" style={{ marginRight: 6 }} />
+                  <Text style={styles.watchYouTubeBtnText}>Watch on YouTube</Text>
                 </TouchableOpacity>
               </View>
             ) : (
-              // Regular video
+              // R2 video — HTML video element, time from onTimeUpdate
               <video
                 ref={webVideoRef}
-                src={videoUrl}
-                style={{ width: '100%', height: '100%', backgroundColor: theme.divider, objectFit: 'contain', display: 'block' }}
+                src={sourceUrl}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  backgroundColor: theme.divider,
+                  objectFit: 'contain',
+                  display: 'block',
+                }}
                 onTimeUpdate={(e: React.SyntheticEvent<HTMLVideoElement>) => {
                   const el = e.currentTarget;
                   onPlaybackStatusRef.current({
@@ -268,7 +297,7 @@ const VideoPlayerInner = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
               />
             )}
 
-            {/* Controls overlay — sits on top of both YouTube card and regular video */}
+            {/* Controls overlay — play/pause icon + seek bar */}
             <TouchableOpacity
               style={styles.controlsOverlay}
               onPress={onTogglePlay}
@@ -295,40 +324,29 @@ const VideoPlayerInner = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
       );
     }
 
-    // ── Native (iOS/Android) ──────────────────────────────────────────────
-    const videoUrl =
-      typeof source === 'object' && source && 'uri' in source
-        ? (source as { uri?: string }).uri
-        : undefined;
-    const isYoutube = videoUrl && isYouTubeUrl(videoUrl);
-
+    // ── Native (iOS / Android) ────────────────────────────────────────────
     if (isYoutube) {
-      // Mobile YouTube: open in YouTube app/browser
       return (
         <View style={[styles.container, { backgroundColor: theme.divider }, isLandscape && styles.containerLandscape]}>
-          <TouchableOpacity
-            style={[styles.poster, { backgroundColor: theme.surface }]}
-            onPress={() => videoUrl && void Linking.openURL(videoUrl)}
-            activeOpacity={0.9}
-          >
-            {thumbnailUrl ? (
-              <>
+          <View style={styles.videoContainer}>
+            <View style={styles.youtubeCard}>
+              {thumbnailUrl ? (
                 <Image source={{ uri: thumbnailUrl }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
-                <View style={[StyleSheet.absoluteFillObject, { backgroundColor: theme.overlay, opacity: 0.33 }]} />
-              </>
-            ) : (
-              <>
+              ) : (
                 <LinearGradient colors={[theme.surfaceHigh, theme.background]} style={StyleSheet.absoluteFill} />
-                <View style={styles.placeholder}>
-                  <Ionicons name="logo-youtube" size={48} color="#FF0000" />
-                  <Text style={[styles.tapText, { color: theme.textDisabled }]}>Watch on YouTube</Text>
-                </View>
-              </>
-            )}
-            <View style={[styles.playBtn, { backgroundColor: '#FF0000' }]}>
-              <Ionicons name="logo-youtube" size={24} color="white" />
+              )}
+              <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(0,0,0,0.45)' }]} />
+              <View style={styles.youtubeHint}>
+                <Ionicons name="musical-notes" size={16} color="rgba(255,255,255,0.8)" />
+                <Text style={styles.youtubeHintText}>Notation is playing</Text>
+              </View>
             </View>
-          </TouchableOpacity>
+            <TouchableOpacity style={styles.controlsOverlay} onPress={onTogglePlay} activeOpacity={1}>
+              <View style={styles.centerIcon}>
+                <Ionicons name={isPlaying ? 'pause-circle' : 'play-circle'} size={64} color="rgba(255,255,255,0.9)" />
+              </View>
+            </TouchableOpacity>
+          </View>
         </View>
       );
     }
@@ -349,9 +367,8 @@ const VideoPlayerInner = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
   }
 );
 
-// ── memo: only skip re-render when truly nothing visual changed ───────────
-// Do NOT return true just because started=true — isPlaying and currentTime
-// must still propagate to update the play/pause icon and seek bar.
+// ── memo: compare only what actually affects rendering ────────────────────
+// Never short-circuit with `return true` — that blocks isPlaying updates
 export const VideoPlayer = memo(VideoPlayerInner, (p, n) => {
   return (
     p.started === n.started &&
@@ -360,7 +377,8 @@ export const VideoPlayer = memo(VideoPlayerInner, (p, n) => {
     p.isPlaying === n.isPlaying &&
     p.currentTimeSeconds === n.currentTimeSeconds &&
     p.durationSeconds === n.durationSeconds &&
-    p.thumbnailUrl === n.thumbnailUrl
+    p.thumbnailUrl === n.thumbnailUrl &&
+    p.onTogglePlay === n.onTogglePlay
   );
 });
 
@@ -381,9 +399,9 @@ const styles = StyleSheet.create({
   tapText: { fontSize: FontSize.sm, fontWeight: '500' },
   playBtn: {
     position: 'absolute',
-    width: Spacing.xxxl + Spacing.xl,
-    height: Spacing.xxxl + Spacing.xl,
-    borderRadius: (Spacing.xxxl + Spacing.xl) / 2,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -400,7 +418,6 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     zIndex: 10,
-    backgroundColor: 'rgba(0,0,0,0.0)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -439,16 +456,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  watchYouTubeBtn: {
-    backgroundColor: '#FF0000',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
+  youtubeHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
     zIndex: 2,
   },
-  watchYouTubeBtnText: {
-    color: 'white',
-    fontWeight: '700',
-    fontSize: 16,
+  youtubeHintText: {
+    color: 'rgba(255,255,255,0.9)',
+    fontSize: 13,
+    fontWeight: '500',
   },
 });
