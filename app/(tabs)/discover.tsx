@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useRef, useMemo, useCallback } from 'react';
 import { View, Text, ScrollView, StyleSheet, Platform, TouchableOpacity, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -52,9 +52,13 @@ export default function DiscoverScreen() {
   const [harmonium, setHarmonium] = useState<Lesson[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
-  const hasFetched = useRef(false);
+  // Prevents concurrent fetches — guards against React StrictMode double-invoke
+  // and useFocusEffect firing on the same frame as initial mount.
+  const fetchInFlightRef = useRef(false);
 
-  const fetchAll = useCallback(async () => {
+  const fetchAll = useCallback(async (force = false) => {
+    if (fetchInFlightRef.current && !force) return;
+    fetchInFlightRef.current = true;
     setLoading(true);
     setFetchError(null);
     try {
@@ -74,22 +78,14 @@ export default function DiscoverScreen() {
       setFetchError((err as Error)?.message ?? 'Failed to load lessons');
     } finally {
       setLoading(false);
+      fetchInFlightRef.current = false;
     }
   }, [getToken]);
 
-  // Initial fetch on mount.
-  useEffect(() => {
-    if (hasFetched.current) return;
-    hasFetched.current = true;
-    Log.ui('discover mounted');
-    void fetchAll();
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- fetch once on mount
-  }, []);
-
-  // Re-fetch when navigating back to this screen (e.g. after a lesson is deleted).
+  // Single effect handles both initial load and re-fetch on focus (e.g. after delete).
+  // The in-flight guard in fetchAll prevents concurrent calls from StrictMode double-invoke.
   useFocusEffect(
     useCallback(() => {
-      if (!hasFetched.current) return; // skip — initial useEffect handles first load
       void fetchAll();
     }, [fetchAll])
   );
@@ -128,7 +124,7 @@ export default function DiscoverScreen() {
   }, [router]);
 
   const handleRetry = useCallback(() => {
-    void fetchAll();
+    void fetchAll(true); // force = true bypasses in-flight guard
   }, [fetchAll]);
 
   // ── Error state ────────────────────────────────────────────────────────────
