@@ -174,23 +174,23 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
   );
 
   const togglePlay = useCallback(() => {
-    console.log('[HP] togglePlay ENTER, isPlaying:', isPlaying, 'videoRef.current:', !!videoRef.current, 'engineRef.current:', !!engineRef.current);
-    if (isPlaying) {
+    console.log('[HP] togglePlay ENTER, isPlayingRef:', isPlayingRef.current, 'videoRef.current:', !!videoRef.current, 'engineRef.current:', !!engineRef.current);
+    if (isPlayingRef.current) {
       console.log('[HP] pausing...');
+      isPlayingRef.current = false;
+      setIsPlaying(false);
       videoRef.current?.pause();
       console.log('[HP] videoRef command sent');
       engineRef.current?.pause();
       console.log('[HP] engineRef command sent');
-      setIsPlaying(false);
-      console.log('[HP] setIsPlaying called with: false');
     } else {
       console.log('[HP] playing...');
+      isPlayingRef.current = true;
+      setIsPlaying(true);
       videoRef.current?.play();
       console.log('[HP] videoRef command sent');
-      setIsPlaying(true);
-      console.log('[HP] setIsPlaying called with: true');
     }
-  }, [isPlaying]);
+  }, []); // no deps — reads ref not state
 
   // DEBUG: stale closure check
   useEffect(() => {
