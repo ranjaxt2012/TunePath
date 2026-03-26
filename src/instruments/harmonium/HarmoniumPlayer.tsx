@@ -57,6 +57,7 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
   const [playbackSpeed, setPlaybackSpeed] = useState(1.0);
   const [videoStarted, setVideoStarted] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const isPlayingRef = React.useRef(false);
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [videoDuration, setVideoDuration] = useState(0);
   const [localNotes, setLocalNotes] = useState<Note[]>(notes);
@@ -153,7 +154,7 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
       currentTimeRef.current = positionSecs;
       if (status.durationMillis) setVideoDuration(status.durationMillis / 1000);
       // Sync isPlaying state with video
-      if (status.isPlaying !== isPlaying) {
+      if (false) { // disabled: isPlaying owned by togglePlay via ref
         setIsPlaying(status.isPlaying);
       }
       if (now - lastSyncRef.current >= 100) {
