@@ -79,6 +79,8 @@ export function useLesson(id: string | undefined, refreshKey: number = 0) {
       return;
     }
 
+    let cancelled = false;
+
     const fetchLesson = async () => {
       setLoading(true);
       setError(null);
@@ -86,32 +88,37 @@ export function useLesson(id: string | undefined, refreshKey: number = 0) {
         const token = await getToken();
         setAuthToken(token);
         const data = await api.get<Lesson>(`/api/lessons/${id}`);
+        if (cancelled) return;
         setLesson(data);
 
         if (data.notation_url) {
           try {
             const res = await fetch(data.notation_url);
             const notationData: unknown = await res.json();
+            if (cancelled) return;
             const noteArray = convertSectionsToNotes(notationData);
             setNotes(noteArray);
           } catch (err) {
+            if (cancelled) return;
             Log.apiError('notation fetch failed', err);
             setNotes([]);
           }
         } else {
-          setNotes([]);
+          if (!cancelled) setNotes([]);
         }
       } catch (e: unknown) {
+        if (cancelled) return;
         Log.apiError('lesson fetch failed', { lessonId: id, error: e instanceof Error ? e.message : String(e) });
         setError(e instanceof Error ? e.message : 'Failed to load lesson');
         setLesson(null);
         setNotes([]);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     void fetchLesson();
+    return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run if id changes
   }, [id, refreshKey]);
 

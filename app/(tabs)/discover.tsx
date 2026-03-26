@@ -55,11 +55,14 @@ export default function DiscoverScreen() {
   // Prevents concurrent fetches — guards against React StrictMode double-invoke
   // and useFocusEffect firing on the same frame as initial mount.
   const fetchInFlightRef = useRef(false);
+  // True once the first successful fetch completes — used to skip loading shimmer on re-fetches.
+  const hasLoadedRef = useRef(false);
 
   const fetchAll = useCallback(async (force = false) => {
     if (fetchInFlightRef.current && !force) return;
     fetchInFlightRef.current = true;
-    setLoading(true);
+    // Only show the full loading shimmer on the very first load.
+    if (!hasLoadedRef.current) setLoading(true);
     setFetchError(null);
     try {
       const token = await getToken();
@@ -72,6 +75,7 @@ export default function DiscoverScreen() {
       setTrending(t);
       setNewLessons(n);
       setHarmonium(h);
+      hasLoadedRef.current = true;
       Log.api('discover fetch ok', { trending: t.length, new: n.length, harmonium: h.length });
     } catch (err: unknown) {
       Log.apiError('discover fetch failed', err);

@@ -115,9 +115,9 @@ export default function LessonPlayerScreen() {
             statusPollIntervalRef.current = null;
           }
         }
-      } catch (e: any) {
-        // Status endpoint is tutor-scoped; for non-tutors we can silently ignore.
-        if (String(e?.message ?? '').includes('HTTP 404')) return;
+      } catch (e: unknown) {
+        // Status endpoint is tutor-scoped; silently ignore 404s (non-tutors, or deleted lesson).
+        if (/404|not found/i.test(String((e as Error)?.message ?? ''))) return;
         Log.apiError('lesson status poll failed', { lessonId: id });
       } finally {
         pollInFlightRef.current = false;
@@ -140,6 +140,13 @@ export default function LessonPlayerScreen() {
 
   const handleDelete = async () => {
     if (!id) return;
+    // Stop the status poller immediately — prevents 404 noise and state
+    // updates on the (soon-to-be-gone) lesson during the delete + navigation.
+    terminalReachedRef.current = true;
+    if (statusPollIntervalRef.current) {
+      clearInterval(statusPollIntervalRef.current);
+      statusPollIntervalRef.current = null;
+    }
     setIsDeleting(true);
     try {
       const token = await getToken();
@@ -150,6 +157,8 @@ export default function LessonPlayerScreen() {
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Could not delete lesson';
       Log.apiError('lesson delete failed', { id, message: msg });
+      // Re-arm the poller guard so it can resume if the user stays on screen.
+      terminalReachedRef.current = false;
       Alert.alert('Delete failed', msg);
     } finally {
       setIsDeleting(false);

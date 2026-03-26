@@ -16,11 +16,12 @@ export function useLessons(options: UseLessonsOptions = {}) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchLessons = useCallback(async () => {
+  const fetchLessons = useCallback(async (cancelled?: { value: boolean }) => {
     setLoading(true);
     setError(null);
     try {
       const token = await getToken();
+      if (cancelled?.value) return;
       setAuthToken(token);
       const params = new URLSearchParams();
       if (options.instrument) params.set('instrument', options.instrument);
@@ -29,17 +30,21 @@ export function useLessons(options: UseLessonsOptions = {}) {
       if (options.limit) params.set('limit', String(options.limit));
       const query = params.toString();
       const data = await api.get<Lesson[]>(`/api/lessons${query ? `?${query}` : ''}`);
+      if (cancelled?.value) return;
       setLessons(data);
-    } catch (e: any) {
-      setError(e.message ?? 'Failed to load lessons');
+    } catch (e: unknown) {
+      if (cancelled?.value) return;
+      setError(e instanceof Error ? e.message : 'Failed to load lessons');
     } finally {
-      setLoading(false);
+      if (!cancelled?.value) setLoading(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [getToken, options.instrument, options.tag, options.sort, options.limit]);
 
   useEffect(() => {
-    void fetchLessons();
+    const cancelled = { value: false };
+    void fetchLessons(cancelled);
+    return () => { cancelled.value = true; };
   }, [fetchLessons]);
 
   const refetch = useCallback(() => {
