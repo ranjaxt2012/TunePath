@@ -222,17 +222,7 @@ export default function LessonPlayerScreen() {
           </Text>
         </View>
       )}
-      {canEdit && (
-        <TouchableOpacity
-          style={[styles.deleteBtn, { backgroundColor: theme.overlay }]}
-          onPress={confirmDelete}
-          disabled={isDeleting}
-        >
-          {isDeleting
-            ? <ActivityIndicator size="small" color={theme.error} />
-            : <Ionicons name="trash-outline" size={18} color={theme.error} />}
-        </TouchableOpacity>
-      )}
+
     </View>
   );
 }

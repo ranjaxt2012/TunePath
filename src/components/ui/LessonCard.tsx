@@ -4,7 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, Spacing, Radius, FontSize } from '@/src/design';
 import { useRouter } from 'expo-router';
-import { setAuthToken } from '@/src/services/api';
+import { setAuthToken, BASE_URL } from '@/src/services/api';
 import { useAuth } from '@clerk/clerk-expo';
 import type { Lesson } from '@/src/types/models';
 
@@ -71,7 +71,7 @@ export function LessonCard({ lesson, size, onPress, width = 140, thumbHeight = 9
 
       // Call DELETE endpoint
       const response = await fetch(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/tutor/lessons/${lesson.id}`,
+        `${BASE_URL}/api/tutor/lessons/${lesson.id}`,
         {
           method: 'DELETE',
           headers: {
