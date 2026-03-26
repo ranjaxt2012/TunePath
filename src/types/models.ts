@@ -51,3 +51,23 @@ export interface UserProgress {
   completed: boolean;
   last_position: number;
 }
+
+export type LessonProcessingStatus =
+  | 'queued'
+  | 'uploaded'
+  | 'processing'
+  | 'detecting_pitches'
+  | 'transcribing_lyrics'
+  | 'finalising_notation'
+  | 'review_ready'
+  | 'published'
+  | 'failed';
+
+export interface LessonProcessingState {
+  status: LessonProcessingStatus;
+  source_type: 'direct_upload' | 'youtube';
+  stage_label: string;
+  progress_percent: number;
+  notation_draft: Record<string, unknown> | null;
+  error_message: string | null;
+}

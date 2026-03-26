@@ -24,6 +24,7 @@ import {
 } from 'expo-file-system/legacy';
 import { useTheme, Spacing, FontSize, Radius } from '@/src/design';
 import { useAuthStore } from '@/src/store/authStore';
+import { Log } from '@/src/utils/log';
 import { api, setAuthToken } from '@/src/services/api';
 import { useAuth } from '@clerk/clerk-expo';
 import { VideoView, useVideoPlayer } from 'expo-video';
@@ -31,6 +32,16 @@ import { VideoView, useVideoPlayer } from 'expo-video';
 const WEB_CONTENT_MAX = 960;
 const SARGAM_NOTES = ['Sa', 'Re', 'Ga', 'Ma', 'Pa', 'Dha', 'Ni'] as const;
 const DRAFTS_FILE = `${documentDirectory}tunepath_drafts.json`;
+
+type DefaultCourse = {
+  course_id: string;
+  instrument_id: string;
+  level_id: string;
+};
+
+// Cache across remounts to avoid repeatedly fetching defaults (particularly in dev/HMR).
+let defaultCourseCache: DefaultCourse | null | undefined = undefined;
+let defaultCourseFetchPromise: Promise<DefaultCourse | null> | null = null;
 
 interface Draft {
   id: string;
@@ -47,6 +58,32 @@ interface DetectedNote {
 }
 
 type YtStep = 'url' | 'notation' | 'confirm' | 'processing';
+type ProcessingStatus =
+  | 'queued'
+  | 'uploaded'
+  | 'processing'
+  | 'detecting_pitches'
+  | 'transcribing_lyrics'
+  | 'finalising_notation'
+  | 'review_ready'
+  | 'published'
+  | 'failed';
+
+function getProcessingStepState(status: string, idx: number) {
+  const order: ProcessingStatus[] = [
+    'uploaded',
+    'detecting_pitches',
+    'transcribing_lyrics',
+    'finalising_notation',
+    'review_ready',
+    'published',
+  ];
+  const normalized = status === 'queued' || status === 'processing' ? 'detecting_pitches' : status;
+  const currentIdx = order.indexOf(normalized as ProcessingStatus);
+  const isDone = currentIdx > idx;
+  const isActive = currentIdx === idx;
+  return { isDone, isActive };
+}
 
 // ── Draft helpers ─────────────────────────────────────────────────────────────
 async function loadDrafts(): Promise<Draft[]> {
@@ -122,35 +159,58 @@ export default function CreateScreen() {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const elapsedTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const TIMEOUT_WARN_SECS = Math.max(120, (ytPreview?.duration_seconds ?? 60) * 4);
-  const [defaultCourse, setDefaultCourse] = useState<{
-    course_id: string; instrument_id: string; level_id: string;
-  } | null>(null);
+  const [defaultCourse, setDefaultCourse] = useState<DefaultCourse | null>(
+    () => (defaultCourseCache === undefined ? null : defaultCourseCache),
+  );
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // ── Load default course ───────────────────────────────────────────────────
   useEffect(() => {
     if (!ytModalVisible && !uploadModalVisible) return;
+    // If we already computed defaults (including a "not found" null), don't re-fetch.
+    if (defaultCourseCache !== undefined) {
+      setDefaultCourse(defaultCourseCache);
+      return;
+    }
     let cancelled = false;
     (async () => {
       try {
-        const token = await getToken();
-        setAuthToken(token);
-        const [courses, instruments, levels] = await Promise.all([
-          api.get<{ id: string; instrument_slug: string; level_slug: string; tutor_id: string }[]>('/api/courses?limit=50'),
-          api.get<{ id: string; slug: string }[]>('/api/instruments'),
-          api.get<{ id: string; slug: string }[]>('/api/levels'),
-        ]);
-        if (cancelled) return;
-        const instMap = Object.fromEntries(instruments.map((i) => [i.slug, i.id]));
-        const lvlMap = Object.fromEntries(levels.map((l) => [l.slug, l.id]));
-        const first = courses.find((c) => c.tutor_id === dbUserId) ?? courses[0];
-        if (first && instMap[first.instrument_slug] && lvlMap[first.level_slug]) {
-          setDefaultCourse({ course_id: first.id, instrument_id: instMap[first.instrument_slug], level_id: lvlMap[first.level_slug] });
+        if (!defaultCourseFetchPromise) {
+          defaultCourseFetchPromise = (async () => {
+            const token = await getToken();
+            setAuthToken(token);
+            const [courses, instruments, levels] = await Promise.all([
+              api.get<{ id: string; instrument_slug: string; level_slug: string; tutor_id: string }[]>('/api/courses?limit=50'),
+              api.get<{ id: string; slug: string }[]>('/api/instruments'),
+              api.get<{ id: string; slug: string }[]>('/api/levels'),
+            ]);
+            const instMap = Object.fromEntries(instruments.map((i) => [i.slug, i.id]));
+            const lvlMap = Object.fromEntries(levels.map((l) => [l.slug, l.id]));
+            const first = courses.find((c) => c.tutor_id === dbUserId) ?? courses[0];
+            if (first && instMap[first.instrument_slug] && lvlMap[first.level_slug]) {
+              return {
+                course_id: first.id,
+                instrument_id: instMap[first.instrument_slug],
+                level_id: lvlMap[first.level_slug],
+              } satisfies DefaultCourse;
+            }
+            return null;
+          })().catch(() => null).finally(() => {
+            defaultCourseFetchPromise = null;
+          });
         }
-      } catch { if (!cancelled) setDefaultCourse(null); }
+
+        const resolved = await defaultCourseFetchPromise;
+        defaultCourseCache = resolved;
+        if (!cancelled) setDefaultCourse(resolved);
+      } catch {
+        if (!cancelled) setDefaultCourse(null);
+      }
     })();
     return () => { cancelled = true; };
-  }, [ytModalVisible, uploadModalVisible, getToken, dbUserId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- getToken identity can change during dev re-renders.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ytModalVisible, uploadModalVisible, dbUserId]);
 
   // ── Elapsed timer while processing ───────────────────────────────────────
   useEffect(() => {
@@ -186,7 +246,7 @@ export default function CreateScreen() {
       try {
         const data = await api.get<{ status: string }>(`/api/tutor/lessons/${processingLessonId}/status`);
         setProcessingStatus(data.status);
-        if (data.status === 'review_ready') {
+        if (data.status === 'review_ready' || data.status === 'published') {
           clearInterval(pollRef.current!);
           pollRef.current = null;
 
@@ -204,15 +264,12 @@ export default function CreateScreen() {
             resetYtModal();
             router.push(`/lesson/${lessonId}`);
           } else {
-            // For local uploads, just navigate (CREPE detected notation automatically)
-            const lessonId = processingLessonId;
-            setUploadModalVisible(false);
+            // Local uploads navigate immediately after upload; polling is best-effort cleanup.
             setUploadStep('preview');
             setProcessingLessonId(null);
             setProcessingStatus('');
             setElapsedSeconds(0);
             setProcessingStartTime(null);
-            router.push(`/lesson/${lessonId}`);
           }
         } else if (data.status === 'failed') {
           clearInterval(pollRef.current!);
@@ -372,20 +429,43 @@ export default function CreateScreen() {
       formData.append('instrument_id', defaultCourse.instrument_id);
       formData.append('level_id', defaultCourse.level_id);
       formData.append('shruti', 'C');
-      const result = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/tutor/lessons/upload`, {
+      const uploadUrl = `${process.env.EXPO_PUBLIC_API_URL}/api/tutor/lessons/upload`;
+      Log.api('local upload: starting request', {
+        url: uploadUrl,
+        platform: Platform.OS,
+        hasPickedVideoFile: Boolean(pickedVideoFile),
+        titleLen: uploadTitle.trim().length,
+      });
+      const result = await fetch(uploadUrl, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
-      const data = await result.json();
-      if (!result.ok) throw new Error(data.detail ?? 'Upload failed');
-      setUploadStep('processing');
-      setProcessingStatus('queued');
-      setProcessingStartTime(Date.now());
+      const data = await result.json().catch(() => ({}));
+      if (!result.ok) {
+        Log.apiError('local upload: request returned error', {
+          url: uploadUrl,
+          status: result.status,
+          detail: (data as any)?.detail,
+        });
+        throw new Error((data as any)?.detail ?? 'Upload failed');
+      }
+      const lessonId: string = data.lesson_id;
+      Log.api('local upload: request succeeded', { lessonId });
+      setUploadModalVisible(false);
+      setUploadStep('preview');
+      setProcessingStatus('');
+      setProcessingLessonId(null);
+      setProcessingStartTime(null);
       setElapsedSeconds(0);
-      setProcessingLessonId(data.lesson_id);
       setUploading(false);
+      router.push(`/lesson/${lessonId}`);
     } catch (e: any) {
+      Log.apiError('local upload: fetch failed', {
+        message: e?.message,
+        name: e?.name,
+        platform: Platform.OS,
+      });
       setUploadError(e?.message ?? 'Upload failed. Try again.');
       setUploading(false);
     }
@@ -611,7 +691,7 @@ export default function CreateScreen() {
                     onPress={handleUploadLocal} disabled={!defaultCourse || uploading}>
                     {uploading ? <ActivityIndicator size="small" color={theme.textOnPrimary} /> : <Ionicons name="cloud-upload-outline" size={16} color={defaultCourse ? theme.textOnPrimary : theme.textDisabled} />}
                     <Text style={{ color: defaultCourse && !uploading ? theme.textOnPrimary : theme.textDisabled, fontSize: FontSize.sm, fontWeight: '700' }}>
-                      {uploading ? 'Uploading…' : 'Upload ↑'}
+                      {uploading ? 'Converting…' : 'Convert-To-TunePath Format'}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -633,17 +713,12 @@ export default function CreateScreen() {
                 {/* Step indicators */}
                 <View style={styles.processingSteps}>
                   {[
-                    { key: 'queued',        label: 'Downloading audio',      steps: ['queued', 'processing', 'review_ready'] },
-                    { key: 'processing',    label: 'Detecting pitches (CREPE)', steps: ['processing', 'review_ready'] },
-                    { key: 'transcribing',  label: 'Transcribing lyrics',    steps: ['review_ready'] },
-                    { key: 'review_ready',  label: 'Finalising notation',    steps: ['review_ready'] },
+                    { key: 'uploaded', label: 'Video uploaded' },
+                    { key: 'detecting_pitches', label: 'Detecting pitches (CREPE)' },
+                    { key: 'transcribing_lyrics', label: 'Transcribing lyrics' },
+                    { key: 'finalising_notation', label: 'Finalising notation' },
                   ].map((step, idx) => {
-                    const statusOrder = ['queued', 'processing', 'review_ready'];
-                    const currentIdx = statusOrder.indexOf(processingStatus);
-                    const isDone = currentIdx > idx;
-                    const isActive = currentIdx === idx ||
-                      (idx === 2 && processingStatus === 'processing' && elapsedSeconds > 30) ||
-                      (idx === 3 && processingStatus === 'review_ready');
+                    const { isDone, isActive } = getProcessingStepState(processingStatus, idx);
                     return (
                       <View key={step.key} style={styles.processingStep}>
                         <Text style={{ fontSize: 14, width: 20 }}>
@@ -710,17 +785,12 @@ export default function CreateScreen() {
                 {!aiSyncing && (
                   <View style={styles.processingSteps}>
                     {[
-                      { key: 'queued',        label: 'Downloading audio',      steps: ['queued', 'processing', 'review_ready'] },
-                      { key: 'processing',    label: 'Detecting pitches (CREPE)', steps: ['processing', 'review_ready'] },
-                      { key: 'transcribing',  label: 'Transcribing lyrics',    steps: ['review_ready'] },
-                      { key: 'review_ready',  label: 'Finalising notation',    steps: ['review_ready'] },
+                      { key: 'uploaded', label: 'Video uploaded' },
+                      { key: 'detecting_pitches', label: 'Detecting pitches (CREPE)' },
+                      { key: 'transcribing_lyrics', label: 'Transcribing lyrics' },
+                      { key: 'finalising_notation', label: 'Finalising notation' },
                     ].map((step, idx) => {
-                      const statusOrder = ['queued', 'processing', 'review_ready'];
-                      const currentIdx = statusOrder.indexOf(processingStatus);
-                      const isDone = currentIdx > idx;
-                      const isActive = currentIdx === idx ||
-                        (idx === 2 && processingStatus === 'processing' && elapsedSeconds > 30) ||
-                        (idx === 3 && processingStatus === 'review_ready');
+                      const { isDone, isActive } = getProcessingStepState(processingStatus, idx);
                       return (
                         <View key={step.key} style={styles.processingStep}>
                           <Text style={{ fontSize: 14, width: 20 }}>

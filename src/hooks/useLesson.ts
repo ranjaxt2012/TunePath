@@ -66,7 +66,7 @@ function convertSectionsToNotes(data: unknown): Note[] {
   return [];
 }
 
-export function useLesson(id: string | undefined) {
+export function useLesson(id: string | undefined, refreshKey: number = 0) {
   const { getToken } = useAuth();
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
@@ -102,6 +102,7 @@ export function useLesson(id: string | undefined) {
           setNotes([]);
         }
       } catch (e: unknown) {
+        Log.apiError('lesson fetch failed', { lessonId: id, error: e instanceof Error ? e.message : String(e) });
         setError(e instanceof Error ? e.message : 'Failed to load lesson');
         setLesson(null);
         setNotes([]);
@@ -112,7 +113,7 @@ export function useLesson(id: string | undefined) {
 
     void fetchLesson();
   // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run if id changes
-  }, [id]);
+  }, [id, refreshKey]);
 
   return { lesson, notes, loading, error };
 }

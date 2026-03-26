@@ -259,13 +259,10 @@ const VideoPlayerInner = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
                   <LinearGradient colors={[theme.surfaceHigh, theme.background]} style={StyleSheet.absoluteFill} />
                 )}
                 <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(0,0,0,0.45)' }]} />
-                <TouchableOpacity
-                  style={styles.watchYouTubeBtn}
-                  onPress={() => window.open(sourceUrl, '_blank')}
-                >
+                <View style={styles.youtubeHint}>
                   <Ionicons name="logo-youtube" size={18} color="white" style={{ marginRight: 6 }} />
-                  <Text style={styles.watchYouTubeBtnText}>Watch on YouTube</Text>
-                </TouchableOpacity>
+                  <Text style={styles.youtubeHintText}>Notation is playing</Text>
+                </View>
               </View>
             ) : (
               // R2 video — HTML video element, time from onTimeUpdate
