@@ -176,6 +176,7 @@ const YouTubePlayer = forwardRef<
         height: '100%',
         border: 'none',
         display: 'block',
+        pointerEvents: 'none',
       } as React.CSSProperties}
     />
   );
