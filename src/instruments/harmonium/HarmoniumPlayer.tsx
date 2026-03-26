@@ -109,6 +109,7 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
   useEffect(() => {
     const engine = new SargamPlayerEngine();
     engine.load(localNotes, HARMONIUM_SAMPLE_MAP);
+    engine.setSoundEnabled(false); // sound off by default
     engine.onComplete = () => { onComplete?.(); };
     engineRef.current = engine;
     return () => {
@@ -143,7 +144,11 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
       if (status.durationMillis) setVideoDuration(status.durationMillis / 1000);
       if (now - lastSyncRef.current >= 100) {
         lastSyncRef.current = now;
-        engineRef.current?.syncToTime(positionSecs, playbackSpeed);
+        if (status.isPlaying) {
+          engineRef.current?.syncToTime(positionSecs, playbackSpeed);
+        } else {
+          engineRef.current?.pause();
+        }
       }
       if (now - lastSaveRef.current >= 10_000) {
         lastSaveRef.current = now;

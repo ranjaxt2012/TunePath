@@ -100,6 +100,11 @@ export class SargamPlayerEngine {
     return result;
   }
 
+  pause(): void {
+    // Stop any currently playing note sound immediately
+    this._stopSound();
+  }
+
   destroy(): void {
     for (const player of this.players.values()) {
       try { player.remove(); } catch { /* ignore */ }
