@@ -84,6 +84,7 @@ export default function CreateScreen() {
   // ── Local upload ──────────────────────────────────────────────────────────
   const [uploadModalVisible, setUploadModalVisible] = useState(false);
   const [pickedVideoUri, setPickedVideoUri] = useState<string | null>(null);
+  const [pickedVideoFile, setPickedVideoFile] = useState<File | null>(null);
   const [uploadTitle, setUploadTitle] = useState('');
   const [uploadNotation, setUploadNotation] = useState('');
   const [uploadStep, setUploadStep] = useState<'preview' | 'details' | 'uploading'>('preview');
@@ -257,9 +258,24 @@ export default function CreateScreen() {
   const isValidYtUrl = (s: string) => s.includes('youtube.com') || s.includes('youtu.be');
 
   // ── Pick video from library ───────────────────────────────────────────────
+  const webFileInputRef = React.useRef<HTMLInputElement | null>(null);
+
+  const handleWebFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const uri = URL.createObjectURL(file);
+    setPickedVideoUri(uri);
+    setPickedVideoFile(file);
+    setUploadTitle('');
+    setUploadNotation('');
+    setUploadStep('preview');
+    setUploadError(null);
+    setUploadModalVisible(true);
+  };
+
   const handlePickVideo = async () => {
     if (Platform.OS === 'web') {
-      Alert.alert('Not supported', 'Please use YouTube import on web.');
+      webFileInputRef.current?.click();
       return;
     }
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -320,7 +336,11 @@ export default function CreateScreen() {
     try {
       const token = await getToken();
       const formData = new FormData();
-      formData.append('video', { uri: pickedVideoUri, name: 'lesson.mp4', type: 'video/mp4' } as any);
+      if (Platform.OS === 'web' && pickedVideoFile) {
+        formData.append('video', pickedVideoFile, pickedVideoFile.name);
+      } else {
+        formData.append('video', { uri: pickedVideoUri, name: 'lesson.mp4', type: 'video/mp4' } as any);
+      }
       formData.append('title', uploadTitle || 'My lesson');
       formData.append('course_id', defaultCourse.course_id);
       formData.append('instrument_id', defaultCourse.instrument_id);
