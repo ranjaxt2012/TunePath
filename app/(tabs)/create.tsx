@@ -86,8 +86,7 @@ export default function CreateScreen() {
   const [pickedVideoUri, setPickedVideoUri] = useState<string | null>(null);
   const [pickedVideoFile, setPickedVideoFile] = useState<File | null>(null);
   const [uploadTitle, setUploadTitle] = useState('');
-  const [uploadNotation, setUploadNotation] = useState('');
-  const [uploadStep, setUploadStep] = useState<'preview' | 'details' | 'uploading'>('preview');
+  const [uploadStep, setUploadStep] = useState<'preview' | 'details' | 'processing'>('preview');
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
 
@@ -130,7 +129,7 @@ export default function CreateScreen() {
 
   // ── Load default course ───────────────────────────────────────────────────
   useEffect(() => {
-    if (!ytModalVisible) return;
+    if (!ytModalVisible && !uploadModalVisible) return;
     let cancelled = false;
     (async () => {
       try {
@@ -151,7 +150,7 @@ export default function CreateScreen() {
       } catch { if (!cancelled) setDefaultCourse(null); }
     })();
     return () => { cancelled = true; };
-  }, [ytModalVisible, getToken, dbUserId]);
+  }, [ytModalVisible, uploadModalVisible, getToken, dbUserId]);
 
   // ── Elapsed timer while processing ───────────────────────────────────────
   useEffect(() => {
@@ -166,13 +165,23 @@ export default function CreateScreen() {
   const handleCancelProcessing = () => {
     if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
     if (elapsedTimerRef.current) { clearInterval(elapsedTimerRef.current); elapsedTimerRef.current = null; }
-    setYtModalVisible(false);
-    resetYtModal();
+    if (uploadModalVisible) {
+      setUploadModalVisible(false);
+      setUploadStep('preview');
+      setProcessingLessonId(null);
+      setProcessingStatus('');
+      setElapsedSeconds(0);
+      setProcessingStartTime(null);
+    } else {
+      setYtModalVisible(false);
+      resetYtModal();
+    }
   };
 
   // ── Poll lesson processing status ─────────────────────────────────────────
   useEffect(() => {
     if (!processingLessonId) return;
+    const isYouTubeImport = ytModalVisible && !uploadModalVisible;
     pollRef.current = setInterval(async () => {
       try {
         const data = await api.get<{ status: string }>(`/api/tutor/lessons/${processingLessonId}/status`);
@@ -180,29 +189,48 @@ export default function CreateScreen() {
         if (data.status === 'review_ready') {
           clearInterval(pollRef.current!);
           pollRef.current = null;
-          const notation = getYtNotation();
-          if (notation.trim()) {
-            setAiSyncing(true);
-            try { await api.post(`/api/tutor/lessons/${processingLessonId}/ai-sync`, { notation, shruti: 'C' }); }
-            catch { }
-            finally { setAiSyncing(false); }
+
+          // For YouTube imports, call ai-sync with detected notation
+          if (isYouTubeImport) {
+            const notation = getYtNotation();
+            if (notation.trim()) {
+              setAiSyncing(true);
+              try { await api.post(`/api/tutor/lessons/${processingLessonId}/ai-sync`, { notation, shruti: 'C' }); }
+              catch (e) { /* ai-sync is optional */ }
+              finally { setAiSyncing(false); }
+            }
+            const lessonId = processingLessonId;
+            setYtModalVisible(false);
+            resetYtModal();
+            router.push(`/lesson/${lessonId}`);
+          } else {
+            // For local uploads, just navigate (CREPE detected notation automatically)
+            const lessonId = processingLessonId;
+            setUploadModalVisible(false);
+            setUploadStep('preview');
+            setProcessingLessonId(null);
+            setProcessingStatus('');
+            setElapsedSeconds(0);
+            setProcessingStartTime(null);
+            router.push(`/lesson/${lessonId}`);
           }
-          const lessonId = processingLessonId;
-          setYtModalVisible(false);
-          resetYtModal();
-          router.push(`/lesson/${lessonId}`);
         } else if (data.status === 'failed') {
           clearInterval(pollRef.current!);
           pollRef.current = null;
-          setYtModalVisible(false);
-          resetYtModal();
-          Alert.alert('Processing failed', 'Something went wrong. Please try again.');
+          if (isYouTubeImport) {
+            setYtModalVisible(false);
+            resetYtModal();
+            Alert.alert('Processing failed', 'Something went wrong. Please try again.');
+          } else {
+            setUploadModalVisible(false);
+            Alert.alert('Processing failed', 'Something went wrong. Please try again.');
+          }
         }
-      } catch { }
+      } catch (e) { /* polling error, will retry */ }
     }, 5000);
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [processingLessonId]);
+  }, [processingLessonId, ytModalVisible, uploadModalVisible]);
 
   // ── Poll detect-notation task ─────────────────────────────────────────────
   useEffect(() => {
@@ -232,7 +260,7 @@ export default function CreateScreen() {
           setNotationMode('text');
         }
         // status === 'pending' → keep polling
-      } catch { }
+      } catch (e) { /* polling error, will retry */ }
     }, 3000);
     return () => { if (detectPollRef.current) clearInterval(detectPollRef.current); };
   }, [detectTaskId]);
@@ -271,7 +299,6 @@ export default function CreateScreen() {
         setPickedVideoUri(uri);
         setPickedVideoFile(file);
         setUploadTitle('');
-        setUploadNotation('');
         setUploadStep('preview');
         setUploadError(null);
         setUploadModalVisible(true);
@@ -292,7 +319,6 @@ export default function CreateScreen() {
     if (result.canceled || !result.assets?.[0]) return;
     setPickedVideoUri(result.assets[0].uri);
     setUploadTitle('');
-    setUploadNotation('');
     setUploadStep('preview');
     setUploadError(null);
     setUploadModalVisible(true);
@@ -305,7 +331,7 @@ export default function CreateScreen() {
       id: Date.now().toString(),
       videoUri: pickedVideoUri,
       title: uploadTitle || 'Untitled lesson',
-      notation: uploadNotation,
+      notation: '',
       createdAt: new Date().toISOString(),
     };
     await addDraft(draft);
@@ -324,7 +350,6 @@ export default function CreateScreen() {
   const handleUploadDraft = (draft: Draft) => {
     setPickedVideoUri(draft.videoUri);
     setUploadTitle(draft.title);
-    setUploadNotation(draft.notation);
     setUploadStep('details');
     setUploadModalVisible(true);
   };
@@ -354,11 +379,16 @@ export default function CreateScreen() {
       });
       const data = await result.json();
       if (!result.ok) throw new Error(data.detail ?? 'Upload failed');
-      setUploadModalVisible(false);
-      router.push(`/lesson/${data.lesson_id}`);
+      setUploadStep('processing');
+      setProcessingStatus('queued');
+      setProcessingStartTime(Date.now());
+      setElapsedSeconds(0);
+      setProcessingLessonId(data.lesson_id);
+      setUploading(false);
     } catch (e: any) {
       setUploadError(e?.message ?? 'Upload failed. Try again.');
-    } finally { setUploading(false); }
+      setUploading(false);
+    }
   };
 
   // ── YT Preview ───────────────────────────────────────────────────────────
@@ -521,14 +551,14 @@ export default function CreateScreen() {
       </ScrollView>
 
       {/* ── LOCAL UPLOAD MODAL ──────────────────────────────────────────── */}
-      <Modal visible={uploadModalVisible} animationType="slide" onRequestClose={() => { if (!uploading) setUploadModalVisible(false); }}>
+      <Modal visible={uploadModalVisible} animationType="slide" onRequestClose={() => { if (!uploading && uploadStep !== 'processing') setUploadModalVisible(false); }}>
         <SafeAreaView style={[styles.flex, { backgroundColor: theme.background }]}>
           <View style={[styles.modalNavBar, { borderBottomColor: theme.border }]}>
-            <TouchableOpacity onPress={() => { if (!uploading) setUploadModalVisible(false); }} style={[styles.navBarBtn, { backgroundColor: theme.surface }]}>
-              <Ionicons name="chevron-back" size={20} color={theme.textPrimary} />
+            <TouchableOpacity onPress={() => { if (!uploading && uploadStep !== 'processing') setUploadModalVisible(false); }} style={[styles.navBarBtn, { backgroundColor: theme.surface }]}>
+              <Ionicons name="chevron-back" size={20} color={uploadStep === 'processing' ? theme.textDisabled : theme.textPrimary} />
             </TouchableOpacity>
             <Text style={[styles.navBarTitle, { color: theme.textPrimary }]}>
-              {uploadStep === 'preview' ? 'Preview' : 'Lesson details'}
+              {uploadStep === 'preview' ? 'Preview' : uploadStep === 'processing' ? 'Processing' : 'Lesson details'}
             </Text>
             <View style={{ width: 36 }} />
           </View>
@@ -556,7 +586,7 @@ export default function CreateScreen() {
               </>
             )}
 
-            {(uploadStep === 'details' || uploadStep === 'uploading') && (
+            {uploadStep === 'details' && (
               <>
                 <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Lesson title</Text>
                 <TextInput
@@ -566,25 +596,10 @@ export default function CreateScreen() {
                   value={uploadTitle}
                   onChangeText={setUploadTitle}
                 />
-                <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>
-                  Notation <Text style={{ color: theme.textDisabled }}>(optional)</Text>
-                </Text>
-                <TextInput
-                  style={[styles.fieldInput, { backgroundColor: theme.surface, color: theme.textPrimary, borderColor: theme.border, borderRadius: Radius.md, minHeight: 80, textAlignVertical: 'top' }]}
-                  placeholder="Sa Re Ga Ma Pa Dha Ni Sa"
-                  placeholderTextColor={theme.textDisabled}
-                  value={uploadNotation}
-                  onChangeText={setUploadNotation}
-                  multiline autoCapitalize="words" autoCorrect={false}
-                />
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ maxHeight: 44, marginBottom: Spacing.lg }} contentContainerStyle={{ gap: Spacing.sm }}>
-                  {SARGAM_NOTES.map((note) => (
-                    <TouchableOpacity key={note} style={[styles.quickNoteBtn, { backgroundColor: theme.surface, borderColor: theme.border }]}
-                      onPress={() => setUploadNotation((p) => p ? `${p.trimEnd()} ${note}` : note)}>
-                      <Text style={{ color: theme.primary, fontWeight: '700', fontSize: FontSize.sm }}>{note}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
+                <View style={{ backgroundColor: theme.primary + '15', borderRadius: Radius.md, padding: Spacing.md, borderColor: theme.primary, borderWidth: 1, marginBottom: Spacing.lg }}>
+                  <Text style={{ color: theme.primary, fontSize: FontSize.sm, fontWeight: '600' }}>✨ Notation will be detected automatically</Text>
+                  <Text style={{ color: theme.textSecondary, fontSize: FontSize.xs, marginTop: Spacing.xs }}>CREPE will analyze your audio and detect the musical notes</Text>
+                </View>
                 {uploadError && <Text style={[styles.errorText, { color: theme.error }]}>{uploadError}</Text>}
                 <View style={styles.detailsActions}>
                   <TouchableOpacity style={[styles.detailsBtn, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={handleSaveDraft} disabled={uploading}>
@@ -601,6 +616,61 @@ export default function CreateScreen() {
                   </TouchableOpacity>
                 </View>
               </>
+            )}
+
+            {uploadStep === 'processing' && (
+              <View style={styles.processingState}>
+                {/* Title */}
+                <Text style={[styles.processingText, { color: theme.textPrimary }]}>
+                  Processing your lesson
+                </Text>
+
+                {/* Elapsed time */}
+                <Text style={[styles.processingElapsed, { color: theme.textDisabled }]}>
+                  {Math.floor(elapsedSeconds / 60)}:{String(elapsedSeconds % 60).padStart(2, '0')} elapsed
+                </Text>
+
+                {/* Step indicators */}
+                <View style={styles.processingSteps}>
+                  {[
+                    { key: 'queued',        label: 'Downloading audio',      steps: ['queued', 'processing', 'review_ready'] },
+                    { key: 'processing',    label: 'Detecting pitches (CREPE)', steps: ['processing', 'review_ready'] },
+                    { key: 'transcribing',  label: 'Transcribing lyrics',    steps: ['review_ready'] },
+                    { key: 'review_ready',  label: 'Finalising notation',    steps: ['review_ready'] },
+                  ].map((step, idx) => {
+                    const statusOrder = ['queued', 'processing', 'review_ready'];
+                    const currentIdx = statusOrder.indexOf(processingStatus);
+                    const isDone = currentIdx > idx;
+                    const isActive = currentIdx === idx ||
+                      (idx === 2 && processingStatus === 'processing' && elapsedSeconds > 30) ||
+                      (idx === 3 && processingStatus === 'review_ready');
+                    return (
+                      <View key={step.key} style={styles.processingStep}>
+                        <Text style={{ fontSize: 14, width: 20 }}>
+                          {isDone ? '✅' : isActive ? '⏳' : '○'}
+                        </Text>
+                        <Text style={{
+                          fontSize: FontSize.sm,
+                          color: isDone ? theme.success : isActive ? theme.textPrimary : theme.textDisabled,
+                          fontWeight: isActive ? '600' : '400',
+                        }}>
+                          {step.label}{isActive ? '…' : ''}
+                        </Text>
+                      </View>
+                    );
+                  })}
+                </View>
+
+                {/* Cancel button */}
+                <TouchableOpacity
+                  style={[styles.cancelProcessingBtn, { borderColor: theme.border }]}
+                  onPress={handleCancelProcessing}
+                >
+                  <Text style={{ color: theme.error, fontSize: FontSize.sm, fontWeight: '600' }}>
+                    Cancel Upload
+                  </Text>
+                </TouchableOpacity>
+              </View>
             )}
           </ScrollView>
         </SafeAreaView>
