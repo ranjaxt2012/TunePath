@@ -4,7 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, Spacing, Radius, FontSize } from '@/src/design';
 import { useRouter } from 'expo-router';
-import { api, setAuthToken } from '@/src/services/api';
+import { setAuthToken } from '@/src/services/api';
 import { useAuth } from '@clerk/clerk-expo';
 import type { Lesson } from '@/src/types/models';
 
