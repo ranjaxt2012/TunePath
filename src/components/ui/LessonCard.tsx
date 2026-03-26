@@ -32,7 +32,7 @@ export function LessonCard({ lesson, size, onPress, width = 140, thumbHeight = 9
   const [menuVisible, setMenuVisible] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const isOwner = lesson.tutor_id && (lesson.tutor_id === dbUserId || isAdmin);
+  const isOwner = Boolean(isAdmin || (dbUserId != null && lesson.tutor_id === dbUserId));
 
   const handlePlay = () => {
     setMenuVisible(false);
@@ -108,25 +108,30 @@ export function LessonCard({ lesson, size, onPress, width = 140, thumbHeight = 9
                 {formatDuration(lesson.duration_seconds)}
               </Text>
             </View>
-            {/* Three-dot menu button */}
-            <TouchableOpacity
-              style={[styles.menuBtn, { backgroundColor: 'rgba(0,0,0,0.4)' }]}
-              onPress={handleMenuPress}
-            >
-              <Ionicons name="ellipsis-vertical" size={16} color="white" />
-            </TouchableOpacity>
           </View>
           {/* Info */}
           <View style={styles.miniInfo}>
             <Text style={[styles.miniTitle, { color: theme.textPrimary }]} numberOfLines={2}>
               {lesson.title}
             </Text>
-            <View style={styles.creatorRow}>
-              <Text style={[styles.creatorName, { color: theme.textSecondary }]} numberOfLines={1}>
-                {lesson.creator_name ?? 'Unknown'}
-              </Text>
-              {lesson.creator_verified && (
-                <Text style={[styles.verifiedDot, { color: theme.primary }]}> •</Text>
+            <View style={styles.creatorRowWithMenu}>
+              <View style={styles.creatorNameGroup}>
+                <Text style={[styles.creatorName, { color: theme.textSecondary }]} numberOfLines={1}>
+                  {lesson.creator_name ?? 'Unknown'}
+                </Text>
+                {lesson.creator_verified && (
+                  <Text style={[styles.verifiedDot, { color: theme.primary }]}> •</Text>
+                )}
+              </View>
+              {isOwner && (
+                <TouchableOpacity
+                  onPress={handleMenuPress}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Lesson actions"
+                >
+                  <Ionicons name="ellipsis-horizontal" size={16} color={theme.textDisabled} />
+                </TouchableOpacity>
               )}
             </View>
           </View>
@@ -174,12 +179,24 @@ export function LessonCard({ lesson, size, onPress, width = 140, thumbHeight = 9
             <Text style={[styles.regularTitle, { color: theme.textPrimary }]} numberOfLines={2}>
               {lesson.title}
             </Text>
-            <View style={styles.creatorRow}>
-              <Text style={[styles.creatorName, { color: theme.textSecondary }]} numberOfLines={1}>
-                {lesson.creator_name ?? 'Unknown'}
-              </Text>
-              {lesson.creator_verified && (
-                <Text style={[styles.verifiedDot, { color: theme.primary }]}> •</Text>
+            <View style={styles.creatorRowWithMenu}>
+              <View style={styles.creatorNameGroup}>
+                <Text style={[styles.creatorName, { color: theme.textSecondary }]} numberOfLines={1}>
+                  {lesson.creator_name ?? 'Unknown'}
+                </Text>
+                {lesson.creator_verified && (
+                  <Text style={[styles.verifiedDot, { color: theme.primary }]}> •</Text>
+                )}
+              </View>
+              {isOwner && (
+                <TouchableOpacity
+                  onPress={handleMenuPress}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Lesson actions"
+                >
+                  <Ionicons name="ellipsis-horizontal" size={16} color={theme.textDisabled} />
+                </TouchableOpacity>
               )}
             </View>
             {lesson.level_slug && (
@@ -190,13 +207,6 @@ export function LessonCard({ lesson, size, onPress, width = 140, thumbHeight = 9
               </View>
             )}
           </View>
-          {/* Three-dot menu button */}
-          <TouchableOpacity
-            style={[styles.regularMenuBtn, { backgroundColor: 'rgba(0,0,0,0.4)' }]}
-            onPress={handleMenuPress}
-          >
-            <Ionicons name="ellipsis-vertical" size={16} color="white" />
-          </TouchableOpacity>
         </TouchableOpacity>
         <LessonCardMenu
           visible={menuVisible}
@@ -233,14 +243,6 @@ export function LessonCard({ lesson, size, onPress, width = 140, thumbHeight = 9
           </Text>
         </View>
 
-        {/* Three-dot menu button */}
-        <TouchableOpacity
-          style={[styles.featuredMenuBtn, { backgroundColor: 'rgba(0,0,0,0.4)' }]}
-          onPress={handleMenuPress}
-        >
-          <Ionicons name="ellipsis-vertical" size={16} color="white" />
-        </TouchableOpacity>
-
         {/* Center play button */}
         <View style={[styles.featuredPlayBtn, { backgroundColor: theme.primary }]}>
           <Ionicons name="play" size={28} color={theme.textOnPrimary} style={{ marginLeft: 3 }} />
@@ -254,12 +256,24 @@ export function LessonCard({ lesson, size, onPress, width = 140, thumbHeight = 9
           <Text style={[styles.featuredTitle, { color: theme.textOnPrimary }]} numberOfLines={2}>
             {lesson.title}
           </Text>
-          <View style={styles.creatorRow}>
-            <Text style={[styles.featuredCreator, { color: theme.textOnPrimary }]} numberOfLines={1}>
-              {lesson.creator_name ?? 'Unknown'}
-            </Text>
-            {lesson.creator_verified && (
-              <Text style={[styles.verifiedDot, { color: theme.primary }]}> •</Text>
+          <View style={styles.creatorRowWithMenu}>
+            <View style={styles.creatorNameGroup}>
+              <Text style={[styles.featuredCreator, { color: theme.textOnPrimary }]} numberOfLines={1}>
+                {lesson.creator_name ?? 'Unknown'}
+              </Text>
+              {lesson.creator_verified && (
+                <Text style={[styles.verifiedDot, { color: theme.primary }]}> •</Text>
+              )}
+            </View>
+            {isOwner && (
+              <TouchableOpacity
+                onPress={handleMenuPress}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityRole="button"
+                accessibilityLabel="Lesson actions"
+              >
+                <Ionicons name="ellipsis-horizontal" size={16} color="rgba(255,255,255,0.85)" />
+              </TouchableOpacity>
             )}
           </View>
         </LinearGradient>
@@ -464,6 +478,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  creatorRowWithMenu: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.xs,
+  },
+  creatorNameGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    minWidth: 0,
+  },
   creatorName: {
     fontSize: FontSize.xs,
     fontWeight: '500',
@@ -472,38 +498,6 @@ const styles = StyleSheet.create({
   verifiedDot: {
     fontSize: FontSize.xs,
     fontWeight: '700',
-  },
-
-  // Menu button
-  menuBtn: {
-    position: 'absolute',
-    top: Spacing.xs,
-    right: Spacing.xs,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  regularMenuBtn: {
-    position: 'absolute',
-    top: Spacing.xs,
-    right: Spacing.xs,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  featuredMenuBtn: {
-    position: 'absolute',
-    top: Spacing.md,
-    right: Spacing.md,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 
   // Menu sheet
