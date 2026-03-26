@@ -63,6 +63,10 @@ const VideoPlayerInner = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
     const ytElapsedRef = React.useRef(0);
     const ytTimerRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
     const ytStartTimeRef = React.useRef<number | null>(null);
+    const ytTickCountRef = React.useRef(0);
+
+    // DEBUG: log every render
+    console.log('[VP] RENDER, started:', started, 'isPlaying:', isPlaying, 'platform:', Platform.OS);
 
     useImperativeHandle(ref, () => ({
       seekTo: (seconds: number) => {
@@ -83,31 +87,42 @@ const VideoPlayerInner = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
 
       pause: () => {
         try {
+          console.log('[VP] handle.pause() ENTER');
           // Stop YouTube notation timer
           ytPlayingRef.current = false;
           if (ytTimerRef.current) {
             clearInterval(ytTimerRef.current);
             ytTimerRef.current = null;
           }
+          console.log('[VP] YT stopTimer, elapsed:', ytElapsedRef.current, 'timer was running:', !!ytTimerRef.current);
 
           if (Platform.OS === 'web') {
             webVideoRef.current?.pause();
           } else {
             void nativeVideoRef.current?.pauseAsync();
           }
+          console.log('[VP] handle.pause() EXIT');
         } catch {}
       },
 
       play: () => {
         try {
+          console.log('[VP] handle.play() ENTER');
           // Start YouTube notation timer
           ytPlayingRef.current = true;
           const offset = ytElapsedRef.current;
+          console.log('[VP] YT startTimer, offset:', offset);
           ytStartTimeRef.current = Date.now() - offset * 1000;
+          ytTickCountRef.current = 0;
           ytTimerRef.current = setInterval(() => {
             if (!ytStartTimeRef.current) return;
             const elapsed = (Date.now() - ytStartTimeRef.current) / 1000;
             ytElapsedRef.current = elapsed;
+            // Log every 10 ticks
+            ytTickCountRef.current++;
+            if (ytTickCountRef.current % 10 === 0) {
+              console.log('[VP] YT tick #', ytTickCountRef.current, 'elapsed:', elapsed.toFixed(1));
+            }
             onPlaybackStatus({
               isLoaded: true,
               isPlaying: true,
@@ -127,6 +142,7 @@ const VideoPlayerInner = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
           } else {
             void nativeVideoRef.current?.playAsync();
           }
+          console.log('[VP] handle.play() EXIT');
         } catch {}
       },
 
@@ -166,6 +182,7 @@ const VideoPlayerInner = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
           <TouchableOpacity
             style={[styles.poster, { backgroundColor: theme.surface }]}
             onPress={() => {
+              console.log('[VP] POSTER TAPPED, calling onStarted + onTogglePlay');
               onStarted();
               onTogglePlay();
             }}
@@ -229,10 +246,15 @@ const VideoPlayerInner = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
                   <TouchableOpacity
                     style={styles.watchYouTubeBtn}
                     onPress={() => {
+                      console.log('[VP] Watch on YouTube PRESSED, url:', videoUrl, 'platform:', Platform.OS);
                       if (Platform.OS === 'web') {
+                        console.log('[VP] calling window.open:', videoUrl);
                         window.open(videoUrl!, '_blank');
+                        console.log('[VP] window.open returned');
                       } else {
+                        console.log('[VP] calling Linking.openURL:', videoUrl);
                         void Linking.openURL(videoUrl!);
+                        console.log('[VP] Linking.openURL returned');
                       }
                     }}
                   >
@@ -241,7 +263,11 @@ const VideoPlayerInner = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
                 </View>
                 <TouchableOpacity
                   style={styles.controlsOverlay}
-                  onPress={onTogglePlay}
+                  onPress={() => {
+                    console.log('[VP] TAPPED, calling onTogglePlay');
+                    onTogglePlay();
+                    console.log('[VP] onTogglePlay returned');
+                  }}
                   activeOpacity={1}
                 >
                   <View style={styles.centerIcon}>

@@ -77,6 +77,9 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
   const currentTimeRef = useRef(0);
   const videoRef = useRef<VideoPlayerHandle | null>(null);
 
+  // DEBUG: log every render
+  console.log('[HP] RENDER, isPlaying:', isPlaying, 'videoStarted:', videoStarted, 'videoRef:', !!videoRef.current);
+
   const savePosition = useProgressStore((s) => s.savePosition);
   const getPosition = useProgressStore((s) => s.getPosition);
 
@@ -108,6 +111,7 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
 
   // Init engine
   useEffect(() => {
+    console.log('[HP] engine useEffect running, notes count:', localNotes.length);
     const engine = new SargamPlayerEngine();
     engine.load(localNotes, HARMONIUM_SAMPLE_MAP);
     engine.setSoundEnabled(false); // sound off by default
@@ -127,6 +131,7 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
   }, [localNotes]);
 
   const handleVideoStarted = useCallback(() => {
+    console.log('[HP] handleVideoStarted, setting videoStarted=true');
     setVideoStarted(true);
     Log.player('video started');
     // Apply initial mute state — sound is off by default
@@ -137,7 +142,11 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
 
   const handlePlaybackStatus = useCallback(
     (status: AVPlaybackStatus) => {
-      if (!status.isLoaded) return;
+      if (!status.isLoaded) {
+        console.log('[HP] handlePlaybackStatus, status not loaded');
+        return;
+      }
+      console.log('[HP] handlePlaybackStatus, isPlaying:', status.isPlaying, 'pos:', status.positionMillis?.toFixed(0));
       const now = Date.now();
       const positionSecs = (status.positionMillis ?? 0) / 1000;
       setCurrentTime(positionSecs);
@@ -164,14 +173,27 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
   );
 
   const togglePlay = useCallback(() => {
+    console.log('[HP] togglePlay ENTER, isPlaying:', isPlaying, 'videoRef.current:', !!videoRef.current, 'engineRef.current:', !!engineRef.current);
     if (isPlaying) {
+      console.log('[HP] pausing...');
       videoRef.current?.pause();
+      console.log('[HP] videoRef command sent');
       engineRef.current?.pause();
+      console.log('[HP] engineRef command sent');
       setIsPlaying(false);
+      console.log('[HP] setIsPlaying called with: false');
     } else {
+      console.log('[HP] playing...');
       videoRef.current?.play();
+      console.log('[HP] videoRef command sent');
       setIsPlaying(true);
+      console.log('[HP] setIsPlaying called with: true');
     }
+  }, [isPlaying]);
+
+  // DEBUG: stale closure check
+  useEffect(() => {
+    console.log('[HP] togglePlay recreated, isPlaying:', isPlaying);
   }, [isPlaying]);
 
   // Save a full updated notes array to state + engine + R2
