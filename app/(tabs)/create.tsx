@@ -258,24 +258,25 @@ export default function CreateScreen() {
   const isValidYtUrl = (s: string) => s.includes('youtube.com') || s.includes('youtu.be');
 
   // ── Pick video from library ───────────────────────────────────────────────
-  const webFileInputRef = React.useRef<HTMLInputElement | null>(null);
-
-  const handleWebFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const uri = URL.createObjectURL(file);
-    setPickedVideoUri(uri);
-    setPickedVideoFile(file);
-    setUploadTitle('');
-    setUploadNotation('');
-    setUploadStep('preview');
-    setUploadError(null);
-    setUploadModalVisible(true);
-  };
-
   const handlePickVideo = async () => {
     if (Platform.OS === 'web') {
-      webFileInputRef.current?.click();
+      // Create a temporary input element directly in the DOM
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'video/quicktime,video/mp4,video/x-m4v,.mov,.mp4,.m4v';
+      input.onchange = (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (!file) return;
+        const uri = URL.createObjectURL(file);
+        setPickedVideoUri(uri);
+        setPickedVideoFile(file);
+        setUploadTitle('');
+        setUploadNotation('');
+        setUploadStep('preview');
+        setUploadError(null);
+        setUploadModalVisible(true);
+      };
+      input.click();
       return;
     }
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
