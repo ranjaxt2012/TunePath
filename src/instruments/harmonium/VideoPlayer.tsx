@@ -55,13 +55,26 @@ const YouTubePlayer = forwardRef<
   const timerRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = React.useRef<number | null>(null);
   const pausedAtRef = React.useRef<number | null>(null);
+  const iframeReadyRef = React.useRef(false);
+  const pendingPlayRef = React.useRef(false);
 
   // Helper to send commands to YouTube iframe via postMessage
   function sendCommand(func: string, args: unknown[] = []) {
+    if (!iframeReadyRef.current) return;
     iframeRef.current?.contentWindow?.postMessage(
       JSON.stringify({ event: 'command', func, args }),
       '*'
     );
+  }
+
+  // Called when iframe finishes loading
+  function handleIframeLoad() {
+    iframeReadyRef.current = true;
+    // If play was called before iframe was ready, execute it now
+    if (pendingPlayRef.current) {
+      pendingPlayRef.current = false;
+      startTimer();
+    }
   }
 
   // stopTimer function — sends pauseVideo, clears interval, fires isPlaying:false
@@ -88,8 +101,12 @@ const YouTubePlayer = forwardRef<
     } as AVPlaybackStatus);
   }, [onPlaybackStatus]);
 
-  // startTimer function — sends playVideo, starts interval from pausedAt position
+  // startTimer function — sends playVideo, startserval from pausedAt position
   const startTimer = React.useCallback(() => {
+    if (!iframeReadyRef.current) {
+      pendingPlayRef.current = true;
+      return;
+    }
     sendCommand('playVideo');
     if (timerRef.current) return;
     const offset = pausedAtRef.current ?? 0;
@@ -140,6 +157,7 @@ const YouTubePlayer = forwardRef<
       height="100%"
       src={`https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=0&controls=0&disablekb=1&rel=0&modestbranding=1`}
       frameBorder="0"
+      onLoad={handleIframeLoad}
       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
       style={{
         width: '100%',
