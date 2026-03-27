@@ -52,6 +52,14 @@ export interface UserProgress {
   last_position: number;
 }
 
+export interface Workflow {
+  id: string;
+  display_name: string;
+  description: string;
+  notation_type: string;
+  default_key: string;
+}
+
 export type LessonProcessingStatus =
   | 'queued'
   | 'uploaded'

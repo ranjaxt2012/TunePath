@@ -16,23 +16,17 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
-import {
-  documentDirectory,
-  getInfoAsync,
-  readAsStringAsync,
-  writeAsStringAsync,
-} from 'expo-file-system/legacy';
 import { useTheme, Spacing, FontSize, Radius } from '@/src/design';
 import { useAuthStore } from '@/src/store/authStore';
+import { useWorkflows } from '@/src/hooks/useWorkflows';
+import { WorkflowPicker } from '@/src/components/ui/WorkflowPicker';
 import { Log } from '@/src/utils/log';
 import { api, setAuthToken } from '@/src/services/api';
-import { useAuth } from '@clerk/clerk-expo';
+import { useAuth, useUser } from '@clerk/clerk-expo';
 import { VideoView, useVideoPlayer } from 'expo-video';
 
 const WEB_CONTENT_MAX = 960;
 const SARGAM_NOTES = ['Sa', 'Re', 'Ga', 'Ma', 'Pa', 'Dha', 'Ni'] as const;
-const DRAFTS_FILE = `${documentDirectory}tunepath_drafts.json`;
-
 type DefaultCourse = {
   course_id: string;
   instrument_id: string;
@@ -42,14 +36,6 @@ type DefaultCourse = {
 // Cache across remounts to avoid repeatedly fetching defaults (particularly in dev/HMR).
 let defaultCourseCache: DefaultCourse | null | undefined = undefined;
 let defaultCourseFetchPromise: Promise<DefaultCourse | null> | null = null;
-
-interface Draft {
-  id: string;
-  videoUri: string;
-  title: string;
-  notation: string;
-  createdAt: string;
-}
 
 interface DetectedNote {
   note: string;
@@ -85,41 +71,20 @@ function getProcessingStepState(status: string, idx: number) {
   return { isDone, isActive };
 }
 
-// ── Draft helpers ─────────────────────────────────────────────────────────────
-async function loadDrafts(): Promise<Draft[]> {
-  try {
-    const info = await getInfoAsync(DRAFTS_FILE);
-    if (!info.exists) return [];
-    return JSON.parse(await readAsStringAsync(DRAFTS_FILE));
-  } catch { return []; }
-}
-async function saveDrafts(drafts: Draft[]) {
-  await writeAsStringAsync(DRAFTS_FILE, JSON.stringify(drafts));
-}
-async function addDraft(draft: Draft) {
-  const existing = await loadDrafts();
-  await saveDrafts([draft, ...existing]);
-}
-async function removeDraft(id: string): Promise<Draft[]> {
-  const updated = (await loadDrafts()).filter((d) => d.id !== id);
-  await saveDrafts(updated);
-  return updated;
-}
-
 export default function CreateScreen() {
   const { theme } = useTheme();
-  const { trustTier, dbUserId, user } = useAuthStore();
-  const creatorName = user
-    ? [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email || ''
-    : '';
+  const { trustTier, dbUserId } = useAuthStore();
+  const { user: clerkUser } = useUser();
+  const creatorName =
+    clerkUser?.fullName ??
+    (`${clerkUser?.firstName ?? ''} ${clerkUser?.lastName ?? ''}`.trim() ||
+      (clerkUser?.primaryEmailAddress?.emailAddress ?? ''));
   const { getToken } = useAuth();
   const router = useRouter();
 
-  // ── Drafts ────────────────────────────────────────────────────────────────
-  const [drafts, setDrafts] = useState<Draft[]>([]);
-  useEffect(() => {
-    if (Platform.OS !== 'web') loadDrafts().then(setDrafts);
-  }, []);
+  // ── Workflow picker ───────────────────────────────────────────────────────
+  const { workflows } = useWorkflows();
+  const [selectedWorkflow, setSelectedWorkflow] = useState('indian');
 
   // ── Local upload ──────────────────────────────────────────────────────────
   const [uploadModalVisible, setUploadModalVisible] = useState(false);
@@ -422,36 +387,6 @@ export default function CreateScreen() {
     setUploadModalVisible(true);
   };
 
-  // ── Draft actions ─────────────────────────────────────────────────────────
-  const handleSaveDraft = async () => {
-    if (!pickedVideoUri) return;
-    const draft: Draft = {
-      id: Date.now().toString(),
-      videoUri: pickedVideoUri,
-      title: uploadTitle || 'Untitled lesson',
-      notation: '',
-      createdAt: new Date().toISOString(),
-    };
-    await addDraft(draft);
-    setDrafts(await loadDrafts());
-    setUploadModalVisible(false);
-    Alert.alert('Draft saved', 'You can upload it later from Drafts.');
-  };
-
-  const handleDeleteDraft = (id: string) => {
-    Alert.alert('Delete draft?', 'This cannot be undone.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: async () => setDrafts(await removeDraft(id)) },
-    ]);
-  };
-
-  const handleUploadDraft = (draft: Draft) => {
-    setPickedVideoUri(draft.videoUri);
-    setUploadTitle(draft.title);
-    setUploadStep('details');
-    setUploadModalVisible(true);
-  };
-
   // ── Local upload ──────────────────────────────────────────────────────────
   const handleUploadLocal = async () => {
     const title = uploadTitle.trim();
@@ -475,6 +410,7 @@ export default function CreateScreen() {
       formData.append('instrument_id', defaultCourse.instrument_id);
       formData.append('level_id', defaultCourse.level_id);
       formData.append('shruti', 'C');
+      formData.append('workflow_id', selectedWorkflow);
       const uploadUrl = `${process.env.EXPO_PUBLIC_API_URL}/api/tutor/lessons/upload`;
       Log.api('local upload: starting', { platform: Platform.OS, titleLen: title.length });
 
@@ -577,6 +513,7 @@ export default function CreateScreen() {
         course_id: defaultCourse.course_id,
         instrument_id: defaultCourse.instrument_id,
         level_id: defaultCourse.level_id,
+        workflow_id: selectedWorkflow,
       });
       setProcessingLessonId(result.lesson_id);
     } catch (e: any) {
@@ -649,31 +586,6 @@ export default function CreateScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* ── Drafts ──────────────────────────────────────────────────── */}
-        {drafts.length > 0 && Platform.OS !== 'web' && (
-          <View style={styles.draftsSection}>
-            <Text style={[styles.draftsTitle, { color: theme.textPrimary }]}>Drafts</Text>
-            {drafts.map((draft) => (
-              <View key={draft.id} style={[styles.draftCard, { backgroundColor: theme.surface, borderColor: theme.border, borderRadius: Radius.lg }]}>
-                <View style={styles.draftInfo}>
-                  <Text style={[styles.draftTitle, { color: theme.textPrimary }]} numberOfLines={1}>{draft.title}</Text>
-                  <Text style={[styles.draftMeta, { color: theme.textDisabled }]}>
-                    {new Date(draft.createdAt).toLocaleDateString()}
-                    {draft.notation ? ` · ${draft.notation.split(' ').length} notes` : ''}
-                  </Text>
-                </View>
-                <View style={styles.draftActions}>
-                  <TouchableOpacity style={[styles.draftBtn, { backgroundColor: theme.primary + '15', borderColor: theme.primary }]} onPress={() => handleUploadDraft(draft)}>
-                    <Text style={{ color: theme.primary, fontSize: FontSize.xs, fontWeight: '700' }}>Upload</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={[styles.draftBtn, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={() => handleDeleteDraft(draft.id)}>
-                    <Text style={{ color: theme.error, fontSize: FontSize.xs }}>Delete</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ))}
-          </View>
-        )}
       </ScrollView>
 
       {/* ── LOCAL UPLOAD MODAL ──────────────────────────────────────────── */}
@@ -699,10 +611,6 @@ export default function CreateScreen() {
                   <TouchableOpacity style={[styles.previewActionBtn, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={() => setUploadModalVisible(false)}>
                     <Ionicons name="trash-outline" size={18} color={theme.error} />
                     <Text style={{ color: theme.error, fontSize: FontSize.sm, fontWeight: '600' }}>Discard</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={[styles.previewActionBtn, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={handleSaveDraft}>
-                    <Ionicons name="bookmark-outline" size={18} color={theme.textSecondary} />
-                    <Text style={{ color: theme.textSecondary, fontSize: FontSize.sm, fontWeight: '600' }}>Save Draft</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={[styles.previewActionBtn, { backgroundColor: theme.primary, borderColor: theme.primary }]} onPress={() => setUploadStep('details')}>
                     <Ionicons name="arrow-forward" size={18} color={theme.textOnPrimary} />
@@ -744,6 +652,17 @@ export default function CreateScreen() {
                   <Text style={{ color: theme.primary, fontSize: FontSize.sm, fontWeight: '600' }}>✨ Notation will be detected automatically</Text>
                   <Text style={{ color: theme.textSecondary, fontSize: FontSize.xs, marginTop: Spacing.xs }}>CREPE will analyze your audio and detect the musical notes</Text>
                 </View>
+                {workflows.length > 0 && (
+                  <View style={{ marginBottom: Spacing.md }}>
+                    <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Workflow</Text>
+                    <WorkflowPicker
+                      workflows={workflows}
+                      selectedId={selectedWorkflow}
+                      onSelect={setSelectedWorkflow}
+                    />
+                  </View>
+                )}
+
                 {uploadError && <Text style={[styles.errorText, { color: theme.error }]}>{uploadError}</Text>}
 
                 {uploading && (
@@ -758,12 +677,8 @@ export default function CreateScreen() {
                 )}
 
                 <View style={styles.detailsActions}>
-                  <TouchableOpacity style={[styles.detailsBtn, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={handleSaveDraft} disabled={uploading}>
-                    <Ionicons name="bookmark-outline" size={16} color={theme.textSecondary} />
-                    <Text style={{ color: theme.textSecondary, fontSize: FontSize.sm, fontWeight: '600' }}>Save Draft</Text>
-                  </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.detailsBtn, { flex: 2, backgroundColor: (defaultCourse && !uploading && !titleDuplicateWarning) ? theme.primary : theme.surface, borderColor: defaultCourse ? theme.primary : theme.border }]}
+                    style={[styles.detailsBtn, { backgroundColor: (defaultCourse && !uploading && !titleDuplicateWarning) ? theme.primary : theme.surface, borderColor: defaultCourse ? theme.primary : theme.border }]}
                     onPress={handleUploadLocal} disabled={!defaultCourse || uploading || !!titleDuplicateWarning}>
                     {uploading ? <ActivityIndicator size="small" color={theme.textOnPrimary} /> : <Ionicons name="cloud-upload-outline" size={16} color={(defaultCourse && !titleDuplicateWarning) ? theme.textOnPrimary : theme.textDisabled} />}
                     <Text style={{ color: (defaultCourse && !uploading && !titleDuplicateWarning) ? theme.textOnPrimary : theme.textDisabled, fontSize: FontSize.sm, fontWeight: '700' }}>
@@ -1145,14 +1060,6 @@ const styles = StyleSheet.create({
   optionText: { flex: 1, gap: Spacing.xs },
   optionTitle: { fontSize: FontSize.md, fontWeight: '600' },
   optionDesc: { fontSize: FontSize.sm },
-  draftsSection: { marginTop: Spacing.xl },
-  draftsTitle: { fontSize: FontSize.lg, fontWeight: '700', marginBottom: Spacing.md },
-  draftCard: { flexDirection: 'row', alignItems: 'center', padding: Spacing.md, borderWidth: 1, marginBottom: Spacing.sm },
-  draftInfo: { flex: 1 },
-  draftTitle: { fontSize: FontSize.sm, fontWeight: '600' },
-  draftMeta: { fontSize: FontSize.xs, marginTop: 2 },
-  draftActions: { flexDirection: 'row', gap: Spacing.sm },
-  draftBtn: { paddingHorizontal: Spacing.sm, paddingVertical: 6, borderRadius: Radius.sm, borderWidth: 1 },
   modalNavBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.md, height: 52, borderBottomWidth: 0.5 },
   navBarBtn: { width: 36, height: 36, borderRadius: Radius.md, alignItems: 'center', justifyContent: 'center' },
   navBarTitle: { fontSize: FontSize.md, fontWeight: '600' },
