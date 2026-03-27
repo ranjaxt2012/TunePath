@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, TouchableWithoutFeedback, Image, StyleSheet, Modal, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, Pressable, Image, StyleSheet, Modal, Alert, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, Spacing, Radius, FontSize } from '@/src/design';
@@ -45,16 +45,25 @@ export function LessonCard({ lesson, size, onPress, width = 140, thumbHeight = 9
   };
 
   const handleDelete = () => {
-    setMenuVisible(false);
+    // Show the Alert while the Modal is still open — on iOS, dismissing a Modal
+    // and then immediately presenting a UIAlertController causes the alert to be
+    // silently swallowed mid-animation. We close the Modal from inside each button.
     Alert.alert(
       'Delete lesson?',
       `"${lesson.title}" will be permanently deleted from TunePath and cannot be recovered.`,
       [
-        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Cancel',
+          style: 'cancel',
+          onPress: () => setMenuVisible(false),
+        },
         {
           text: 'Delete',
           style: 'destructive',
-          onPress: executeDelete,
+          onPress: () => {
+            setMenuVisible(false);
+            void executeDelete();
+          },
         },
       ]
     );
@@ -374,12 +383,14 @@ interface LessonCardMenuProps {
 function LessonCardMenu({ visible, onDismiss, onPlay, onEdit, onDelete, theme, isDeleting }: LessonCardMenuProps) {
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
-      {/* Backdrop and sheet are siblings so the backdrop touchable never swallows sheet taps */}
-      <TouchableWithoutFeedback onPress={onDismiss}>
-        <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(0,0,0,0.5)' }]} />
-      </TouchableWithoutFeedback>
-      <View style={styles.menuOverlay} pointerEvents="box-none">
-        <View style={[styles.menuSheet, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+      {/* Root fills the screen. Backdrop is rendered first (below), sheet second (on top). */}
+      <View style={{ flex: 1 }}>
+        <Pressable
+          style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(0,0,0,0.5)' }]}
+          onPress={onDismiss}
+        />
+        <View style={styles.menuOverlay}>
+          <View style={[styles.menuSheet, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           {/* Play */}
           <TouchableOpacity style={styles.menuItem} onPress={onPlay}>
             <Ionicons name="play-circle-outline" size={20} color={theme.primary} style={styles.menuIcon} />
@@ -418,6 +429,7 @@ function LessonCardMenu({ visible, onDismiss, onPlay, onEdit, onDelete, theme, i
             <Text style={[styles.menuText, { color: theme.textSecondary }]}>Cancel</Text>
           </TouchableOpacity>
         </View>
+      </View>
       </View>
     </Modal>
   );
