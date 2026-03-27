@@ -93,8 +93,9 @@ export function useLesson(id: string | undefined, refreshKey: number = 0) {
 
         if (data.notation_url) {
           try {
-            // Use api client (auth-aware, auto-retries 401) not raw fetch
-            const notationData = await api.get<unknown>(data.notation_url);
+            // Use api client (auth-aware, auto-retries 401) not raw fetch.
+            // Pass the path only — api.get prepends BASE_URL so a full URL would double it.
+            const notationData = await api.get<unknown>(`/api/lessons/${id}/notation`);
             if (cancelled) return;
             const noteArray = convertSectionsToNotes(notationData);
             setNotes(noteArray);
