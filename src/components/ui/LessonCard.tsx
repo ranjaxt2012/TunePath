@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet, Modal, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, TouchableWithoutFeedback, Image, StyleSheet, Modal, Alert, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, Spacing, Radius, FontSize } from '@/src/design';
@@ -374,52 +374,51 @@ interface LessonCardMenuProps {
 function LessonCardMenu({ visible, onDismiss, onPlay, onEdit, onDelete, theme, isDeleting }: LessonCardMenuProps) {
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
-      <TouchableOpacity
-        style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(0,0,0,0.5)' }]}
-        onPress={onDismiss}
-      >
-        <View style={styles.menuOverlay}>
-          <View style={[styles.menuSheet, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-            {/* Play */}
-            <TouchableOpacity style={styles.menuItem} onPress={onPlay}>
-              <Ionicons name="play-circle-outline" size={20} color={theme.primary} style={styles.menuIcon} />
-              <Text style={[styles.menuText, { color: theme.textPrimary }]}>Play lesson</Text>
-            </TouchableOpacity>
+      {/* Backdrop and sheet are siblings so the backdrop touchable never swallows sheet taps */}
+      <TouchableWithoutFeedback onPress={onDismiss}>
+        <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(0,0,0,0.5)' }]} />
+      </TouchableWithoutFeedback>
+      <View style={styles.menuOverlay} pointerEvents="box-none">
+        <View style={[styles.menuSheet, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          {/* Play */}
+          <TouchableOpacity style={styles.menuItem} onPress={onPlay}>
+            <Ionicons name="play-circle-outline" size={20} color={theme.primary} style={styles.menuIcon} />
+            <Text style={[styles.menuText, { color: theme.textPrimary }]}>Play lesson</Text>
+          </TouchableOpacity>
 
-            {/* Edit — tutor only */}
-            {onEdit && (
-              <>
-                <View style={[styles.menuDivider, { backgroundColor: theme.border }]} />
-                <TouchableOpacity style={styles.menuItem} onPress={onEdit}>
-                  <Ionicons name="pencil-outline" size={20} color={theme.primary} style={styles.menuIcon} />
-                  <Text style={[styles.menuText, { color: theme.textPrimary }]}>Edit notation</Text>
-                </TouchableOpacity>
-              </>
-            )}
+          {/* Edit — tutor only */}
+          {onEdit && (
+            <>
+              <View style={[styles.menuDivider, { backgroundColor: theme.border }]} />
+              <TouchableOpacity style={styles.menuItem} onPress={onEdit}>
+                <Ionicons name="pencil-outline" size={20} color={theme.primary} style={styles.menuIcon} />
+                <Text style={[styles.menuText, { color: theme.textPrimary }]}>Edit notation</Text>
+              </TouchableOpacity>
+            </>
+          )}
 
-            {/* Delete — tutor only, red */}
-            {onDelete && (
-              <>
-                <View style={[styles.menuDivider, { backgroundColor: theme.border }]} />
-                <TouchableOpacity style={styles.menuItem} onPress={onDelete} disabled={isDeleting}>
-                  {isDeleting ? (
-                    <ActivityIndicator size="small" color={theme.error} style={styles.menuIcon} />
-                  ) : (
-                    <Ionicons name="trash-outline" size={20} color={theme.error} style={styles.menuIcon} />
-                  )}
-                  <Text style={[styles.menuText, { color: theme.error }]}>Delete lesson</Text>
-                </TouchableOpacity>
-              </>
-            )}
+          {/* Delete — tutor only, red */}
+          {onDelete && (
+            <>
+              <View style={[styles.menuDivider, { backgroundColor: theme.border }]} />
+              <TouchableOpacity style={styles.menuItem} onPress={onDelete} disabled={isDeleting}>
+                {isDeleting ? (
+                  <ActivityIndicator size="small" color={theme.error} style={styles.menuIcon} />
+                ) : (
+                  <Ionicons name="trash-outline" size={20} color={theme.error} style={styles.menuIcon} />
+                )}
+                <Text style={[styles.menuText, { color: theme.error }]}>Delete lesson</Text>
+              </TouchableOpacity>
+            </>
+          )}
 
-            {/* Cancel */}
-            <View style={[styles.menuDivider, { backgroundColor: theme.border }]} />
-            <TouchableOpacity style={styles.menuItem} onPress={onDismiss}>
-              <Text style={[styles.menuText, { color: theme.textSecondary }]}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
+          {/* Cancel */}
+          <View style={[styles.menuDivider, { backgroundColor: theme.border }]} />
+          <TouchableOpacity style={styles.menuItem} onPress={onDismiss}>
+            <Text style={[styles.menuText, { color: theme.textSecondary }]}>Cancel</Text>
+          </TouchableOpacity>
         </View>
-      </TouchableOpacity>
+      </View>
     </Modal>
   );
 }
@@ -572,8 +571,10 @@ const styles = StyleSheet.create({
 
   // Menu sheet
   menuOverlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     alignItems: 'center',
     paddingBottom: Spacing.xl,
   },
