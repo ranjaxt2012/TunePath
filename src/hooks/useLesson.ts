@@ -93,8 +93,8 @@ export function useLesson(id: string | undefined, refreshKey: number = 0) {
 
         if (data.notation_url) {
           try {
-            const res = await fetch(data.notation_url);
-            const notationData: unknown = await res.json();
+            // Use api client (auth-aware, auto-retries 401) not raw fetch
+            const notationData = await api.get<unknown>(data.notation_url);
             if (cancelled) return;
             const noteArray = convertSectionsToNotes(notationData);
             setNotes(noteArray);

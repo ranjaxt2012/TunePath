@@ -69,7 +69,7 @@ function NotationContainerInner({
             textAlign: 'center',
           }}
         >
-          🎵 Notation loading...
+          {isTutor ? '🎵 No notation yet — edit to add notes' : '🎵 No notation available'}
         </Text>
       </View>
     );
