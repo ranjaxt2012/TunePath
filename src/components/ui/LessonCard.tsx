@@ -35,16 +35,19 @@ export function LessonCard({ lesson, size, onPress, width = 140, thumbHeight = 9
   const isOwner = Boolean(isAdmin || (dbUserId != null && lesson.tutor_id === dbUserId));
 
   const handlePlay = () => {
+    console.log(`[LessonCard] play → lesson ${lesson.id}`);
     setMenuVisible(false);
     router.push(`/lesson/${lesson.id}`);
   };
 
   const handleEdit = () => {
+    console.log(`[LessonCard] edit → lesson ${lesson.id}`);
     setMenuVisible(false);
     router.push(`/lesson/${lesson.id}`);
   };
 
   const handleDelete = () => {
+    console.log(`[LessonCard] delete tapped — showing confirm alert for "${lesson.title}" (${lesson.id})`);
     // Show the Alert while the Modal is still open — on iOS, dismissing a Modal
     // and then immediately presenting a UIAlertController causes the alert to be
     // silently swallowed mid-animation. We close the Modal from inside each button.
@@ -55,12 +58,16 @@ export function LessonCard({ lesson, size, onPress, width = 140, thumbHeight = 9
         {
           text: 'Cancel',
           style: 'cancel',
-          onPress: () => setMenuVisible(false),
+          onPress: () => {
+            console.log(`[LessonCard] delete cancelled for ${lesson.id}`);
+            setMenuVisible(false);
+          },
         },
         {
           text: 'Delete',
           style: 'destructive',
           onPress: () => {
+            console.log(`[LessonCard] delete confirmed for ${lesson.id}`);
             setMenuVisible(false);
             void executeDelete();
           },
@@ -70,15 +77,15 @@ export function LessonCard({ lesson, size, onPress, width = 140, thumbHeight = 9
   };
 
   const executeDelete = async () => {
+    console.log(`[LessonCard] executeDelete start — ${lesson.id}`);
     setIsDeleting(true);
     try {
       const token = await getToken();
       if (!token) throw new Error('Not authenticated');
       setAuthToken(token);
 
-      console.log(`[LessonCard] DELETE ${lesson.id}`);
+      console.log(`[LessonCard] DELETE ${BASE_URL}/api/tutor/lessons/${lesson.id}`);
 
-      // Call DELETE endpoint
       const response = await fetch(
         `${BASE_URL}/api/tutor/lessons/${lesson.id}`,
         {
@@ -90,9 +97,10 @@ export function LessonCard({ lesson, size, onPress, width = 140, thumbHeight = 9
         }
       );
 
+      console.log(`[LessonCard] DELETE response status: ${response.status}`);
+
       if (response.status === 204 || response.ok) {
-        // Success — notify parent to remove from list
-        console.log(`[LessonCard] DELETE success ${lesson.id}`);
+        console.log(`[LessonCard] DELETE success — removing ${lesson.id} from list`);
         onDelete?.(lesson.id);
       } else {
         const data = await response.json().catch(() => ({}));
@@ -102,11 +110,13 @@ export function LessonCard({ lesson, size, onPress, width = 140, thumbHeight = 9
       console.error(`[LessonCard] DELETE error:`, e);
       Alert.alert('Delete failed', e?.message ?? 'Something went wrong. Please try again.');
     } finally {
+      console.log(`[LessonCard] executeDelete done — ${lesson.id}`);
       setIsDeleting(false);
     }
   };
 
   const handleMenuPress = (e: any) => {
+    console.log(`[LessonCard] ··· menu opened for "${lesson.title}" (${lesson.id}) isOwner=${isOwner} dbUserId=${dbUserId}`);
     e.stopPropagation?.();
     setMenuVisible(true);
   };
