@@ -46,36 +46,6 @@ export function LessonCard({ lesson, size, onPress, width = 140, thumbHeight = 9
     router.push(`/lesson/${lesson.id}`);
   };
 
-  const handleDelete = () => {
-    console.log(`[LessonCard] delete tapped — showing confirm alert for "${lesson.title}" (${lesson.id})`);
-    // Show the Alert while the Modal is still open — on iOS, dismissing a Modal
-    // and then immediately presenting a UIAlertController causes the alert to be
-    // silently swallowed mid-animation. We close the Modal from inside each button.
-    Alert.alert(
-      'Delete lesson?',
-      `"${lesson.title}" will be permanently deleted from TunePath and cannot be recovered.`,
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-          onPress: () => {
-            console.log(`[LessonCard] delete cancelled for ${lesson.id}`);
-            setMenuVisible(false);
-          },
-        },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            console.log(`[LessonCard] delete confirmed for ${lesson.id}`);
-            setMenuVisible(false);
-            void executeDelete();
-          },
-        },
-      ]
-    );
-  };
-
   const executeDelete = async () => {
     console.log(`[LessonCard] executeDelete start — ${lesson.id}`);
     setIsDeleting(true);
@@ -101,6 +71,7 @@ export function LessonCard({ lesson, size, onPress, width = 140, thumbHeight = 9
 
       if (response.status === 204 || response.ok) {
         console.log(`[LessonCard] DELETE success — removing ${lesson.id} from list`);
+        setMenuVisible(false);
         onDelete?.(lesson.id);
       } else {
         const data = await response.json().catch(() => ({}));
@@ -200,7 +171,8 @@ export function LessonCard({ lesson, size, onPress, width = 140, thumbHeight = 9
           onDismiss={() => setMenuVisible(false)}
           onPlay={handlePlay}
           onEdit={isOwner ? handleEdit : undefined}
-          onDelete={isOwner ? handleDelete : undefined}
+          onDeleteConfirm={isOwner ? executeDelete : undefined}
+          lessonTitle={lesson.title}
           theme={theme}
           isDeleting={isDeleting}
         />
@@ -287,7 +259,8 @@ export function LessonCard({ lesson, size, onPress, width = 140, thumbHeight = 9
           onDismiss={() => setMenuVisible(false)}
           onPlay={handlePlay}
           onEdit={isOwner ? handleEdit : undefined}
-          onDelete={isOwner ? handleDelete : undefined}
+          onDeleteConfirm={isOwner ? executeDelete : undefined}
+          lessonTitle={lesson.title}
           theme={theme}
           isDeleting={isDeleting}
         />
@@ -372,7 +345,8 @@ export function LessonCard({ lesson, size, onPress, width = 140, thumbHeight = 9
         onDismiss={() => setMenuVisible(false)}
         onPlay={handlePlay}
         onEdit={isOwner ? handleEdit : undefined}
-        onDelete={isOwner ? handleDelete : undefined}
+        onDeleteConfirm={isOwner ? executeDelete : undefined}
+        lessonTitle={lesson.title}
         theme={theme}
         isDeleting={isDeleting}
       />
@@ -385,61 +359,112 @@ interface LessonCardMenuProps {
   onDismiss: () => void;
   onPlay: () => void;
   onEdit?: () => void;
-  onDelete?: () => void;
+  onDeleteConfirm?: () => void;
+  lessonTitle?: string;
   theme: any;
   isDeleting: boolean;
 }
 
-function LessonCardMenu({ visible, onDismiss, onPlay, onEdit, onDelete, theme, isDeleting }: LessonCardMenuProps) {
+function LessonCardMenu({ visible, onDismiss, onPlay, onEdit, onDeleteConfirm, lessonTitle, theme, isDeleting }: LessonCardMenuProps) {
+  const [confirming, setConfirming] = React.useState(false);
+
+  const handleDismiss = () => {
+    setConfirming(false);
+    onDismiss();
+  };
+
+  const handleDeleteTap = () => {
+    console.log('[LessonCardMenu] delete tapped — switching to confirm step');
+    setConfirming(true);
+  };
+
+  const handleConfirmDelete = () => {
+    console.log('[LessonCardMenu] delete confirmed by user');
+    setConfirming(false);
+    onDeleteConfirm?.();
+  };
+
+  const handleCancelConfirm = () => {
+    console.log('[LessonCardMenu] delete confirm cancelled');
+    setConfirming(false);
+  };
+
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
-      {/* Root fills the screen. Backdrop is rendered first (below), sheet second (on top). */}
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={handleDismiss}>
+      {/* Root fills the screen. Backdrop first (below), sheet second (on top). */}
       <View style={{ flex: 1 }}>
         <Pressable
           style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(0,0,0,0.5)' }]}
-          onPress={onDismiss}
+          onPress={handleDismiss}
         />
         <View style={styles.menuOverlay}>
           <View style={[styles.menuSheet, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          {/* Play */}
-          <TouchableOpacity style={styles.menuItem} onPress={onPlay}>
-            <Ionicons name="play-circle-outline" size={20} color={theme.primary} style={styles.menuIcon} />
-            <Text style={[styles.menuText, { color: theme.textPrimary }]}>Play lesson</Text>
-          </TouchableOpacity>
 
-          {/* Edit — tutor only */}
-          {onEdit && (
-            <>
-              <View style={[styles.menuDivider, { backgroundColor: theme.border }]} />
-              <TouchableOpacity style={styles.menuItem} onPress={onEdit}>
-                <Ionicons name="pencil-outline" size={20} color={theme.primary} style={styles.menuIcon} />
-                <Text style={[styles.menuText, { color: theme.textPrimary }]}>Edit notation</Text>
-              </TouchableOpacity>
-            </>
-          )}
+            {confirming ? (
+              /* ── Confirm-delete step ── */
+              <>
+                <View style={styles.confirmHeader}>
+                  <Ionicons name="warning-outline" size={22} color={theme.error} style={{ marginBottom: 6 }} />
+                  <Text style={[styles.confirmTitle, { color: theme.textPrimary }]}>Delete lesson?</Text>
+                  {lessonTitle ? (
+                    <Text style={[styles.confirmSub, { color: theme.textSecondary }]} numberOfLines={2}>
+                      "{lessonTitle}" will be permanently deleted and cannot be recovered.
+                    </Text>
+                  ) : null}
+                </View>
+                <View style={[styles.menuDivider, { backgroundColor: theme.border }]} />
+                <TouchableOpacity style={styles.menuItem} onPress={handleCancelConfirm}>
+                  <Text style={[styles.menuText, { color: theme.textSecondary }]}>Cancel</Text>
+                </TouchableOpacity>
+                <View style={[styles.menuDivider, { backgroundColor: theme.border }]} />
+                <TouchableOpacity style={styles.menuItem} onPress={handleConfirmDelete} disabled={isDeleting}>
+                  {isDeleting ? (
+                    <ActivityIndicator size="small" color={theme.error} style={styles.menuIcon} />
+                  ) : (
+                    <Ionicons name="trash-outline" size={20} color={theme.error} style={styles.menuIcon} />
+                  )}
+                  <Text style={[styles.menuText, { color: theme.error }]}>
+                    {isDeleting ? 'Deleting…' : 'Confirm Delete'}
+                  </Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              /* ── Normal menu step ── */
+              <>
+                <TouchableOpacity style={styles.menuItem} onPress={onPlay}>
+                  <Ionicons name="play-circle-outline" size={20} color={theme.primary} style={styles.menuIcon} />
+                  <Text style={[styles.menuText, { color: theme.textPrimary }]}>Play lesson</Text>
+                </TouchableOpacity>
 
-          {/* Delete — tutor only, red */}
-          {onDelete && (
-            <>
-              <View style={[styles.menuDivider, { backgroundColor: theme.border }]} />
-              <TouchableOpacity style={styles.menuItem} onPress={onDelete} disabled={isDeleting}>
-                {isDeleting ? (
-                  <ActivityIndicator size="small" color={theme.error} style={styles.menuIcon} />
-                ) : (
-                  <Ionicons name="trash-outline" size={20} color={theme.error} style={styles.menuIcon} />
+                {onEdit && (
+                  <>
+                    <View style={[styles.menuDivider, { backgroundColor: theme.border }]} />
+                    <TouchableOpacity style={styles.menuItem} onPress={onEdit}>
+                      <Ionicons name="pencil-outline" size={20} color={theme.primary} style={styles.menuIcon} />
+                      <Text style={[styles.menuText, { color: theme.textPrimary }]}>Edit notation</Text>
+                    </TouchableOpacity>
+                  </>
                 )}
-                <Text style={[styles.menuText, { color: theme.error }]}>Delete lesson</Text>
-              </TouchableOpacity>
-            </>
-          )}
 
-          {/* Cancel */}
-          <View style={[styles.menuDivider, { backgroundColor: theme.border }]} />
-          <TouchableOpacity style={styles.menuItem} onPress={onDismiss}>
-            <Text style={[styles.menuText, { color: theme.textSecondary }]}>Cancel</Text>
-          </TouchableOpacity>
+                {onDeleteConfirm && (
+                  <>
+                    <View style={[styles.menuDivider, { backgroundColor: theme.border }]} />
+                    <TouchableOpacity style={styles.menuItem} onPress={handleDeleteTap}>
+                      <Ionicons name="trash-outline" size={20} color={theme.error} style={styles.menuIcon} />
+                      <Text style={[styles.menuText, { color: theme.error }]}>Delete lesson</Text>
+                    </TouchableOpacity>
+                  </>
+                )}
+
+                <View style={[styles.menuDivider, { backgroundColor: theme.border }]} />
+                <TouchableOpacity style={styles.menuItem} onPress={handleDismiss}>
+                  <Text style={[styles.menuText, { color: theme.textSecondary }]}>Cancel</Text>
+                </TouchableOpacity>
+              </>
+            )}
+
+          </View>
         </View>
-      </View>
       </View>
     </Modal>
   );
@@ -622,5 +647,22 @@ const styles = StyleSheet.create({
   },
   menuDivider: {
     height: 1,
+  },
+  confirmHeader: {
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.sm,
+  },
+  confirmTitle: {
+    fontSize: FontSize.md,
+    fontWeight: '700',
+    marginBottom: Spacing.xs,
+    textAlign: 'center',
+  },
+  confirmSub: {
+    fontSize: FontSize.sm,
+    textAlign: 'center',
+    lineHeight: 18,
   },
 });
