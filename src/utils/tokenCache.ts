@@ -1,27 +1,41 @@
-import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 
-const TOKEN_KEY_PREFIX = 'clerk_token_';
+export interface TokenCache {
+  getToken: (key: string) => Promise<string | null>;
+  saveToken: (key: string, value: string) => Promise<void>;
+  clearToken?: (key: string) => Promise<void>;
+}
 
-export const tokenCache = {
-  async getToken(key: string): Promise<string | null> {
+export const tokenCache: TokenCache = {
+  getToken: async (key: string) => {
     try {
-      return await SecureStore.getItemAsync(TOKEN_KEY_PREFIX + key);
+      if (Platform.OS === 'web') {
+        return localStorage.getItem(key);
+      }
+      const SecureStore = await import('expo-secure-store');
+      return SecureStore.getItemAsync(key);
     } catch {
       return null;
     }
   },
-  async saveToken(key: string, value: string): Promise<void> {
+  saveToken: async (key: string, value: string) => {
     try {
-      await SecureStore.setItemAsync(TOKEN_KEY_PREFIX + key, value);
-    } catch {
-      // silently fail — user will need to re-auth
-    }
+      if (Platform.OS === 'web') {
+        localStorage.setItem(key, value);
+        return;
+      }
+      const SecureStore = await import('expo-secure-store');
+      return SecureStore.setItemAsync(key, value);
+    } catch { /* ignore */ }
   },
-  async clearToken(key: string): Promise<void> {
+  clearToken: async (key: string) => {
     try {
-      await SecureStore.deleteItemAsync(TOKEN_KEY_PREFIX + key);
-    } catch {
-      // silently fail
-    }
+      if (Platform.OS === 'web') {
+        localStorage.removeItem(key);
+        return;
+      }
+      const SecureStore = await import('expo-secure-store');
+      return SecureStore.deleteItemAsync(key);
+    } catch { /* ignore */ }
   },
 };

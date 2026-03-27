@@ -1,436 +1,462 @@
-import React from 'react';
-import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import type { ComponentProps } from 'react';
-import { useAuth } from '@clerk/clerk-expo';
+import React, { useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Modal, Platform } from 'react-native';
+import ColorPicker, { Panel1, Swatches, Preview, HueSlider } from 'reanimated-color-picker';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { BottomTabBar } from '../../src/components/ui';
-import { ScreenGradient } from '@/src/components/common/ScreenGradient';
-import { createProfileStyles } from '../../src/styles/profileStyles';
-import { useTheme, THEMES, type ThemeId, type AppTheme } from '@/src/contexts/ThemeContext';
+import { useAuth } from '@clerk/clerk-expo';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import {
+  useTheme,
+  Spacing,
+  Radius,
+  FontSize,
+  STANDARD_THEMES,
+  SEASONAL_THEMES,
+  HoliGradient,
+} from '@/src/design';
 import { useAuthStore } from '@/src/store/authStore';
-import { useOrientation } from '@/src/hooks/useOrientation';
+import { Avatar } from '@/src/components/ui/Avatar';
 
-type IconName = ComponentProps<typeof Ionicons>['name'];
-
-const CUSTOM_COLORS = [
-  '#EF4444', '#F97316', '#EAB308',
-  '#22C55E', '#14B8A6', '#3B82F6',
-  '#8B5CF6', '#EC4899', '#64748B',
-  '#DC2626', '#EA580C', '#CA8A04',
-  '#16A34A', '#0D9488', '#2563EB',
-  '#7C3AED', '#DB2777', '#475569',
-];
+const WEB_CONTENT_MAX = 960;
 
 export default function ProfileScreen() {
+  const { theme, themeId, setTheme } = useTheme();
   const router = useRouter();
   const { signOut } = useAuth();
-  const { theme, setTheme } = useTheme();
-  const user = useAuthStore((s) => s.user);
-  const selectedInstrument = useAuthStore((s) => s.selectedInstrumentSlug);
-  const selectedLevel = useAuthStore((s) => s.selectedLevelSlug);
-  const genres = useAuthStore((s) => s.selectedGenres);
-  const { isLandscape } = useOrientation();
-  const profileStyles = createProfileStyles(theme);
+  const {
+    user,
+    trustTier,
+    isAdmin,
+    clearUser,
+  } = useAuthStore();
 
-  const [showColorPicker, setShowColorPicker] = React.useState(false);
-  const [customColor, setCustomColor] = React.useState<string | null>(null);
+  const selectedTheme = themeId;
 
-  const applyCustomTheme = (color: string) => {
-    const customTheme: AppTheme = {
-      ...THEMES.purple,
-      id: 'custom' as ThemeId,
-      label: 'Custom',
-      bgPrimary: color,
-      bgSecondary: color + 'CC',
-      gradient: [
-        color + '99',
-        color,
-        color + 'CC',
-        color + 'EE'
-      ],
-    };
-    setTheme('custom', customTheme);
-  };
+  const [showColorPicker, setShowColorPicker] = useState(false);
+  const [selectedHex, setSelectedHex] = useState(theme.primary);
 
-  const SettingsItem = React.memo(function SettingsItem({
-    icon,
-    label,
-    value,
-    onPress,
-  }: {
-    icon: IconName;
-    label: string;
-    value?: string;
-    onPress?: () => void;
-  }) {
-    return (
-      <Pressable
-        style={({ pressed }) => [
-          profileStyles.settingsItem,
-          { opacity: pressed ? 0.8 : 1 },
-        ]}
-        onPress={onPress}
-      >
-        <View style={profileStyles.settingsItemLeft}>
-          <Ionicons
-            name={icon}
-            size={20}
-            color="#FFFFFF"
-            style={profileStyles.settingsItemIcon}
-          />
-          <Text style={profileStyles.settingsItemLabel}>{label}</Text>
-        </View>
-        <View style={profileStyles.settingsItemRight}>
-          {value && <Text style={profileStyles.settingsItemValue}>{value}</Text>}
-          <Ionicons
-            name="chevron-forward"
-            size={20}
-            color="rgba(255,255,255,0.75)"
-          />
-        </View>
-      </Pressable>
-    );
-  });
+  const displayName =
+    user?.firstName && user?.lastName
+      ? `${user.firstName} ${user.lastName}`
+      : user?.firstName ?? user?.email ?? 'User';
 
   const handleSignOut = async () => {
-    try {
-      await signOut();
-    } catch (e) {
-      console.error('Sign out failed:', e);
-    }
+    await signOut();
+    clearUser();
+    router.replace('/(auth)/sign-in' as any);
   };
 
+  const containerStyle = [
+    styles.container,
+    Platform.OS === 'web' && styles.webContainer,
+  ];
+
   return (
-    <ScreenGradient style={profileStyles.container}>
-      {/* Header */}
-      <View style={[profileStyles.headerContainer, isLandscape && { paddingHorizontal: 16 }]}>
-        <Text style={profileStyles.title}>Profile</Text>
-      </View>
-
-      {/* Main Content */}
-      {isLandscape ? (
-        <View style={{ flex: 1, flexDirection: 'row', paddingTop: 16 }}>
-          {/* Left Column */}
-          <ScrollView style={{ flex: 0.4, paddingRight: 8 }} showsVerticalScrollIndicator={false}>
-            {/* User Info Card */}
-            <View style={profileStyles.userInfoCard}>
-              {/* Avatar */}
-              <View style={profileStyles.avatar}>
-                <Ionicons name="person" size={48} color="#FFFFFF" />
-              </View>
-
-              {/* User Details */}
-              <Text style={profileStyles.userName}>{user?.displayName || 'User'}</Text>
-              {user?.email && (
-                <Text style={profileStyles.userLevel}>{user.email}</Text>
-              )}
-            </View>
-
-            {/* Learning Section */}
-            <View style={profileStyles.section}>
-              <Text style={profileStyles.sectionTitle}>Learning</Text>
-              <View style={profileStyles.sectionCard}>
-                <SettingsItem
-                  icon="musical-notes"
-                  label="Instrument"
-                  value={selectedInstrument || 'Select'}
-                  onPress={() => router.push('/select/instrument')}
-                />
-                <View style={profileStyles.divider} />
-                <SettingsItem
-                  icon="bar-chart"
-                  label="Level"
-                  value={selectedLevel || 'Select'}
-                  onPress={() => router.push('/select/level')}
-                />
-              </View>
-            </View>
-          </ScrollView>
-
-          {/* Right Column */}
-          <ScrollView style={{ flex: 0.6, paddingLeft: 8 }} showsVerticalScrollIndicator={false}>
-            {/* Theme Picker Section */}
-            <View style={profileStyles.section}>
-              <Text style={profileStyles.sectionTitle}>Theme</Text>
-              <View style={profileStyles.themesContainer}>
-                <View style={profileStyles.themesGrid}>
-                  {Object.values(THEMES)
-                    .filter((t) => t.id !== 'custom')
-                    .map((t) => (
-                      <Pressable
-                        key={t.id}
-                        onPress={() => setTheme(t.id as ThemeId)}
-                        style={{ alignItems: 'center' }}
-                      >
-                        <View
-                          style={[
-                            profileStyles.themeSwatch,
-                            { backgroundColor: t.bgPrimary },
-                            theme.id === t.id && profileStyles.themeSwatchActive,
-                          ]}
-                        >
-                          {theme.id === t.id && (
-                            <Ionicons name="checkmark" size={24} color="#FFFFFF" />
-                          )}
-                        </View>
-                        <Text style={profileStyles.themeLabel}>{t.label}</Text>
-                      </Pressable>
-                    ))}
-                  <Pressable
-                    onPress={() => setShowColorPicker(true)}
-                    style={{ alignItems: 'center' }}
-                  >
-                    <View
-                      style={[
-                        profileStyles.themeSwatch,
-                        profileStyles.swatchCustom,
-                      ]}
-                    >
-                      <Ionicons
-                        name="color-palette-outline"
-                        size={20}
-                        color={theme.textPrimary}
-                      />
-                    </View>
-                    <Text style={profileStyles.themeLabel}>Custom</Text>
-                  </Pressable>
-                </View>
-              </View>
-            </View>
-
-            {/* Genres Section */}
-            {genres && genres.length > 0 && (
-              <View style={profileStyles.section}>
-                <Text style={profileStyles.sectionTitle}>Preferred Genres</Text>
-                <View style={profileStyles.genresContainer}>
-                  {genres.map((genre) => (
-                    <View key={genre} style={profileStyles.genresPill}>
-                      <Text style={profileStyles.genresPillText}>{genre}</Text>
-                    </View>
-                  ))}
-                </View>
+    <SafeAreaView style={[styles.flex, { backgroundColor: theme.background }]}>
+      <ScrollView
+        style={styles.flex}
+        contentContainerStyle={containerStyle}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Avatar + identity */}
+        <View style={styles.profileHeader}>
+          <Avatar name={displayName} size={72} />
+          <View style={styles.profileInfo}>
+            <Text style={[styles.displayName, { color: theme.textPrimary }]}>{displayName}</Text>
+            {trustTier === 'verified' && (
+              <View style={[styles.tierBadge, { backgroundColor: theme.primary, borderRadius: Radius.full }]}>
+                <Text style={[styles.tierText, { color: theme.textOnPrimary }]}>✓ Verified</Text>
               </View>
             )}
-
-            {/* Sign Out */}
-            <Pressable
-              style={({ pressed }) => [
-                profileStyles.settingsItem,
-                { marginTop: 16, opacity: pressed ? 0.8 : 1 },
-              ]}
-              onPress={handleSignOut}
-            >
-              <View style={profileStyles.settingsItemLeft}>
-                <Ionicons name="log-out" size={20} color="#FF6B6B" />
-                <Text style={[profileStyles.settingsItemLabel, { color: '#FF6B6B' }]}>Sign Out</Text>
+            {trustTier === 'trusted' && (
+              <View style={[styles.tierBadge, { backgroundColor: theme.surface, borderRadius: Radius.full, borderWidth: 1, borderColor: theme.border }]}>
+                <Text style={[styles.tierText, { color: theme.textSecondary }]}>Creator</Text>
               </View>
-            </Pressable>
-          </ScrollView>
-        </View>
-      ) : (
-        <ScrollView
-          style={profileStyles.mainContent}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 100 }}
-        >
-        {/* User Info Card */}
-        <View style={profileStyles.userInfoCard}>
-          {/* Avatar */}
-          <View style={profileStyles.avatar}>
-            <Ionicons name="person" size={48} color="#FFFFFF" />
-          </View>
-
-          {/* User Details */}
-          <Text style={profileStyles.userName}>{user?.displayName || 'User'}</Text>
-          {user?.email && (
-            <Text style={profileStyles.userLevel}>{user.email}</Text>
-          )}
-        </View>
-
-        {/* Learning Section */}
-        <View style={profileStyles.section}>
-          <Text style={profileStyles.sectionTitle}>Learning</Text>
-          <View style={profileStyles.sectionCard}>
-            <SettingsItem
-              icon="musical-notes"
-              label="Instrument"
-              value={selectedInstrument || 'Select'}
-              onPress={() => router.push('/select/instrument')}
-            />
-            <View style={profileStyles.divider} />
-            <SettingsItem
-              icon="bar-chart"
-              label="Level"
-              value={selectedLevel || 'Select'}
-              onPress={() => router.push('/select/level')}
-            />
+            )}
           </View>
         </View>
 
-        {/* Theme Picker Section */}
-        <View style={profileStyles.section}>
-          <Text style={profileStyles.sectionTitle}>Theme</Text>
-          <View style={profileStyles.themesContainer}>
-            <View style={profileStyles.themesGrid}>
-              {Object.values(THEMES)
-                .filter((t) => t.id !== 'custom')
-                .map((t) => (
-                  <Pressable
-                    key={t.id}
-                    onPress={() => setTheme(t.id as ThemeId)}
-                    style={{ alignItems: 'center' }}
-                  >
-                    <View
-                      style={[
-                        profileStyles.themeSwatch,
-                        { backgroundColor: t.bgPrimary },
-                        theme.id === t.id && profileStyles.themeSwatchActive,
-                      ]}
-                    >
-                      {theme.id === t.id && (
-                        <Ionicons name="checkmark" size={24} color="#FFFFFF" />
-                      )}
-                    </View>
-                    <Text style={profileStyles.themeLabel}>{t.label}</Text>
-                  </Pressable>
-                ))}
-              <Pressable
-                onPress={() => setShowColorPicker(true)}
-                style={{ alignItems: 'center' }}
-              >
-                <View
+        {/* Stats row */}
+        <View style={styles.statsRow}>
+          {[
+            { label: 'Lessons', value: '0' },
+            { label: 'Minutes', value: '0' },
+            { label: 'Streak', value: '0' },
+            { label: 'Following', value: '0' },
+          ].map((stat) => (
+            <View key={stat.label} style={[styles.statCard, { backgroundColor: theme.surface, borderRadius: Radius.lg }]}>
+              <Text style={[styles.statValue, { color: theme.textPrimary }]}>{stat.value}</Text>
+              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>{stat.label}</Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Theme section */}
+        <View style={[styles.section, { backgroundColor: theme.surface, borderRadius: Radius.lg }]}>
+          <Text style={[styles.sectionLabel, { color: theme.textDisabled }]}>THEME</Text>
+
+          {/* Standard swatches */}
+          <View style={styles.swatchRow}>
+            {STANDARD_THEMES.map((t) => (
+              <TouchableOpacity
+                key={t.id}
+                onPress={() => setTheme(t.id)}
+                style={[
+                  styles.swatch,
+                  { backgroundColor: t.primary, borderRadius: 22 },
+                  selectedTheme === t.id && {
+                    borderWidth: 3,
+                    borderColor: theme.textPrimary,
+                    transform: [{ scale: 1.15 }],
+                  },
+                ]}
+              />
+            ))}
+            <TouchableOpacity
+              onPress={() => { setSelectedHex(theme.primary); setShowColorPicker(true); }}
+              style={[
+                styles.swatch,
+                {
+                  backgroundColor: theme.surfaceHigh,
+                  borderRadius: 22,
+                  borderWidth: 1,
+                  borderColor: theme.border,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                },
+                selectedTheme === 'custom' && {
+                  borderWidth: 3,
+                  borderColor: theme.textPrimary,
+                  transform: [{ scale: 1.15 }],
+                },
+              ]}
+            >
+              <Ionicons name="color-palette-outline" size={18} color={theme.textSecondary} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Seasonal themes */}
+          <Text style={[styles.seasonalLabel, { color: theme.textDisabled }]}>SEASONAL 🎉</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.seasonalRow}
+          >
+            {SEASONAL_THEMES.map((t) => {
+              const isActive = selectedTheme === t.id;
+              return (
+                <TouchableOpacity
+                  key={t.id}
+                  onPress={() => setTheme(t.id)}
                   style={[
-                    profileStyles.themeSwatch,
-                    profileStyles.swatchCustom,
+                    styles.seasonalCard,
+                    {
+                      borderRadius: Radius.lg,
+                      borderWidth: isActive ? 2 : 1,
+                      borderColor: isActive ? theme.textPrimary : theme.border,
+                      overflow: 'hidden',
+                    },
                   ]}
                 >
-                  <Ionicons
-                    name="color-palette-outline"
-                    size={20}
-                    color={theme.textPrimary}
-                  />
-                </View>
-                <Text style={profileStyles.themeLabel}>Custom</Text>
-              </Pressable>
-            </View>
-          </View>
+                  {t.id === 'holi' ? (
+                    <HoliGradient style={styles.seasonalGradient}>
+                      <Text style={styles.seasonalEmoji}>{t.seasonalEmoji}</Text>
+                      <Text style={[styles.seasonalCardLabel, { color: theme.textOnPrimary }]}>{t.label}</Text>
+                    </HoliGradient>
+                  ) : (
+                    <LinearGradient
+                      colors={[t.gradient[0], t.gradient[2]]}
+                      style={styles.seasonalGradient}
+                    >
+                      <Text style={styles.seasonalEmoji}>{t.seasonalEmoji}</Text>
+                      <Text style={[styles.seasonalCardLabel, { color: theme.textOnPrimary }]}>{t.label}</Text>
+                    </LinearGradient>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
         </View>
 
-        {/* Genres Section */}
-        {genres && genres.length > 0 && (
-          <View style={profileStyles.section}>
-            <Text style={profileStyles.sectionTitle}>Preferred Genres</Text>
-            <View style={profileStyles.genresContainer}>
-              {genres.map((genre) => (
-                <View key={genre} style={profileStyles.genresPill}>
-                  <Text style={profileStyles.genresPillText}>{genre}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        )}
+        {/* Preferences section */}
+        <View style={[styles.section, { backgroundColor: theme.surface, borderRadius: Radius.lg }]}>
+          <Text style={[styles.sectionLabel, { color: theme.textDisabled }]}>PREFERENCES</Text>
+          <TouchableOpacity
+            style={[styles.prefRow, { borderBottomColor: theme.border }]}
+            onPress={() => router.push('/select/instrument' as any)}
+          >
+            <Text style={[styles.prefLabel, { color: theme.textPrimary }]}>Instrument</Text>
+            <Ionicons name="chevron-forward" size={18} color={theme.textDisabled} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.prefRow}
+            onPress={() => router.push('/select/level' as any)}
+          >
+            <Text style={[styles.prefLabel, { color: theme.textPrimary }]}>Level</Text>
+            <Ionicons name="chevron-forward" size={18} color={theme.textDisabled} />
+          </TouchableOpacity>
+        </View>
 
-        {/* Tutor Section */}
-        {user?.roles?.includes('tutor') ? (
-          <View style={profileStyles.section}>
-            <Text style={profileStyles.sectionTitle}>Tutor</Text>
-            <View style={profileStyles.sectionCard}>
-              <SettingsItem
-                icon="cloud-upload-outline"
-                label="Tutor Portal"
-                onPress={() => router.push('/tutor/upload')}
-              />
-              <View style={profileStyles.divider} />
-              <SettingsItem
-                icon="list-outline"
-                label="My Lessons"
-                onPress={() => {}} // TODO: implement my lessons view
-              />
-            </View>
-          </View>
-        ) : (
-          <View style={profileStyles.section}>
-            <Pressable
-              style={profileStyles.settingsItem}
-              onPress={() => router.push('/tutor/apply')}
+        {/* Account section */}
+        <View style={[styles.section, { backgroundColor: theme.surface, borderRadius: Radius.lg }]}>
+          <Text style={[styles.sectionLabel, { color: theme.textDisabled }]}>ACCOUNT</Text>
+          {isAdmin && (
+            <TouchableOpacity
+              style={[styles.prefRow, { borderBottomColor: theme.border }]}
+              onPress={() => router.push('/admin' as any)}
             >
-              <View style={profileStyles.settingsItemLeft}>
-                <Ionicons
-                  name="school-outline"
-                  size={20}
-                  color="#FFFFFF"
-                />
-                <Text style={profileStyles.settingsItemLabel}>Become a Tutor</Text>
-              </View>
-              <Ionicons
-                name="chevron-forward"
-                size={20}
-                color="rgba(255,255,255,0.75)"
-              />
-            </Pressable>
-          </View>
-        )}
+              <Text style={[styles.prefLabel, { color: theme.textPrimary }]}>Admin Dashboard</Text>
+              <Ionicons name="chevron-forward" size={18} color={theme.textDisabled} />
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity style={styles.prefRow} onPress={handleSignOut}>
+            <Text style={[styles.prefLabel, { color: theme.error }]}>Sign Out</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
 
-        {/* Sign Out Button */}
-        <Pressable
-          onPress={handleSignOut}
-          style={({ pressed }) => [
-            profileStyles.signOutButton,
-            { opacity: pressed ? 0.8 : 1 },
-          ]}
-        >
-          <Text style={profileStyles.signOutButtonText}>Sign Out</Text>
-        </Pressable>
-        </ScrollView>
-      )}
-
-      {/* Color Picker Modal */}
+      {/* Color picker modal */}
       <Modal
         visible={showColorPicker}
         transparent
         animationType="slide"
+        onRequestClose={() => setShowColorPicker(false)}
       >
-        <View style={profileStyles.colorPickerOverlay}>
-          <View
-            style={[
-              profileStyles.colorPickerSheet,
-              { backgroundColor: theme.modalBg },
-            ]}
-          >
-            <Text style={profileStyles.colorPickerTitle}>
-              Choose Your Color
+        <View style={[styles.pickerOverlay, { backgroundColor: theme.overlay }]}>
+          <View style={[styles.pickerSheet, { backgroundColor: theme.modalBg }]}>
+            <View style={[styles.handle, { backgroundColor: theme.border }]} />
+            <Text style={[styles.pickerTitle, { color: theme.textPrimary }]}>
+              🎨 Pick your color
             </Text>
 
-            <View style={profileStyles.colorGrid}>
-              {CUSTOM_COLORS.map((color) => (
-                <Pressable
-                  key={color}
-                  style={[
-                    profileStyles.colorDot,
-                    { backgroundColor: color },
-                    customColor === color && profileStyles.colorDotSelected,
-                  ]}
-                  onPress={() => {
-                    setCustomColor(color);
-                    applyCustomTheme(color);
-                    setShowColorPicker(false);
-                  }}
-                />
-              ))}
-            </View>
-
-            <Pressable
-              style={profileStyles.colorPickerClose}
-              onPress={() => setShowColorPicker(false)}
+            <ColorPicker
+              style={{ width: '100%' }}
+              value={selectedHex}
+              onComplete={({ hex }) => setSelectedHex(hex)}
             >
-              <Text style={profileStyles.colorPickerCloseText}>Cancel</Text>
-            </Pressable>
+              <Preview
+                style={{
+                  height: 52,
+                  borderRadius: Radius.md,
+                  marginBottom: Spacing.md,
+                }}
+              />
+              <Panel1
+                style={{
+                  height: 160,
+                  borderRadius: Radius.md,
+                  marginBottom: Spacing.md,
+                }}
+              />
+              <HueSlider
+                style={{
+                  borderRadius: Radius.full,
+                  marginBottom: Spacing.md,
+                }}
+              />
+              <Swatches
+                style={{ marginBottom: Spacing.lg }}
+                swatchStyle={{
+                  borderRadius: Radius.full,
+                  width: 28,
+                  height: 28,
+                }}
+                colors={Array.from(
+                  new Set(
+                    [...STANDARD_THEMES, ...SEASONAL_THEMES].map((t) => t.primary)
+                  )
+                )}
+              />
+            </ColorPicker>
+
+            <View style={styles.pickerBtns}>
+              <TouchableOpacity
+                style={[styles.cancelBtn, { borderColor: theme.border }]}
+                onPress={() => setShowColorPicker(false)}
+              >
+                <Text style={{ color: theme.textSecondary, fontSize: FontSize.md }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.applyBtn, { backgroundColor: selectedHex }]}
+                onPress={() => {
+                  setTheme('custom', {
+                    primary: selectedHex,
+                    primaryLight: selectedHex,
+                    primaryDark: selectedHex,
+                    gradient: [selectedHex, selectedHex, selectedHex, selectedHex] as [
+                      string,
+                      string,
+                      string,
+                      string,
+                    ],
+                  });
+                  setShowColorPicker(false);
+                }}
+              >
+                <Text style={{ color: theme.textOnPrimary, fontSize: FontSize.md, fontWeight: '700' }}>
+                  Apply →
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
-
-      <BottomTabBar activeTab="profile" />
-    </ScreenGradient>
+    </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  flex: {
+    flex: 1,
+  },
+  container: {
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.xxxl,
+    gap: Spacing.lg,
+  },
+  webContainer: {
+    maxWidth: WEB_CONTENT_MAX,
+    alignSelf: 'center',
+    width: '100%',
+  },
+  profileHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.lg,
+    paddingTop: Spacing.lg,
+  },
+  profileInfo: {
+    flex: 1,
+    gap: Spacing.sm,
+  },
+  displayName: {
+    fontSize: FontSize.xl,
+    fontWeight: 'bold',
+  },
+  tierBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+  },
+  tierText: {
+    fontSize: FontSize.xs,
+    fontWeight: '700',
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  statCard: {
+    flex: 1,
+    padding: Spacing.md,
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  statValue: {
+    fontSize: FontSize.xl,
+    fontWeight: 'bold',
+  },
+  statLabel: {
+    fontSize: FontSize.xs,
+  },
+  section: {
+    padding: Spacing.lg,
+    gap: Spacing.md,
+  },
+  sectionLabel: {
+    fontSize: FontSize.xs,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    fontWeight: '600',
+  },
+  swatchRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+  },
+  swatch: {
+    width: 44,
+    height: 44,
+  },
+  seasonalLabel: {
+    fontSize: FontSize.xs,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    fontWeight: '600',
+    marginTop: Spacing.sm,
+  },
+  seasonalRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    paddingRight: Spacing.lg,
+  },
+  seasonalCard: {
+    width: 80,
+    height: 80,
+    overflow: 'hidden',
+  },
+  seasonalGradient: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  seasonalEmoji: {
+    fontSize: FontSize.xl,
+  },
+  seasonalCardLabel: {
+    fontSize: FontSize.xs,
+    fontWeight: '600',
+  },
+  prefRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 0,
+  },
+  prefLabel: {
+    fontSize: FontSize.md,
+  },
+  pickerOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  pickerSheet: {
+    borderTopLeftRadius: Radius.xl,
+    borderTopRightRadius: Radius.xl,
+    padding: Spacing.xl,
+    paddingBottom: Spacing.xxxl,
+  },
+  handle: {
+    width: Spacing.xxxl - Spacing.md,
+    height: Spacing.xs,
+    borderRadius: Radius.sm,
+    alignSelf: 'center',
+    marginBottom: Spacing.lg,
+  },
+  pickerTitle: {
+    fontSize: FontSize.lg,
+    fontWeight: '700',
+    marginBottom: Spacing.lg,
+    textAlign: 'center',
+  },
+  pickerBtns: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+  },
+  cancelBtn: {
+    flex: 1,
+    paddingVertical: Spacing.md,
+    borderRadius: Radius.lg,
+    borderWidth: 0.5,
+    alignItems: 'center',
+  },
+  applyBtn: {
+    flex: 2,
+    paddingVertical: Spacing.md,
+    borderRadius: Radius.lg,
+    alignItems: 'center',
+  },
+});

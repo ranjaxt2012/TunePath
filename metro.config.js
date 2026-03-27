@@ -11,6 +11,17 @@ videoExts.forEach((ext) => {
   }
 });
 
+// Allow Metro to transform .mjs files (e.g. @clerk/shared uses import.meta in .mjs)
+config.resolver.sourceExts = [
+  ...config.resolver.sourceExts,
+  'mjs',
+];
+
+config.transformer = {
+  ...config.transformer,
+  unstable_allowRequireContext: true,
+};
+
 // Ensure content folder is watched and resolvable
 config.watchFolders = [
   ...(config.watchFolders || []),

@@ -1,44 +1,59 @@
-/**
- * Lesson Player Screen — layout matches sign-in: safeAreaContainer → container → full-width content.
- * Uses expo-video for video playback (SDK 55+).
- */
-
-import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  Alert,
-  ActivityIndicator,
-} from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { View, ActivityIndicator, Text, StyleSheet, Platform, TouchableOpacity, Alert } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as ScreenOrientation from 'expo-screen-orientation';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useLocalSearchParams } from 'expo-router';
-import { CompleteCheckbox } from '@/src/components/common/CompleteCheckbox';
-import { ScreenGradient } from '@/src/components/common/ScreenGradient';
-import type { NotationMode } from '@/src/types/models';
-import { useCourse } from '@/src/hooks/useCourse';
+import { useTheme, FontSize, Spacing } from '@/src/design';
 import { useLesson } from '@/src/hooks/useLesson';
-import { useNotation } from '@/src/hooks/useNotation';
-import { getPlugin } from '@/src/registry/instrumentRegistry';
-import { getLessonProgress, saveProgress } from '@/src/services/apiClient';
 import { useAuthStore } from '@/src/store/authStore';
 import { useProgressStore } from '@/src/store/progressStore';
-import { useTheme } from '@/src/contexts/ThemeContext';
-import { lessonPlayerStyles } from '@/src/styles/lessonPlayerStyles';
-
+import { getPlayer } from '@/src/instruments/registry';
+import { Log } from '@/src/utils/log';
+import { api, setAuthToken, deleteLesson } from '@/src/services/api';
+import { useAuth } from '@clerk/clerk-expo';
+import { Ionicons } from '@expo/vector-icons';
+import type { LessonProcessingState } from '@/src/types/models';
 
 export default function LessonPlayerScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const { user } = useAuthStore();
   const { theme } = useTheme();
-  const { lesson, loading, error } = useLesson(id);
-  const { course } = useCourse(lesson?.course_id ?? undefined);
-  const { isComplete, setComplete, setCompletionFromApi } = useProgressStore();
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
+  const isAdmin = useAuthStore((s) => s.isAdmin);
+  const dbUserId = useAuthStore((s) => s.dbUserId);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [lessonRefreshKey, setLessonRefreshKey] = useState(0);
+  const lastProcessingStatusRef = useRef<string | null>(null);
+  const statusPollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const terminalReachedRef = useRef(false);
+  const lessonRefreshTriggeredRef = useRef(false);
+  const { lesson, notes, loading, error } = useLesson(id, lessonRefreshKey);
+  const { getToken } = useAuth();
+  const getTokenRef = useRef(getToken);
+  const pollInFlightRef = useRef(false);
 
-  // Allow landscape only on the lesson screen.
+  // Keep latest getToken function without re-running polling effects.
   useEffect(() => {
+    getTokenRef.current = getToken;
+  }, [getToken]);
+  const [processingStatus, setProcessingStatus] = useState<string | null>(null);
+
+  const canEdit = useMemo(() => {
+    if (!lesson || !dbUserId) return false;
+    return isAdmin || lesson.tutor_id === dbUserId;
+  }, [lesson, dbUserId, isAdmin]);
+
+  useEffect(() => {
+    Log.nav('opening lesson', { id });
+  }, [id]);
+
+  useEffect(() => {
+    if (lesson) {
+      Log.player('lesson loaded', { title: lesson.title });
+    }
+  }, [lesson]);
+
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+
     void ScreenOrientation.unlockAsync();
     return () => {
       void ScreenOrientation.lockAsync(
@@ -47,249 +62,206 @@ export default function LessonPlayerScreen() {
     };
   }, []);
 
-  const lessonIds = lesson
-    ? (course?.lessons?.map((l) => l.id) ?? [lesson.id])
-    : undefined;
-  const currentLessonIndex =
-    lesson && course?.lessons
-      ? Math.max(0, course.lessons.findIndex((l) => l.id === lesson.id))
-      : 0;
-
-  const [positionMs] = useState(0);
-  const [durationMs] = useState(0);
-  const [completeLoading, setCompleteLoading] = useState(false);
-  const modes = useMemo(
-    () => (lesson?.instrument_notation_modes ?? ['sargam']) as NotationMode[],
-    [lesson?.instrument_notation_modes]
-  );
-  const defaultMode = modes[0] ?? 'sargam';
-  const [notationMode, setNotationMode] = useState<NotationMode>(defaultMode);
-
-  const lessonComplete = lesson ? isComplete(lesson.id) : false;
-
-  // Load completion state from API when lesson loads
   useEffect(() => {
-    if (!user || !lesson?.id) return;
-    getLessonProgress(lesson.id).then((p) => {
-      if (p) setCompletionFromApi(lesson.id, p.status === 'completed');
-    });
-  }, [lesson?.id, user, setCompletionFromApi]);
+    if (!id) return;
 
-  // Sync notationMode when lesson loads with a different instrument
-  useEffect(() => {
-    if (lesson && modes.length > 0 && !modes.includes(notationMode)) {
-      setNotationMode(defaultMode);
+    // Reset per-lesson polling state.
+    lastProcessingStatusRef.current = null;
+    terminalReachedRef.current = false;
+    lessonRefreshTriggeredRef.current = false;
+    setProcessingStatus(null);
+
+    let mounted = true;
+    const terminalStatuses = new Set(['review_ready', 'published', 'failed']);
+    const isTerminal = (s: string | null) => (s ? terminalStatuses.has(s) : false);
+
+    // Prevent multiple concurrent intervals if React remounts in dev.
+    if (statusPollIntervalRef.current) {
+      clearInterval(statusPollIntervalRef.current);
+      statusPollIntervalRef.current = null;
     }
-  }, [lesson, defaultMode, modes, notationMode]);
 
-  const progressRef = useRef({ positionMs: 0, durationMs: 0 });
-  progressRef.current = { positionMs, durationMs };
+    const poll = async () => {
+      if (!mounted) return;
+      if (terminalReachedRef.current) return;
+      if (pollInFlightRef.current) return;
+      pollInFlightRef.current = true;
+      try {
+        const token = await getTokenRef.current();
+        setAuthToken(token);
+        const data = await api.get<LessonProcessingState>(`/api/tutor/lessons/${id}/status`);
+        if (!mounted) return;
 
-  const { notes, loading: notationLoading, error: notationError } = useNotation(lesson?.notation_url ?? null);
+        const prev = lastProcessingStatusRef.current;
+        lastProcessingStatusRef.current = data.status;
+        setProcessingStatus(data.status);
+        Log.api('lesson status poll', {
+          lessonId: id,
+          status: data.status,
+          stage_label: data.stage_label,
+          progress: data.progress_percent,
+        });
 
-  // Auto-check when video reaches end
-  useEffect(() => {
-    if (!user || !lesson || lessonComplete || durationMs <= 0) return;
-    if (positionMs >= durationMs - 500) {
-      setComplete(lesson.id, true);
-      void saveProgress({
-        lesson_id: lesson.id,
-        course_id: lesson.course_id ?? null,
-        watch_percent: 100,
-        last_position_seconds: Math.floor(durationMs / 1000),
-      });
-    }
-  }, [user, lesson, lessonComplete, positionMs, durationMs, setComplete]);
+        // Only once: when we transition to terminal, refresh lesson notation payload.
+        if (!lessonRefreshTriggeredRef.current && !isTerminal(prev) && isTerminal(data.status)) {
+          lessonRefreshTriggeredRef.current = true;
+          setLessonRefreshKey((k) => k + 1);
+        }
 
-  const handleSaveProgress = useCallback(async (completed = false) => {
-    if (!user || !lesson) return;
-    const { positionMs: pos, durationMs: dur } = progressRef.current;
-    const watchPercent = dur > 0 ? Math.round((pos / dur) * 100) : 0;
-    try {
-      await saveProgress({
-        lesson_id: lesson.id,
-        course_id: lesson.course_id ?? null,
-        watch_percent: completed ? 100 : watchPercent,
-        last_position_seconds: Math.floor(pos / 1000),
-      });
-    } catch {
-      // Progress save is best-effort
-    }
-  }, [user, lesson]);
-
-  const handleCompleteToggle = useCallback(async () => {
-    if (!user || !lesson) return;
-    const nextComplete = !lessonComplete;
-    const prevComplete = lessonComplete;
-    setComplete(lesson.id, nextComplete);
-    setCompleteLoading(true);
-    const { positionMs: pos, durationMs: dur } = progressRef.current;
-    const watchPercent = dur > 0 ? Math.round((pos / dur) * 100) : 0;
-    try {
-      await saveProgress({
-        lesson_id: lesson.id,
-        course_id: lesson.course_id ?? null,
-        watch_percent: nextComplete ? 100 : watchPercent,
-        last_position_seconds: Math.floor(pos / 1000),
-      });
-    } catch {
-      setComplete(lesson.id, prevComplete);
-      Alert.alert('Error', 'Could not update completion. Please try again.');
-    } finally {
-      setCompleteLoading(false);
-    }
-  }, [user, lesson, lessonComplete, setComplete]);
-
-  useEffect(() => {
-    return () => {
-      void handleSaveProgress();
+        if (isTerminal(data.status)) {
+          terminalReachedRef.current = true;
+          if (statusPollIntervalRef.current) {
+            clearInterval(statusPollIntervalRef.current);
+            statusPollIntervalRef.current = null;
+          }
+        }
+      } catch (e: unknown) {
+        // Status endpoint is tutor-scoped; silently ignore 404s (non-tutors, or deleted lesson).
+        if (/404|not found/i.test(String((e as Error)?.message ?? ''))) return;
+        Log.apiError('lesson status poll failed', { lessonId: id });
+      } finally {
+        pollInFlightRef.current = false;
+      }
     };
-  }, [handleSaveProgress]);
+
+    void poll();
+    statusPollIntervalRef.current = setInterval(() => {
+      void poll();
+    }, 5000);
+
+    return () => {
+      mounted = false;
+      if (statusPollIntervalRef.current) {
+        clearInterval(statusPollIntervalRef.current);
+        statusPollIntervalRef.current = null;
+      }
+    };
+  }, [id]);
+
+  const handleDelete = async () => {
+    if (!id) return;
+    // Stop the status poller immediately — prevents 404 noise and state
+    // updates on the (soon-to-be-gone) lesson during the delete + navigation.
+    terminalReachedRef.current = true;
+    if (statusPollIntervalRef.current) {
+      clearInterval(statusPollIntervalRef.current);
+      statusPollIntervalRef.current = null;
+    }
+    setIsDeleting(true);
+    try {
+      const token = await getToken();
+      setAuthToken(token);
+      await deleteLesson(id);
+      Log.api('lesson deleted', { id });
+      router.back();
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Could not delete lesson';
+      Log.apiError('lesson delete failed', { id, message: msg });
+      // Re-arm the poller guard so it can resume if the user stays on screen.
+      terminalReachedRef.current = false;
+      Alert.alert('Delete failed', msg);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const confirmDelete = () => {
+    Alert.alert(
+      'Delete lesson?',
+      'This will permanently delete this lesson and cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: handleDelete },
+      ]
+    );
+  };
+
+  const showProcessingWatermark =
+    processingStatus !== null &&
+    processingStatus !== 'review_ready' &&
+    processingStatus !== 'published' &&
+    processingStatus !== 'failed';
 
   if (loading) {
     return (
-      <ScreenGradient style={lessonPlayerStyles.safeAreaContainer}>
-        <SafeAreaView edges={['top']} style={{ flex: 1 }}>
-          <View style={lessonPlayerStyles.container}>
-            <View style={lessonPlayerStyles.center}>
-              <Text style={lessonPlayerStyles.mutedText}>Loading...</Text>
-            </View>
-          </View>
-        </SafeAreaView>
-      </ScreenGradient>
+      <View style={[styles.centered, { backgroundColor: theme.background }]}>
+        <ActivityIndicator size="large" color={theme.primary} />
+      </View>
     );
   }
 
   if (error || !lesson) {
     return (
-      <ScreenGradient style={lessonPlayerStyles.safeAreaContainer}>
-        <SafeAreaView edges={['top']} style={{ flex: 1 }}>
-          <View style={lessonPlayerStyles.container}>
-            <View style={lessonPlayerStyles.center}>
-              <Text style={lessonPlayerStyles.errorText}>
-                {error ?? 'Lesson not found'}
-              </Text>
-            </View>
-          </View>
-        </SafeAreaView>
-      </ScreenGradient>
+      <View style={[styles.centered, { backgroundColor: theme.background }]}>
+        <Text style={[styles.errorText, { color: theme.error }]}>
+          {error ?? 'Lesson not found'}
+        </Text>
+      </View>
     );
   }
 
-  const plugin = getPlugin(lesson.instrument_slug ?? '');
+  const Player = getPlayer(lesson.instrument_slug ?? 'harmonium');
+
+  if (!Player) {
+    return (
+      <View style={[styles.centered, { backgroundColor: theme.background }]}>
+        <Text style={[styles.errorText, { color: theme.textSecondary }]}>
+          No player available for this instrument
+        </Text>
+      </View>
+    );
+  }
 
   return (
-    <ScreenGradient style={lessonPlayerStyles.safeAreaContainer}>
-      <SafeAreaView edges={['top']} style={{ flex: 1 }}>
-        <View style={lessonPlayerStyles.container}>
-          <View style={lessonPlayerStyles.header}>
-            <View style={lessonPlayerStyles.lessonTitleRow}>
-              <Text
-                style={[lessonPlayerStyles.videoTitle, lessonPlayerStyles.lessonTitleFlex, { textAlign: 'left' }]}
-                numberOfLines={1}
-                ellipsizeMode="tail"
-              >
-                {lesson.title}
-              </Text>
-              <View style={lessonPlayerStyles.checkboxWrap}>
-                <CompleteCheckbox
-                  isComplete={lessonComplete}
-                  onToggle={handleCompleteToggle}
-                  loading={completeLoading}
-                  compact
-                />
-              </View>
-            </View>
-          </View>
-
-          <ScrollView
-            style={lessonPlayerStyles.scroll}
-            contentContainerStyle={lessonPlayerStyles.scrollContent}
-            showsVerticalScrollIndicator={false}
-          >
-            {modes.length > 1 && (
-              <View style={lessonPlayerStyles.toggleContainer}>
-                {modes.map((mode) => (
-                  <TouchableOpacity
-                    key={mode}
-                    style={[
-                      lessonPlayerStyles.toggleOption,
-                      notationMode === mode && lessonPlayerStyles.toggleOptionActive,
-                    ]}
-                    onPress={() => setNotationMode(mode)}
-                  >
-                    <Text
-                      style={[
-                        lessonPlayerStyles.toggleOptionText,
-                        notationMode === mode &&
-                          lessonPlayerStyles.toggleOptionTextActive,
-                      ]}
-                    >
-                      {mode.charAt(0).toUpperCase() + mode.slice(1)}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-
-            {notationMode === 'sargam' && (
-              notationLoading ? (
-                <View style={lessonPlayerStyles.staffPlaceholder}>
-                  <ActivityIndicator size="small" color={theme.textSecondary} />
-                </View>
-              ) : notationError ? (
-                <View style={lessonPlayerStyles.staffPlaceholder}>
-                  <Text style={lessonPlayerStyles.mutedText}>
-                    Could not load notation: {notationError}
-                  </Text>
-                </View>
-              ) : !lesson?.notation_url ? (
-                <View style={lessonPlayerStyles.staffPlaceholder}>
-                  <Text style={lessonPlayerStyles.mutedText}>
-                    No notation available for this lesson
-                  </Text>
-                </View>
-              ) : notes.length === 0 ? (
-                <View style={lessonPlayerStyles.staffPlaceholder}>
-                  <Text style={lessonPlayerStyles.mutedText}>
-                    No notation sections in this lesson
-                  </Text>
-                </View>
-              ) : (() => {
-                if (!plugin) {
-                  return (
-                    <View style={lessonPlayerStyles.staffPlaceholder}>
-                      <Text style={lessonPlayerStyles.mutedText}>
-                        No player available for {lesson.instrument_slug}
-                      </Text>
-                    </View>
-                  );
-                }
-                const { PlayerScreen } = plugin;
-                return (
-                  <PlayerScreen
-                    lesson={lesson}
-                    notes={notes}
-                    onComplete={() => {}}
-                    onProgress={() => {}}
-                    lessonIds={lessonIds}
-                    currentLessonIndex={currentLessonIndex}
-                  />
-                );
-              })()
-            )}
-
-            {(notationMode === 'staff' || notationMode === 'tabs' ||
-              notationMode === 'chords' || notationMode === 'bols') && (
-              <View style={lessonPlayerStyles.staffPlaceholder}>
-                <Text style={lessonPlayerStyles.mutedText}>
-                  {notationMode.charAt(0).toUpperCase() + notationMode.slice(1)} notation coming soon
-                </Text>
-              </View>
-            )}
-          </ScrollView>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <Player lesson={lesson} notes={notes} isTutor={canEdit} />
+      {showProcessingWatermark && (
+        <View style={[styles.processingBadge, { backgroundColor: theme.overlay }]}>
+          <Text style={[styles.processingBadgeText, { color: theme.textOnPrimary }]}>
+            Under processing
+          </Text>
         </View>
-      </SafeAreaView>
-    </ScreenGradient>
+      )}
+
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorText: {
+    fontSize: FontSize.md,
+    textAlign: 'center',
+    paddingHorizontal: Spacing.xl,
+  },
+  processingBadge: {
+    position: 'absolute',
+    top: Spacing.lg,
+    right: Spacing.lg,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: 999,
+  },
+  processingBadgeText: {
+    fontSize: FontSize.xs,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  deleteBtn: {
+    position: 'absolute',
+    top: Spacing.lg,
+    left: Spacing.lg,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});

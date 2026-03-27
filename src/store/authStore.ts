@@ -1,43 +1,70 @@
 import { create } from 'zustand';
-import type { TunePathUser, ActiveMode } from '@/src/types/models';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+interface TunePathUser {
+  id: string;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  roles: string[];
+  isVerified: boolean;
+}
 
 interface AuthState {
   user: TunePathUser | null;
-  activeMode: ActiveMode;
-  selectedInstrumentSlug: string | null;
-  selectedLevelSlug: string | null;
-  selectedGenres: string[];
+  dbUserId: string | null;
   selectedTheme: string;
+  selectedInstrument: string;
+  selectedLevel: string;
+  hasOnboarded: boolean;
+  tourSeen: boolean;
+  trustTier: 'new' | 'trusted' | 'verified';
+  isAdmin: boolean;
+  uploadCount: number;
   setUser: (user: TunePathUser | null) => void;
-  setActiveMode: (mode: ActiveMode) => void;
+  setDbUserId: (id: string | null) => void;
+  setTheme: (theme: string) => void;
   setSelectedInstrument: (slug: string) => void;
   setSelectedLevel: (slug: string) => void;
-  setGenres: (genres: string[]) => void;
-  setTheme: (theme: string) => void;
-  clearAuth: () => void;
+  setHasOnboarded: (v: boolean) => void;
+  setTourSeen: (v: boolean) => void;
+  setTrustTier: (t: 'new' | 'trusted' | 'verified') => void;
+  setIsAdmin: (v: boolean) => void;
+  setUploadCount: (n: number) => void;
+  clearUser: () => void;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
-  user: null,
-  activeMode: 'learner',
-  selectedInstrumentSlug: null,
-  selectedLevelSlug: null,
-  selectedGenres: [],
-  selectedTheme: 'purple',
-  setUser: (user) => set({ user }),
-  setActiveMode: (mode) => set({ activeMode: mode }),
-  setSelectedInstrument: (slug) => set({ selectedInstrumentSlug: slug }),
-  setSelectedLevel: (slug) => set({ selectedLevelSlug: slug }),
-  setGenres: (genres) => set({ selectedGenres: genres }),
-  setTheme: (theme) => set({ selectedTheme: theme }),
-  clearAuth: () => set({
-    user: null,
-    activeMode: 'learner',
-    selectedInstrumentSlug: null,
-    selectedLevelSlug: null,
-    selectedGenres: [],
-    selectedTheme: 'purple',
-  }),
-}));
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set) => ({
+      user: null,
+      dbUserId: null,
+      selectedTheme: 'purple',
+      selectedInstrument: '',
+      selectedLevel: '',
+      hasOnboarded: false,
+      tourSeen: false,
+      trustTier: 'new',
+      isAdmin: false,
+      uploadCount: 0,
+      setUser: (user) => set({ user }),
+      setDbUserId: (dbUserId) => set({ dbUserId }),
+      setTheme: (selectedTheme) => set({ selectedTheme }),
+      setSelectedInstrument: (slug) => set({ selectedInstrument: slug }),
+      setSelectedLevel: (slug) => set({ selectedLevel: slug }),
+      setHasOnboarded: (hasOnboarded) => set({ hasOnboarded }),
+      setTourSeen: (tourSeen) => set({ tourSeen }),
+      setTrustTier: (trustTier) => set({ trustTier }),
+      setIsAdmin: (isAdmin) => set({ isAdmin }),
+      setUploadCount: (uploadCount) => set({ uploadCount }),
+      clearUser: () => set({ user: null, dbUserId: null, hasOnboarded: false, trustTier: 'new', isAdmin: false, uploadCount: 0 }),
+    }),
+    {
+      name: 'auth-store',
+      storage: createJSONStorage(() => AsyncStorage),
+    }
+  )
+);
 
 export type { TunePathUser };

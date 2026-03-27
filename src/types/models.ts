@@ -1,112 +1,73 @@
-export type UserRole = 'learner' | 'tutor' | 'contributor' | 'admin' | 'power_admin';
-export type ActiveMode = 'learner' | 'tutor' | 'admin';
-export type ContentStatus = 'draft' | 'in_review' | 'scheduled' | 'published' | 'archived';
-export type ProgressStatus = 'not_started' | 'in_progress' | 'completed';
-
-export type TunePathUser = {
-  id: string;
-  clerkUserId: string;
-  email: string;
-  displayName: string;
-  avatarUrl: string | null;
-  roles: UserRole[];
-  activeMode: string;
-  tutor_status?: 'none' | 'pending' | 'approved' | 'rejected';
-};
-
-export type NotationMode = 'sargam' | 'staff' | 'tabs' | 'chords' | 'bols';
-
-export type Instrument = {
-  id: string;
-  slug: string;
-  name: string;
-  icon_url: string | null;
-  sort_order: number;
-  notation_modes: NotationMode[];
-};
-
-export type Level = {
-  id: string;
-  slug: string;
-  name: string;
-  sort_order: number;
-};
-
-export type Course = {
-  id: string;
-  slug: string;
-  title: string;
-  description: string | null;
-  thumbnail_key: string | null;
-  instrument_slug: string;
-  level_slug: string;
-  is_free: boolean;
-  status: ContentStatus;
-  tutor_id: string;
-  sort_order: number;
-};
-
-export type LessonSummary = {
+export interface Lesson {
   id: string;
   title: string;
-  slug: string;
-  duration_seconds: number | null;
-  thumbnail_key: string | null;
-  is_free: boolean;
-  lesson_number: number | null;
-  sort_order: number;
-};
-
-// Alias used by LessonRow
-export type LessonListItem = LessonSummary;
-
-export type CourseDetail = Course & {
-  lessons: LessonSummary[];
-};
-
-export type LessonDetail = {
-  id: string;
-  slug: string;
-  title: string;
-  description: string | null;
-  tutor_id: string;
-  course_id: string | null;
-  lesson_number: number | null;
-  duration_seconds: number | null;
   video_url: string | null;
   thumbnail_url: string | null;
   notation_url: string | null;
-  youtube_url: string | null;
-  is_free: boolean;
-  instrument_slug: string | null;
-  instrument_notation_modes: NotationMode[];
-};
+  duration_seconds: number;
+  status: string;
+  creator_id: string;
+  /** Present for tutor-owned lessons; used to gate edit mode. */
+  tutor_id?: string;
+  creator_name?: string;
+  creator_verified?: boolean;
+  instrument_slug?: string;
+  level_slug?: string;
+  view_count: number;
+  like_count: number;
+  tags?: string[];
+}
 
-export type UserProgress = {
+export interface Course {
+  id: string;
+  title: string;
+  description?: string;
+  thumbnail_url?: string;
+  instrument_slug?: string;
+  level_slug?: string;
+  lesson_count?: number;
+  creator_name?: string;
+}
+
+export interface Creator {
+  id: string;
+  username?: string;
+  display_name: string;
+  avatar_url?: string;
+  is_verified: boolean;
+  bio?: string;
+  follower_count: number;
+  lesson_count: number;
+  whatsapp?: string;
+  email?: string;
+  website?: string;
+  youtube?: string;
+  instagram?: string;
+}
+
+export interface UserProgress {
   lesson_id: string;
-  status: ProgressStatus;
   watch_percent: number;
-  last_position_seconds: number;
-};
+  completed: boolean;
+  last_position: number;
+}
 
-export type ProgressSummary = {
-  total_practice_seconds: number;
-  completed_lessons: number;
-  recent_sessions: {
-    lesson_title: string;
-    duration_seconds: number;
-    started_at: string;
-  }[];
-  by_instrument: {
-    slug: string;
-    name: string;
-    percent: number;
-  }[];
-};
+export type LessonProcessingStatus =
+  | 'queued'
+  | 'uploaded'
+  | 'processing'
+  | 'detecting_pitches'
+  | 'transcribing_lyrics'
+  | 'finalising_notation'
+  | 'review_ready'
+  | 'published'
+  | 'failed';
 
-export type SaveProgressPayload = {
-  lesson_id: string;
-  course_id: string | null;
-  watch_percent: number;
-  last_position_seconds: number;
-};
+export interface LessonProcessingState {
+  status: LessonProcessingStatus;
+  source_type: 'direct_upload' | 'youtube';
+  stage_label: string;
+  progress_percent: number;
+  notation_draft: Record<string, unknown> | null;
+  error_message: string | null;
+}
