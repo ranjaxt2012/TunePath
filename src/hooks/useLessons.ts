@@ -31,7 +31,7 @@ export function useLessons(options: UseLessonsOptions = {}) {
       if (cancelled?.value) return;
       setAuthToken(token);
       const params = new URLSearchParams();
-      if (options.instrument) params.set('instrument', options.instrument);
+      if (options.instrument) params.set('instrument_slug', options.instrument);
       if (options.tag) params.set('tag', options.tag);
       if (options.sort) params.set('sort', options.sort);
       if (options.limit) params.set('limit', String(options.limit));
