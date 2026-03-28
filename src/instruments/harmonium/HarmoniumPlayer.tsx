@@ -125,8 +125,20 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
   // CRITICAL: no isPlaying or playbackSpeed in deps.
   // Use refs instead to avoid stale closures that caused the timer reset bug.
   const handlePlaybackStatus = useCallback(
-    (status: { isLoaded: boolean; isPlaying?: boolean; positionMillis?: number; durationMillis?: number }) => {
+    (status: { isLoaded: boolean; isPlaying?: boolean; positionMillis?: number; durationMillis?: number; didJustFinish?: boolean }) => {
       if (!status.isLoaded) return;
+
+      // Video reached the end — reset everything to the beginning.
+      if (status.didJustFinish) {
+        isPlayingRef.current = false;
+        setIsPlaying(false);
+        engineRef.current?.reset();   // stops sound + clears notation highlight
+        setCurrentTime(0);
+        currentTimeRef.current = 0;
+        videoRef.current?.seekTo(0);  // seek video back to start (web already did this in onEnded)
+        savePosition(lesson.id, 0);
+        return;
+      }
 
       const now = Date.now();
       const positionSecs = (status.positionMillis ?? 0) / 1000;

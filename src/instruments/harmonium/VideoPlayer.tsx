@@ -291,6 +291,22 @@ const VideoPlayerInner = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
                     didJustFinish: false,
                   } as AVPlaybackStatus);
                 }}
+                onEnded={(e: React.SyntheticEvent<HTMLVideoElement>) => {
+                  const el = e.currentTarget;
+                  el.currentTime = 0; // seek to start so next play begins from 0
+                  onPlaybackStatusRef.current({
+                    isLoaded: true,
+                    isPlaying: false,
+                    positionMillis: 0,
+                    durationMillis: Number.isFinite(el.duration) ? el.duration * 1000 : 0,
+                    rate: 1,
+                    shouldPlay: false,
+                    volume: 1,
+                    isMuted: false,
+                    isBuffering: false,
+                    didJustFinish: true,
+                  } as AVPlaybackStatus);
+                }}
               />
             )}
 

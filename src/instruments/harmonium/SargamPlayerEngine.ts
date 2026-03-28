@@ -115,6 +115,14 @@ export class SargamPlayerEngine {
     this._stopSound();
   }
 
+  reset(): void {
+    // Stop sounds, clear internal position so next syncToTime(0) re-fires onIndexChange
+    this._stopSound();
+    this.lastIndex = -1;
+    this.lastProgress = -1;
+    this.onIndexChange?.(-1); // Clear active-note highlight in the UI
+  }
+
   destroy(): void {
     for (const player of this.players.values()) {
       try { player.remove(); } catch { /* ignore */ }
