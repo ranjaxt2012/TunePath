@@ -12,13 +12,18 @@ interface UseLessonsOptions {
 
 export function useLessons(options: UseLessonsOptions = {}) {
   const { getToken } = useAuth();
+  // Store getToken in a ref so it never appears in useEffect deps
   const getTokenRef = useRef(getToken);
-  useEffect(() => { getTokenRef.current = getToken; }, [getToken]);
+  getTokenRef.current = getToken;
+  // Track the last fetched options key to prevent duplicate fetches
+  const fetchedKeyRef = useRef<string | null>(null);
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchLessons = useCallback(async (cancelled?: { value: boolean }) => {
+    const key = `${options.instrument ?? ''}|${options.tag ?? ''}|${options.sort ?? ''}|${options.limit ?? ''}`;
+    if (fetchedKeyRef.current === key) return; // Already fetched these exact options
     setLoading(true);
     setError(null);
     try {
@@ -34,6 +39,7 @@ export function useLessons(options: UseLessonsOptions = {}) {
       const data = await api.get<Lesson[]>(`/api/lessons${query ? `?${query}` : ''}`);
       if (cancelled?.value) return;
       setLessons(data);
+      fetchedKeyRef.current = key; // Mark these options as fetched
     } catch (e: unknown) {
       if (cancelled?.value) return;
       setError(e instanceof Error ? e.message : 'Failed to load lessons');
@@ -49,6 +55,7 @@ export function useLessons(options: UseLessonsOptions = {}) {
   }, [fetchLessons]);
 
   const refetch = useCallback(() => {
+    fetchedKeyRef.current = null; // Reset guard so refetch is forced
     void fetchLessons();
   }, [fetchLessons]);
 

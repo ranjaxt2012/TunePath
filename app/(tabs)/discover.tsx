@@ -74,7 +74,7 @@ export default function DiscoverScreen() {
       const [t, n, h] = await Promise.all([
         api.get<Lesson[]>('/api/lessons?sort=trending&limit=10'),
         api.get<Lesson[]>('/api/lessons?sort=new&limit=10'),
-        api.get<Lesson[]>('/api/lessons?instrument=harmonium&limit=10'),
+        api.get<Lesson[]>('/api/lessons?instrument_slug=harmonium&limit=10'),
       ]);
       setTrending(t);
       setNewLessons(n);
@@ -90,12 +90,20 @@ export default function DiscoverScreen() {
     }
   }, []);
 
-  // Single effect handles both initial load and re-fetch on focus (e.g. after delete).
-  // Empty deps — fetchAll is stable (uses getTokenRef internally), so this never re-fires
-  // due to a render cycle, only when the screen comes into focus.
+  // Tracks timestamp of the last successful fetch to avoid hammering the API on
+  // every tab focus (e.g. browser window regaining focus, rapid tab switching).
+  const lastFetchTimeRef = useRef(0);
+  const STALE_MS = 60_000; // Re-fetch at most once per 60 seconds on focus
+
+  // Re-fetch when the screen gains focus, but only if data is stale.
+  // Force-fetch bypasses the cooldown (e.g. on retry or after delete).
   useFocusEffect(
     useCallback(() => {
-      void fetchAll();
+      const now = Date.now();
+      if (now - lastFetchTimeRef.current > STALE_MS) {
+        lastFetchTimeRef.current = now;
+        void fetchAll();
+      }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
   );
@@ -134,6 +142,7 @@ export default function DiscoverScreen() {
   }, [router]);
 
   const handleRetry = useCallback(() => {
+    lastFetchTimeRef.current = 0; // Reset staleness so next focus also re-fetches
     void fetchAll(true); // force = true bypasses in-flight guard
   }, [fetchAll]);
 
