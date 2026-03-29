@@ -21,7 +21,7 @@ import { useAuthStore } from '@/src/store/authStore';
 import { useWorkflows } from '@/src/hooks/useWorkflows';
 import { WorkflowPicker } from '@/src/components/ui/WorkflowPicker';
 import { Log } from '@/src/utils/log';
-import { api, setAuthToken } from '@/src/services/api';
+import { api, setAuthToken, BASE_URL } from '@/src/services/api';
 import { useAuth, useUser } from '@clerk/clerk-expo';
 import { VideoView, useVideoPlayer } from 'expo-video';
 
@@ -411,7 +411,7 @@ export default function CreateScreen() {
       formData.append('level_id', defaultCourse.level_id);
       formData.append('shruti', 'C');
       formData.append('workflow_id', selectedWorkflow);
-      const uploadUrl = `${process.env.EXPO_PUBLIC_API_URL}/api/tutor/lessons/upload`;
+      const uploadUrl = `${BASE_URL}/api/tutor/lessons/upload`;
       Log.api('local upload: starting', { platform: Platform.OS, titleLen: title.length });
 
       const lessonId = await new Promise<string>((resolve, reject) => {
