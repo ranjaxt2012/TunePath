@@ -8,6 +8,7 @@ import {
   TextInput,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import { useTheme, Spacing, FontSize, Radius } from '@/src/design';
@@ -47,12 +48,13 @@ export function HarmoniumPlayer({ lesson, notes = [], shruti, isTutor, onComplet
   const markComplete = useProgressStore((s) => s.markComplete);
   const isComplete = useProgressStore((s) => s.isComplete);
   const showSideBySide = isLandscape || Platform.OS === 'web';
+  const insets = useSafeAreaInsets();
 
   // ── State ─────────────────────────────────────────────────────────────
   const [playbackSpeed, setPlaybackSpeed] = useState(1.0);
   const [videoStarted, setVideoStarted] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [soundEnabled, setSoundEnabled] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(true);
   const [videoDuration, setVideoDuration] = useState(0);
   const [localNotes, setLocalNotes] = useState<Note[]>(notes);
   const [currentTime, setCurrentTime] = useState(0);
@@ -108,14 +110,14 @@ export function HarmoniumPlayer({ lesson, notes = [], shruti, isTutor, onComplet
   const handleVideoStarted = useCallback(() => {
     setVideoStarted(true);
     Log.player('video started');
-    // Sound off by default — mute video immediately on start
-    videoRef.current?.setVolume(0);
+    // Lesson audio (the singer's voice) on by default; toggle mutes it.
+    videoRef.current?.setVolume(soundEnabled ? 1 : 0);
     // Restore saved position if any
     const savedPos = getPosition(lesson.id);
     if (savedPos > 0) {
       videoRef.current?.seekTo(savedPos);
     }
-  }, [getPosition, lesson.id]);
+  }, [getPosition, lesson.id, soundEnabled]);
 
   // ── Playback status ───────────────────────────────────────────────────
   // CRITICAL: no isPlaying or playbackSpeed in deps.
@@ -224,8 +226,17 @@ export function HarmoniumPlayer({ lesson, notes = [], shruti, isTutor, onComplet
 
   // ── Header ────────────────────────────────────────────────────────────
   const header = (
-    <View style={[styles.header, { backgroundColor: theme.background, borderBottomColor: theme.border }]}>
-      <TouchableOpacity onPress={() => router.back()} style={[styles.backBtn, { backgroundColor: theme.surface }]}>
+    <View style={[styles.header, {
+      backgroundColor: theme.background,
+      borderBottomColor: theme.border,
+      paddingTop: insets.top,        // clear the status bar / notch so back is tappable
+      height: 52 + insets.top,
+    }]}>
+      <TouchableOpacity
+        onPress={() => { if (router.canGoBack()) router.back(); else router.replace('/(tabs)/discover' as never); }}
+        style={[styles.backBtn, { backgroundColor: theme.surface }]}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      >
         <Ionicons name="chevron-back" size={20} color={theme.textPrimary} />
       </TouchableOpacity>
       <Text numberOfLines={1} style={[styles.headerTitle, { color: theme.textPrimary }]}>
