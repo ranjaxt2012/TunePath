@@ -4,6 +4,7 @@
     "slug": "TunePath",
     "version": "1.0.0",
     "sdkVersion": "54.0.0",
+    "newArchEnabled": false,
     "icon": "./assets/images/icon.png",
     "scheme": "tunepath",
     "userInterfaceStyle": "automatic",
