@@ -70,6 +70,7 @@ export function useLesson(id: string | undefined, refreshKey: number = 0) {
   const { getToken } = useAuth();
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
+  const [shruti, setShruti] = useState<string | undefined>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -99,6 +100,7 @@ export function useLesson(id: string | undefined, refreshKey: number = 0) {
             if (cancelled) return;
             const noteArray = convertSectionsToNotes(notationData);
             setNotes(noteArray);
+            if (isRecord(notationData) && typeof notationData.shruti === 'string') setShruti(notationData.shruti);
           } catch (err) {
             if (cancelled) return;
             Log.apiError('notation fetch failed', err);
@@ -123,5 +125,5 @@ export function useLesson(id: string | undefined, refreshKey: number = 0) {
   // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run if id changes
   }, [id, refreshKey]);
 
-  return { lesson, notes, loading, error };
+  return { lesson, notes, shruti, loading, error };
 }

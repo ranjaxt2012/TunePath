@@ -15,7 +15,7 @@ import { useProgressStore } from '@/src/store/progressStore';
 import { VideoPlayer, type VideoPlayerHandle } from './VideoPlayer';
 import type { Note } from '@/src/hooks/useLesson';
 import { NotationContainer } from './NotationContainer';
-import { RowTimingEditor } from './RowTimingEditor';
+import { SargamRollEditor } from './SargamRollEditor';
 import { SargamPlayerEngine } from './SargamPlayerEngine';
 import { HARMONIUM_SAMPLE_MAP } from './sampleMap';
 import type { Lesson } from '@/src/types/models';
@@ -26,6 +26,7 @@ import { Log } from '@/src/utils/log';
 interface HarmoniumPlayerProps {
   lesson: Lesson;
   notes?: Note[];
+  shruti?: string;
   isTutor?: boolean;
   onComplete?(): void;
 }
@@ -39,12 +40,7 @@ function formatTimeMs(seconds: number): string {
   return `${mins}:${String(secs).padStart(2, '0')}.${String(ms).padStart(3, '0')}`;
 }
 
-function getRowNotes(notes: Note[], rowIndex: number): Note[] {
-  const start = rowIndex * 8;
-  return notes.slice(start, start + 8);
-}
-
-export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: HarmoniumPlayerProps) {
+export function HarmoniumPlayer({ lesson, notes = [], shruti, isTutor, onComplete }: HarmoniumPlayerProps) {
   const { theme } = useTheme();
   const router = useRouter();
   const { isLandscape } = useOrientation();
@@ -357,26 +353,16 @@ export function HarmoniumPlayer({ lesson, notes = [], isTutor, onComplete }: Har
 
   const rowEditorPanel =
     editingRowIndex !== null ? (
-      <RowTimingEditor
-        lessonId={lesson.id}
-        rowIndex={editingRowIndex}
-        rowNotes={getRowNotes(localNotes, editingRowIndex)}
-        allNotes={localNotes}
+      <SargamRollEditor
+        notes={localNotes}
         videoDuration={videoDuration}
         currentVideoTime={currentTime}
-        totalRows={Math.ceil(localNotes.length / 8)}
+        isPlaying={isPlaying}
+        keyLabel={shruti}
+        onTogglePlay={togglePlay}
         videoRef={videoRef}
-        onSave={(updatedRowNotes) => {
-          const allNotes = [...localNotes];
-          const start = editingRowIndex * 8;
-          updatedRowNotes.forEach((n, i) => { allNotes[start + i] = n; });
-          handleNotesEdit(allNotes);
-          setEditingRowIndex(null);
-        }}
-        onSaveAll={(updatedAllNotes) => { handleNotesEdit(updatedAllNotes); }}
+        onSave={(updatedNotes) => { handleNotesEdit(updatedNotes); }}
         onClose={() => setEditingRowIndex(null)}
-        onPrevRow={() => setEditingRowIndex(Math.max(0, editingRowIndex - 1))}
-        onNextRow={() => setEditingRowIndex(Math.min(Math.ceil(localNotes.length / 8) - 1, editingRowIndex + 1))}
       />
     ) : notationPanel;
 

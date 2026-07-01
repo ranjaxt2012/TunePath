@@ -1,8 +1,9 @@
 import React, { memo, useEffect, useState, RefObject } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { useTheme, FontSize } from '@/src/design';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { useTheme, FontSize, Spacing, Radius } from '@/src/design';
 import type { Note } from '@/src/hooks/useLesson';
 import { ScrollingNotation } from './ScrollingNotation';
+import { SargamRollView } from './SargamRollView';
 import { SargamPlayerEngine } from './SargamPlayerEngine';
 
 interface NotationContainerProps {
@@ -39,6 +40,7 @@ function NotationContainerInner({
   const { theme } = useTheme();
   const [activeNoteIndex, setActiveNoteIndex] = useState(-1);
   const [noteProgress, setNoteProgress] = useState(0);
+  const [rollView, setRollView] = useState(true);
 
   useEffect(() => {
     const attach = () => {
@@ -75,22 +77,52 @@ function NotationContainerInner({
     );
   }
 
+  // Roll view is read-only, so it's only offered outside edit mode; editing
+  // stays on the classic notation (which carries the per-row edit affordances).
+  const showRoll = rollView && !editMode;
+
   return (
     <View style={styles.container}>
-      <ScrollingNotation
-        notes={notes}
-        activeNoteIndex={activeNoteIndex}
-        noteProgress={noteProgress}
-        isTutor={isTutor}
-        isLandscape={isLandscape}
-        editMode={editMode}
-        snapToBeat={snapToBeat}
-        bpm={bpm}
-        firstBeat={firstBeat}
-        currentTimeRef={currentTimeRef}
-        onNotesEdit={onNotesEdit}
-        onRowEdit={(rowIndex) => onRowEditOpen(rowIndex)}
-      />
+      {!editMode && (
+        <View style={styles.toggleRow}>
+          {(['roll', 'classic'] as const).map((mode) => {
+            const on = (mode === 'roll') === rollView;
+            return (
+              <TouchableOpacity
+                key={mode}
+                onPress={() => setRollView(mode === 'roll')}
+                style={[styles.toggleChip, {
+                  backgroundColor: on ? theme.primary + '18' : 'transparent',
+                  borderColor: on ? theme.primary : theme.border,
+                }]}
+              >
+                <Text style={{ fontSize: FontSize.xs, fontWeight: '700', color: on ? theme.primary : theme.textSecondary }}>
+                  {mode === 'roll' ? 'Roll' : 'Classic'}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      )}
+
+      {showRoll ? (
+        <SargamRollView notes={notes} activeNoteIndex={activeNoteIndex} currentTimeRef={currentTimeRef} />
+      ) : (
+        <ScrollingNotation
+          notes={notes}
+          activeNoteIndex={activeNoteIndex}
+          noteProgress={noteProgress}
+          isTutor={isTutor}
+          isLandscape={isLandscape}
+          editMode={editMode}
+          snapToBeat={snapToBeat}
+          bpm={bpm}
+          firstBeat={firstBeat}
+          currentTimeRef={currentTimeRef}
+          onNotesEdit={onNotesEdit}
+          onRowEdit={(rowIndex) => onRowEditOpen(rowIndex)}
+        />
+      )}
     </View>
   );
 }
@@ -115,4 +147,6 @@ export const NotationContainer = memo(NotationContainerInner, arePropsEqual);
 const styles = StyleSheet.create({
   container: { flex: 1 },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  toggleRow: { flexDirection: 'row', gap: Spacing.xs, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs },
+  toggleChip: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: Radius.sm, borderWidth: 1 },
 });

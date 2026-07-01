@@ -6,6 +6,7 @@ import type { Lesson } from '@/src/types/models';
 interface PlayerProps {
   lesson: Lesson;
   notes?: Note[];
+  shruti?: string;
   isTutor?: boolean;
   onComplete?(): void;
 }

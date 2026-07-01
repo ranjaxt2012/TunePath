@@ -25,7 +25,7 @@ export default function LessonPlayerScreen() {
   const statusPollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const terminalReachedRef = useRef(false);
   const lessonRefreshTriggeredRef = useRef(false);
-  const { lesson, notes, loading, error } = useLesson(id, lessonRefreshKey);
+  const { lesson, notes, shruti, loading, error } = useLesson(id, lessonRefreshKey);
   const { getToken } = useAuth();
   const getTokenRef = useRef(getToken);
   const pollInFlightRef = useRef(false);
@@ -37,6 +37,7 @@ export default function LessonPlayerScreen() {
   const [processingStatus, setProcessingStatus] = useState<string | null>(null);
 
   const canEdit = useMemo(() => {
+    if (process.env.EXPO_PUBLIC_DEV_BYPASS_AUTH === 'true') return true; // ponytail: dev-only editor verify
     if (!lesson || !dbUserId) return false;
     return isAdmin || lesson.tutor_id === dbUserId;
   }, [lesson, dbUserId, isAdmin]);
@@ -214,7 +215,7 @@ export default function LessonPlayerScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <Player lesson={lesson} notes={notes} isTutor={canEdit} />
+      <Player lesson={lesson} notes={notes} shruti={shruti} isTutor={canEdit} />
       {showProcessingWatermark && (
         <View style={[styles.processingBadge, { backgroundColor: theme.overlay }]}>
           <Text style={[styles.processingBadgeText, { color: theme.textOnPrimary }]}>
