@@ -196,6 +196,22 @@ const VideoPlayerInner = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []); // empty deps — all refs, no stale closure
 
+    // ── Sync web <video> playback to isPlaying (declarative) ──────────────
+    // Fixes the first-tap bug: on first play the <video> element isn't mounted
+    // yet when togglePlay's imperative play() fires (webVideoRef is null), so
+    // nothing starts. This effect runs AFTER the element mounts and on every
+    // isPlaying change, so playback reliably follows the play/pause state.
+    React.useEffect(() => {
+      if (Platform.OS !== 'web' || isYoutube || !started) return;
+      const el = webVideoRef.current;
+      if (!el) return;
+      if (isPlaying) {
+        void el.play().catch(() => { /* autoplay/race — ignore */ });
+      } else {
+        el.pause();
+      }
+    }, [isPlaying, started, isYoutube]);
+
     // ── Poster (before first play) ────────────────────────────────────────
     if (!started) {
       return (

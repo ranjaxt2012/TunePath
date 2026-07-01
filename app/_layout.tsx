@@ -74,7 +74,10 @@ function AuthGuard() {
     const inAuth = segments[0] === '(auth)';
     const inOnboarding = segments[0] === 'onboarding';
 
-    if (!isSignedIn && !inAuth) {
+    // DEV: bypass the sign-in gate so the app (and player) load without auth.
+    // Enable by setting EXPO_PUBLIC_DEV_BYPASS_AUTH=true. Never set this in production.
+    const devBypassAuth = process.env.EXPO_PUBLIC_DEV_BYPASS_AUTH === 'true';
+    if (!isSignedIn && !inAuth && !devBypassAuth) {
       hasRedirected.current = true;
       Log.nav('redirecting to', { target: '/(auth)/sign-in' });
       router.replace('/(auth)/sign-in' as any);
