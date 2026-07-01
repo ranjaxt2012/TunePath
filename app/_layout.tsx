@@ -4,6 +4,8 @@ import { Slot, useRouter, useSegments } from 'expo-router';
 import { ClerkProvider, useAuth, useUser } from '@clerk/clerk-expo';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { setAudioModeAsync } from 'expo-audio';
+import { Audio } from 'expo-av';
 import { ThemeProvider } from '@/src/design';
 import { tokenCache } from '@/src/utils/tokenCache';
 import { setAuthToken, setRefreshToken, api } from '@/src/services/api';
@@ -104,6 +106,13 @@ function AuthGuard() {
 }
 
 export default function RootLayout() {
+  // Play lesson audio even when the device is on silent (iOS ring switch /
+  // Control Center). Simulators ignore silent mode; real devices need this.
+  useEffect(() => {
+    setAudioModeAsync({ playsInSilentMode: true }).catch(() => { /* noop */ });
+    Audio.setAudioModeAsync({ playsInSilentModeIOS: true }).catch(() => { /* noop */ });
+  }, []);
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
