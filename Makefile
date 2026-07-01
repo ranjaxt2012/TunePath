@@ -14,13 +14,13 @@ API_URL := https://api.tune-path.com
 # Add each tester's UDID here. Device must already be in the Apple Dev account
 # (register with `eas device:create`). Get a connected device's UDID: make list-devices
 # ──────────────────────────────────────────────────────────────────────────────
-# Anup's iPhone 16 Pro Max (verify via `make list-devices`)
-DEVICE_anup  := A4C9A7B2-7649-5583-8655-6771A2662B8F
+# devicectl hardware ids (shared across apps). Auto-add new ones: make add-devices
+DEVICE_anup  := A4C9A7B2-7649-5583-8655-6771A2662B8F   # Anup's iPhone 16 Pro Max
+DEVICE_ipad  := 9CB8530B-6B32-5F45-A7D2-26BBC093B723   # iPad Air M2
 # DEVICE_simmi := <udid>   # add more testers here, then include in ALL_DEVICES
-# DEVICE_ipad  := <udid>
 
 # Devices targeted by `make install-all`
-ALL_DEVICES  := $(DEVICE_anup)
+ALL_DEVICES  := $(DEVICE_anup) $(DEVICE_ipad)
 # Default single-device install target
 DEVICE_UDID  := $(DEVICE_anup)
 
@@ -204,6 +204,10 @@ ship: prod
 # ─── Devices ──────────────────────────────────────────────────────────────────
 register-device:
 	$(EAS) device:create
+
+# Auto-scan connected devices (USB/WiFi) and append any new ones to this Makefile
+add-devices:
+	@bash $(TUNEPATH_DIR)/scripts/add-devices.sh
 
 list-devices:
 	@echo ""
