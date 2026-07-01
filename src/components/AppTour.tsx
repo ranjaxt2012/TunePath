@@ -34,12 +34,13 @@ const TOTAL_STEPS = STEPS.length;
 
 export function AppTour() {
   const { theme } = useTheme();
-  const { isSignedIn, hasOnboarded, tourSeen, setTourSeen } = useAuthStore((s) => ({
-    isSignedIn: !!s.user,
-    hasOnboarded: s.hasOnboarded,
-    tourSeen: s.tourSeen,
-    setTourSeen: s.setTourSeen,
-  }));
+  // Select fields individually — a single selector returning a NEW object each
+  // render makes Zustand v5's useSyncExternalStore see a changed snapshot every
+  // time → infinite re-render ("Maximum update depth") → release-build crash.
+  const isSignedIn = useAuthStore((s) => !!s.user);
+  const hasOnboarded = useAuthStore((s) => s.hasOnboarded);
+  const tourSeen = useAuthStore((s) => s.tourSeen);
+  const setTourSeen = useAuthStore((s) => s.setTourSeen);
 
   const [visible, setVisible] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
