@@ -7,16 +7,17 @@ import type { VideoPlayerHandle } from './VideoPlayer';
 
 // ── Sargam scale ──────────────────────────────────────────────────────────
 const SVARA = ['Sa', 'Re', 'Ga', 'Ma', 'Pa', 'Dha', 'Ni'] as const;
+// Full 12-tone map so komal/tivra notes get a correct height (not all at Sa).
+const CHROMA: Record<string, number> = {
+  Sa: 0, re: 1, Re: 2, ga: 3, Ga: 4, Ma: 5, ma: 6, Pa: 7, dha: 8, Dha: 9, ni: 10, Ni: 11,
+};
 const SPEEDS = [0.25, 0.5, 0.75, 1.0] as const;
 const NUDGES = [-0.05, -0.01, 0.01, 0.05] as const;
 const LANE_H = 150;
-const DEG_STEP = 15;
+const DEG_STEP = 9;
 const CONFIRMED = 1.0;
 
-const degreeOf = (name: string) => {
-  const i = SVARA.indexOf(name as (typeof SVARA)[number]);
-  return i < 0 ? 0 : i;
-};
+const degreeOf = (name: string) => CHROMA[name] ?? 0;
 const isTimed = (n: Note) => n.time > 0 || n.duration > 0;
 const noteEnd = (n: Note) => n.time + n.duration;
 

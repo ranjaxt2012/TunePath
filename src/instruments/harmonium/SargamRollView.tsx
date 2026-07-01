@@ -7,16 +7,19 @@ import type { Note } from '@/src/hooks/useLesson';
 // height = pitch). The playhead is pinned and the track rolls continuously
 // under it — the current note stays under the playhead from start to end
 // (no clamp/stop when the tail fits on screen).
-const SVARA = ['Sa', 'Re', 'Ga', 'Ma', 'Pa', 'Dha', 'Ni'] as const;
+// Full 12-tone svara map (komal lowercase, tivra 'ma') so every note gets a
+// correct pitch height — not just the 7 shuddha svaras.
+const CHROMA: Record<string, number> = {
+  Sa: 0, re: 1, Re: 2, ga: 3, Ga: 4, Ma: 5, ma: 6, Pa: 7, dha: 8, Dha: 9, ni: 10, Ni: 11,
+};
 const PPS = 80;            // pixels per second
 const PLAYHEAD_X = 110;    // pinned playhead offset from the left edge
-const LANE_H = 140;
-const DEG_STEP = 14;
+const LANE_H = 168;
+const CHIP_H = 24;
+const PAD = 12;
 
-const degreeOf = (name: string) => {
-  const i = SVARA.indexOf(name as (typeof SVARA)[number]);
-  return i < 0 ? 0 : i;
-};
+// Pitch level across octaves: e.g. mandra Pa = -5, tar Sa = +12.
+const levelOf = (n: Note) => (CHROMA[n.note] ?? 0) + 12 * (n.octave || 0);
 
 interface Props {
   notes: Note[];
@@ -44,15 +47,23 @@ export function SargamRollView({ notes, activeNoteIndex, currentTimeRef }: Props
   const lastEnd = notes.length ? notes[notes.length - 1].time + notes[notes.length - 1].duration : 0;
   const trackWidth = lastEnd * PPS + 200;
 
+  // Fit the actual pitch range (this lesson's low→high note) into the lane so
+  // notes spread out and use the full height — higher pitch sits higher.
+  const levels = notes.map(levelOf);
+  const maxL = levels.length ? Math.max(...levels) : 11;
+  const minL = levels.length ? Math.min(...levels) : 0;
+  const span = Math.max(maxL - minL, 7);
+  const usable = LANE_H - CHIP_H - PAD * 2;
+  const topOf = (lvl: number) => PAD + ((maxL - lvl) / span) * usable;
+
   return (
     <View style={styles.container}>
       <Animated.View style={{ width: trackWidth, height: LANE_H, transform: [{ translateX }] }}>
-        <View style={[styles.baseline, { backgroundColor: theme.border }]} />
         {notes.map((n, i) => {
           const active = i === activeNoteIndex;
           const left = n.time * PPS;
-          const width = Math.max(n.duration * PPS - 4, 28);
-          const top = LANE_H - 34 - degreeOf(n.note) * DEG_STEP;
+          const width = Math.max(n.duration * PPS - 4, 46);   // min width so labels never truncate
+          const top = topOf(levelOf(n));
           return (
             <View
               key={i}
@@ -80,9 +91,8 @@ export function SargamRollView({ notes, activeNoteIndex, currentTimeRef }: Props
 
 const styles = StyleSheet.create({
   container: { height: LANE_H, justifyContent: 'center', overflow: 'hidden' },
-  baseline: { position: 'absolute', left: 0, right: 0, bottom: 22, height: 1 },
   chip: {
-    position: 'absolute', height: 26, minWidth: 28, borderRadius: Radius.sm, borderWidth: 1.5,
+    position: 'absolute', height: CHIP_H, minWidth: 46, borderRadius: Radius.sm, borderWidth: 1.5,
     alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing.xs,
   },
   playhead: { position: 'absolute', top: 0, bottom: 0, width: 2 },
