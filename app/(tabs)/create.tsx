@@ -48,6 +48,7 @@ type ProcessingStatus =
   | 'queued'
   | 'uploaded'
   | 'processing'
+  | 'transcribing'
   | 'detecting_pitches'
   | 'transcribing_lyrics'
   | 'finalising_notation'
@@ -64,7 +65,10 @@ function getProcessingStepState(status: string, idx: number) {
     'review_ready',
     'published',
   ];
-  const normalized = status === 'queued' || status === 'processing' ? 'detecting_pitches' : status;
+  const normalized =
+    status === 'queued' || status === 'processing' || status === 'transcribing'
+      ? 'detecting_pitches'
+      : status;
   const currentIdx = order.indexOf(normalized as ProcessingStatus);
   const isDone = currentIdx > idx;
   const isActive = currentIdx === idx;
